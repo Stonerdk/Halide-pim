@@ -405,6 +405,8 @@ enum class ForType {
     Extern,
     GPUBlock,
     GPUThread,
+    PIMBank,
+    PIMThread,
     GPULane,
 };
 

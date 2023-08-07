@@ -436,6 +436,13 @@ public:
                     TailStrategy tail = TailStrategy::Auto,
                     DeviceAPI device_api = DeviceAPI::Default_GPU);
 
+    Stage &pim_bank(const VarOrRVar &dpu_x, DeviceAPI device_api = DeviceAPI::UPMEM);
+    Stage &pim_bank(const VarOrRVar &dpu_x, const VarOrRVar &dpu_y, DeviceAPI device_api = DeviceAPI::UPMEM);
+    Stage &pim_bank(const VarOrRVar &dpu_x, const VarOrRVar &dpu_y, const VarOrRVar &dpu_z, DeviceAPI device_api = DeviceAPI::UPMEM);
+
+    Stage &pim_thread(const Expr &tasklet_size, DeviceAPI device_api = DeviceAPI::UPMEM);
+    Stage &pim_thread(const VarOrRVar &tasklet_x, const Expr &tasklet_size, DeviceAPI device_api = DeviceAPI::UPMEM); // TODO
+
     Stage &allow_race_conditions();
     Stage &atomic(bool override_associativity_test = false);
 
@@ -1932,6 +1939,17 @@ public:
                    const Expr &x_size, const Expr &y_size, const Expr &z_size,
                    TailStrategy tail = TailStrategy::Auto,
                    DeviceAPI device_api = DeviceAPI::Default_GPU);
+    // @}
+
+    /** Tell Halide that the following dimsnions correspond to PIMBank indices.
+    */
+    // @{
+    Func &pim_bank(const VarOrRVar &dpu_x, DeviceAPI device_api = DeviceAPI::UPMEM);
+    Func &pim_bank(const VarOrRVar &dpu_x, const VarOrRVar &dpu_y, DeviceAPI device_api = DeviceAPI::UPMEM);
+    Func &pim_bank(const VarOrRVar &dpu_x, const VarOrRVar &dpu_y, const VarOrRVar &dpu_z, DeviceAPI device_api = DeviceAPI::UPMEM);
+
+    Func &pim_thread(const Expr &tasklet_size, DeviceAPI device_api = DeviceAPI::UPMEM);
+    Func &pim_thread(const VarOrRVar &tasklet_x, const Expr &tasklet_size, DeviceAPI device_api = DeviceAPI::UPMEM); // TODO
     // @}
 
     /** Schedule for execution on Hexagon. When a loop is marked with

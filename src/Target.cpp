@@ -539,6 +539,7 @@ const std::map<std::string, Target::Feature> feature_name_map = {
     {"vk_v10", Target::VulkanV10},
     {"vk_v12", Target::VulkanV12},
     {"vk_v13", Target::VulkanV13},
+    {"upmem", Target::UPMEM},
     {"semihosting", Target::Semihosting},
     // NOTE: When adding features to this map, be sure to update PyEnums.cpp as well.
 };
@@ -877,6 +878,9 @@ bool Target::supported() const {
 #if !defined(WITH_NVPTX)
     bad |= has_feature(Target::CUDA);
 #endif
+#if !defined(WITH_UPMEM)
+    bad |= has_feature(Target::UPMEM);
+#endif
 #if !defined(WITH_OPENCL)
     bad |= has_feature(Target::OpenCL);
 #endif
@@ -1020,6 +1024,7 @@ bool Target::supports_type(const Type &t) const {
             return (!has_feature(Metal) &&
                     !has_feature(OpenGLCompute) &&
                     !has_feature(D3D12Compute) &&
+                    !has_feature(UPMEM) &&
                     (!has_feature(Target::OpenCL) || has_feature(Target::CLDoubles)) &&
                     (!has_feature(Vulkan) || has_feature(Target::VulkanFloat64)) &&
                     !has_feature(WebGPU));
@@ -1073,6 +1078,8 @@ bool Target::supports_type(const Type &t, DeviceAPI device) const {
         }
     } else if (device == DeviceAPI::WebGPU) {
         return t.bits() < 64;
+    } else if (device == DeviceAPI::UPMEM) {
+        if (t.is_float()) return false;
     }
 
     return true;
@@ -1123,6 +1130,9 @@ DeviceAPI Target::get_required_device_api() const {
     if (has_feature(Target::WebGPU)) {
         return DeviceAPI::WebGPU;
     }
+    if (has_feature(Target::UPMEM)) {
+        return DeviceAPI::UPMEM;
+    }
     return DeviceAPI::None;
 }
 
@@ -1144,6 +1154,8 @@ Target::Feature target_feature_for_device_api(DeviceAPI api) {
         return Target::Vulkan;
     case DeviceAPI::WebGPU:
         return Target::WebGPU;
+    case DeviceAPI::UPMEM:
+        return Target::UPMEM;
     default:
         return Target::FeatureEnd;
     }
