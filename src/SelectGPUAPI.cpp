@@ -22,7 +22,7 @@ class SelectGPUAPI : public IRMutator {
 
     Stmt visit(const For *op) override {
         DeviceAPI selected_api = op->device_api;
-        if (op->device_api == DeviceAPI::Default_GPU) {
+        if (op->device_api == DeviceAPI::Default_GPU || op->device_api == DeviceAPI::Default_PIM) {
             selected_api = default_api;
         }
 

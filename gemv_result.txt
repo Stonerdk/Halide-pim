@@ -1,0 +1,1 @@
+./custom_test/custom_test.sh: 4: ./gemv: not found

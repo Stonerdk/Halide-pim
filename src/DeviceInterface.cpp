@@ -86,6 +86,22 @@ const halide_device_interface_t *get_device_interface_for_device_api(DeviceAPI d
         }
     }
 
+    if (d == DeviceAPI::Default_PIM) {
+        d = get_default_device_api_for_target(t);
+        if (d == DeviceAPI::Host) {
+            if (error_site) {
+                user_error
+                    << "get_device_interface_for_device_api called from "
+                    << error_site
+                    << " requested a default GPU but no GPU feature is specified in target ("
+                    << t.to_string()
+                    << ").\n";
+            }
+            return nullptr;
+        }
+    }
+    // PIM_TODO: distinguish GPU device and PIM device
+
     const struct halide_device_interface_t *(*fn)();
     std::string name;
     if (d == DeviceAPI::Metal) {
@@ -219,6 +235,7 @@ Expr make_device_interface_call(DeviceAPI device_api, MemoryType memory_type) {
         interface_name = "halide_upmem_device_interface";
         break;
     case DeviceAPI::Default_GPU:
+    case DeviceAPI::Default_PIM:
         // Will be resolved later
         interface_name = "halide_default_device_interface";
         break;

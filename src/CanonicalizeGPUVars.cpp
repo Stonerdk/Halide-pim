@@ -18,6 +18,9 @@ namespace {
 string thread_names[] = {"__thread_id_x", "__thread_id_y", "__thread_id_z", "__thread_id_w"};
 string block_names[] = {"__block_id_x", "__block_id_y", "__block_id_z", "__block_id_w"};
 
+string pim_bank_names[] = {"__bank_id_x", "__bank_id_y", "__bank_id_z", "__bank_id_w"};
+string pim_thread_names[] = {"__thread_id_x"};
+
 string get_thread_name(int index) {
     internal_assert(index >= 0 && index < 4);
     return thread_names[index];
@@ -26,6 +29,16 @@ string get_thread_name(int index) {
 string get_block_name(int index) {
     internal_assert(index >= 0 && index < 4);
     return block_names[index];
+}
+
+string get_pim_bank_name(int index) {
+    internal_assert(index >= 0 && index < 4);
+    return pim_bank_names[index];
+}
+
+string get_pim_thread_name(int index) {
+    internal_assert(index == 0);
+    return pim_bank_names[index];
 }
 
 class CountGPUBlocksThreads : public IRVisitor {
@@ -72,6 +85,27 @@ public:
     int nlanes = 0;
 };
 
+class CountPIMBanksThreads : public IRVisitor {
+using IRVisitor::visit;
+    int nb = 0, nt = 0;
+
+    void visit(const For *op) override {
+        int db = op->for_type == ForType::PIMBank;
+        int dt = op->for_type == ForType::PIMThread;
+        nb += db;
+        nt += dt;
+        nbanks = std::max(nb, nbanks);
+        nthreads = std::max(nt, nthreads);
+        IRVisitor::visit(op);
+        nb -= db;
+        nt -= dt;
+    }
+
+public:
+    int nbanks = 0;
+    int nthreads = 0;
+};
+
 class CanonicalizeGPUVars : public IRMutator {
     map<string, string> gpu_vars;
 
@@ -105,6 +139,7 @@ class CanonicalizeGPUVars : public IRMutator {
         Expr extent = mutate(op->extent);
         Stmt body = mutate(op->body);
 
+        // GPU
         if ((op->for_type == ForType::GPUBlock) ||
             (op->for_type == ForType::GPUThread) ||
             (op->for_type == ForType::GPULane)) {
@@ -134,6 +169,21 @@ class CanonicalizeGPUVars : public IRMutator {
                 min = substitute(op->name, new_var, min);
                 extent = substitute(op->name, new_var, extent);
                 body = substitute(op->name, new_var, body);
+            }
+        }
+
+        if (op->for_type == ForType::PIMBank || op->for_type == ForType::PIMThread) {
+            CountPIMBanksThreads counter;
+            op->body.accept(&counter);
+            internal_assert(counter.nbanks <= 4) << op->name << "can only have maximum of 4 bank dimensions\n";
+            internal_assert(counter.nthreads == 0) << op->name << "can only have maximum 1 thread dimensions\n";
+
+            if (op->for_type == ForType::PIMBank) {
+                name += "." + get_pim_bank_name(counter.nbanks);
+                debug(5) << "Replacing " << op->name << " with PIM Bank name " << name << "\n";
+            } else if (op->for_type == ForType::PIMThread) {
+                name += "." + get_pim_thread_name(counter.nthreads);
+                debug(5) << "Replacing " << op->name << " with PIM thread name " << name << "\n";
             }
         }
 

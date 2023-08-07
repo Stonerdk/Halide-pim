@@ -435,12 +435,12 @@ public:
                     TailStrategy tail = TailStrategy::Auto,
                     DeviceAPI device_api = DeviceAPI::Default_GPU);
 
-    Stage &pim_bank(const VarOrRVar &dpu_x, DeviceAPI device_api = DeviceAPI::UPMEM);
-    Stage &pim_bank(const VarOrRVar &dpu_x, const VarOrRVar &dpu_y, DeviceAPI device_api = DeviceAPI::UPMEM);
-    Stage &pim_bank(const VarOrRVar &dpu_x, const VarOrRVar &dpu_y, const VarOrRVar &dpu_z, DeviceAPI device_api = DeviceAPI::UPMEM);
+    Stage &pim_bank(const VarOrRVar &dpu_x, DeviceAPI device_api = DeviceAPI::Default_PIM);
+    Stage &pim_bank(const VarOrRVar &dpu_x, const VarOrRVar &dpu_y, DeviceAPI device_api = DeviceAPI::Default_PIM);
+    Stage &pim_bank(const VarOrRVar &dpu_x, const VarOrRVar &dpu_y, const VarOrRVar &dpu_z, DeviceAPI device_api = DeviceAPI::Default_PIM);
 
-    Stage &pim_thread(const Expr &tasklet_size, DeviceAPI device_api = DeviceAPI::UPMEM);
-    Stage &pim_thread(const VarOrRVar &tasklet_x, const Expr &tasklet_size, DeviceAPI device_api = DeviceAPI::UPMEM); // TODO
+    // Stage &pim_thread(const Expr &tasklet_size, DeviceAPI device_api = DeviceAPI::Default_PIM);
+    Stage &pim_thread(const VarOrRVar &tasklet_x, DeviceAPI device_api = DeviceAPI::Default_PIM); // TODO
 
     Stage &allow_race_conditions();
     Stage &atomic(bool override_associativity_test = false);
@@ -1905,12 +1905,12 @@ public:
     /** Tell Halide that the following dimsnions correspond to PIMBank indices.
     */
     // @{
-    Func &pim_bank(const VarOrRVar &dpu_x, DeviceAPI device_api = DeviceAPI::UPMEM);
-    Func &pim_bank(const VarOrRVar &dpu_x, const VarOrRVar &dpu_y, DeviceAPI device_api = DeviceAPI::UPMEM);
-    Func &pim_bank(const VarOrRVar &dpu_x, const VarOrRVar &dpu_y, const VarOrRVar &dpu_z, DeviceAPI device_api = DeviceAPI::UPMEM);
+    Func &pim_bank(const VarOrRVar &dpu_x, DeviceAPI device_api = DeviceAPI::Default_PIM);
+    Func &pim_bank(const VarOrRVar &dpu_x, const VarOrRVar &dpu_y, DeviceAPI device_api = DeviceAPI::Default_PIM);
+    Func &pim_bank(const VarOrRVar &dpu_x, const VarOrRVar &dpu_y, const VarOrRVar &dpu_z, DeviceAPI device_api = DeviceAPI::Default_PIM);
 
-    Func &pim_thread(const Expr &tasklet_size, DeviceAPI device_api = DeviceAPI::UPMEM);
-    Func &pim_thread(const VarOrRVar &tasklet_x, const Expr &tasklet_size, DeviceAPI device_api = DeviceAPI::UPMEM); // TODO
+    // Func &pim_thread(const Expr &tasklet_size, DeviceAPI device_api = DeviceAPI::Default_PIM);
+    Func &pim_thread(const VarOrRVar &tasklet_x, DeviceAPI device_api = DeviceAPI::Default_PIM); // TODO
     // @}
 
     /** Schedule for execution on Hexagon. When a loop is marked with

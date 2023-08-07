@@ -123,6 +123,9 @@ ostream &operator<<(ostream &out, const DeviceAPI &api) {
     case DeviceAPI::UPMEM:
         out << "<UPMEM>";
         break;
+    case DeviceAPI::Default_PIM:
+        out << "<Default_PIM>";
+        break;
     }
     return out;
 }
