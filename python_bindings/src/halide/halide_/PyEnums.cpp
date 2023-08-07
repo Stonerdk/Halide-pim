@@ -27,7 +27,9 @@ void define_enums(py::module &m) {
         .value("OpenCL", DeviceAPI::OpenCL)
         .value("OpenGLCompute", DeviceAPI::OpenGLCompute)
         .value("Metal", DeviceAPI::Metal)
+        .value("UPMEM", DeviceAPI::UPMEM)
         .value("Hexagon", DeviceAPI::Hexagon);
+        // PIM_TODO: add Hynix PIM, Samsung PIM
 
     py::enum_<LinkageType>(m, "LinkageType")
         .value("External", LinkageType::External)

@@ -120,6 +120,9 @@ ostream &operator<<(ostream &out, const DeviceAPI &api) {
     case DeviceAPI::WebGPU:
         out << "<WebGPU>";
         break;
+    case DeviceAPI::UPMEM:
+        out << "<UPMEM>";
+        break;
     }
     return out;
 }
@@ -296,6 +299,12 @@ ostream &operator<<(ostream &out, const ForType &type) {
         break;
     case ForType::GPULane:
         out << "gpu_lane";
+        break;
+    case ForType::PIMBank:
+        out << "pim_bank";
+        break;
+    case ForType::PIMThread:
+        out << "pim_thread";
         break;
     }
     return out;

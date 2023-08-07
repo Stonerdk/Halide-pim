@@ -77,13 +77,15 @@ const StringImm *StringImm::make(const std::string &val) {
 bool is_unordered_parallel(ForType for_type) {
     return (for_type == ForType::Parallel ||
             for_type == ForType::GPUBlock ||
-            for_type == ForType::GPUThread);
+            for_type == ForType::GPUThread ||
+            for_type == ForType::PIMBank);
 }
 
 /** Returns true if for_type executes for loop iterations in parallel. */
 bool is_parallel(ForType for_type) {
     return (is_unordered_parallel(for_type) ||
             for_type == ForType::Vectorized ||
+            for_type == ForType::PIMThread ||
             for_type == ForType::GPULane);
 }
 

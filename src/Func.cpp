@@ -1790,6 +1790,70 @@ Stage &Stage::gpu_single_thread(DeviceAPI device_api) {
     return *this;
 }
 
+Stage &Stage::pim_bank(const VarOrRVar &dpu_x, DeviceAPI device_api) {
+    set_dim_device_api(dpu_x, device_api);
+    set_dim_type(dpu_x, ForType::PIMBank);
+    return *this;
+}
+Stage &Stage::pim_bank(const VarOrRVar &dpu_x, const VarOrRVar &dpu_y, DeviceAPI device_api) {
+    set_dim_device_api(dpu_x, device_api);
+    set_dim_device_api(dpu_y, device_api);
+    set_dim_type(dpu_x, ForType::PIMBank);
+    set_dim_type(dpu_y, ForType::PIMBank);
+    return *this;
+}
+Stage &Stage::pim_bank(const VarOrRVar &dpu_x, const VarOrRVar &dpu_y, const VarOrRVar &dpu_z, DeviceAPI device_api) {
+    set_dim_device_api(dpu_x, device_api);
+    set_dim_device_api(dpu_y, device_api);
+    set_dim_device_api(dpu_z, device_api);
+    set_dim_type(dpu_x, ForType::PIMBank);
+    set_dim_type(dpu_y, ForType::PIMBank);
+    set_dim_type(dpu_z, ForType::PIMBank);
+    return *this;
+}
+
+Stage &Stage::pim_thread(const Expr &tasklet_size, DeviceAPI device_api) {
+    vector<Dim> &dims = definition.schedule().dims();
+    bool found = false;
+    size_t innermost_dpu = 0;
+    for (size_t i = 0; i < dims.size(); i++) {
+        if (dims[i].for_type == ForType::PIMBank) {
+            found = true;
+            innermost_dpu = i;
+        } 
+    }
+    if (!found) {
+        user_error 
+            << "In schedule for " << name()
+            << ", couldn't find inner PIMBank loop."
+            << "\n"
+            << dump_argument_list();
+    }
+
+    else if (innermost_dpu == dims.size() - 1) {
+        user_error 
+            << "In schedule for " << name()
+            << ", PIMBank loop is the innermost loop."
+            << " Please split into 2 or more loops to"
+            << " ensure the outermost loop under PIMBank loop to be tasklet loop."
+            << "\n"
+            << dump_argument_list();
+    }
+
+    else {
+        // PIM_TODD: not like this. we need to split it
+        dims[innermost_dpu + 1].device_api = device_api;
+        dims[innermost_dpu + 1].for_type = ForType::PIMThread;
+    }
+    return *this;
+}
+
+Stage &Stage::pim_thread(const VarOrRVar &tasklet_x, const Expr &tasklet_size, DeviceAPI device_api) {
+    set_dim_device_api(tasklet_x, device_api);
+    set_dim_type(tasklet_x, ForType::PIMThread);
+    return *this;
+} 
+
 Stage &Stage::gpu(const VarOrRVar &bx, const VarOrRVar &tx, DeviceAPI device_api) {
     return gpu_blocks(bx).gpu_threads(tx);
 }
@@ -2586,6 +2650,35 @@ Func &Func::gpu_tile(const VarOrRVar &x, const VarOrRVar &y, const VarOrRVar &z,
         .gpu_tile(x, y, z, tx, ty, tz, x_size, y_size, z_size, tail, device_api);
     return *this;
 }
+
+Func &Func::pim_bank(const VarOrRVar &dpu_x, DeviceAPI device_api) {
+    invalidate_cache();
+    Stage(func, func.definition(), 0).pim_bank(dpu_x, device_api);
+    return *this;
+}
+Func &Func::pim_bank(const VarOrRVar &dpu_x, const VarOrRVar &dpu_y, DeviceAPI device_api) {
+    invalidate_cache();
+    Stage(func, func.definition(), 0).pim_bank(dpu_x, dpu_y, device_api);
+    return *this;
+}
+Func &Func::pim_bank(const VarOrRVar &dpu_x, const VarOrRVar &dpu_y, const VarOrRVar &dpu_z, DeviceAPI device_api) {
+    invalidate_cache();
+    Stage(func, func.definition(), 0).pim_bank(dpu_x, dpu_y, dpu_z, device_api);
+    return *this;
+}
+
+Func &Func::pim_thread(const Expr &tasklet_size, DeviceAPI device_api) {
+    invalidate_cache();
+    Stage(func, func.definition(), 0).pim_thread(tasklet_size, device_api);
+    return *this;
+}
+
+Func &Func::pim_thread(const VarOrRVar &tasklet_x, const Expr &tasklet_size, DeviceAPI device_api) {
+    invalidate_cache();
+    Stage(func, func.definition(), 0).pim_thread(tasklet_x, tasklet_size, device_api);
+    return *this;
+} 
+
 
 Func &Func::hexagon(const VarOrRVar &x) {
     invalidate_cache();

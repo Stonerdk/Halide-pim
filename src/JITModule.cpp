@@ -136,7 +136,7 @@ void load_vulkan() {
     }
 }
 
-void load_webgpu() {
+void  load_webgpu() {
     debug(1) << "Looking for a native WebGPU implementation...\n";
 
     const auto try_load = [](const char *libname) -> string {
@@ -771,6 +771,7 @@ enum RuntimeKind {
     D3D12Compute,
     Vulkan,
     WebGPU,
+    UPMEM,
     OpenCLDebug,
     MetalDebug,
     CUDADebug,
@@ -779,6 +780,7 @@ enum RuntimeKind {
     D3D12ComputeDebug,
     VulkanDebug,
     WebGPUDebug,
+    UPMEMDebug,
     MaxRuntimeKind
 };
 
@@ -816,6 +818,7 @@ JITModule &make_module(llvm::Module *for_module, Target target,
         one_gpu.set_feature(Target::D3D12Compute, false);
         one_gpu.set_feature(Target::Vulkan, false);
         one_gpu.set_feature(Target::WebGPU, false);
+        one_gpu.set_feature(Target::UPMEM, false);
         string module_name;
         switch (runtime_kind) {
         case OpenCLDebug:
@@ -900,6 +903,15 @@ JITModule &make_module(llvm::Module *for_module, Target target,
             one_gpu.set_feature(Target::WebGPU);
             module_name += "webgpu";
             load_webgpu();
+            break;
+        case UPMEM:
+            one_gpu.set_feature(Target::UPMEM);
+            module_name += "upmem";
+            break;
+        case UPMEMDebug:
+            one_gpu.set_feature(Target::UPMEM);
+            one_gpu.set_feature(Target::Debug);
+            module_name += "debug_upmem";
             break;
         default:
             module_name = "shared runtime";
@@ -1103,6 +1115,13 @@ std::vector<JITModule> JITSharedRuntime::get(llvm::Module *for_module, const Tar
     }
     if (target.has_feature(Target::WebGPU)) {
         auto kind = target.has_feature(Target::Debug) ? WebGPUDebug : WebGPU;
+        JITModule m = make_module(for_module, target, kind, result, create);
+        if (m.compiled()) {
+            result.push_back(m);
+        }
+    }
+    if (target.has_feature(Target::UPMEM)) {
+        auto kind = target.has_feature(Target::Debug) ? UPMEMDebug : UPMEM;
         JITModule m = make_module(for_module, target, kind, result, create);
         if (m.compiled()) {
             result.push_back(m);
