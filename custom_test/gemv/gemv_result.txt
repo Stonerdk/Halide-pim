@@ -55,12 +55,22 @@ for (.__root, 0, 1) {
   let gemv.s0.i.thread.loop_extent = 2048
   let gemv.s0.i.thread.loop_max = 2048 - 1
   let gemv.s0.i.thread.loop_min = 0
+  let gemv.s0.i.thread.thread.loop_extent = ((gemv.s0.i.thread.loop_max - gemv.s0.i.thread.loop_min) + 128)/128
+  let gemv.s0.i.thread.thread.loop_max = (((gemv.s0.i.thread.loop_max - gemv.s0.i.thread.loop_min) + 128)/128) - 1
+  let gemv.s0.i.thread.thread.loop_min = 0
+  let gemv.s0.i.thread.inner_loop.loop_extent = 128
+  let gemv.s0.i.thread.inner_loop.loop_max = 128 - 1
+  let gemv.s0.i.thread.inner_loop.loop_min = 0
   for (gemv.s0.__outermost, gemv.s0.__outermost.loop_min, gemv.s0.__outermost.loop_extent) {
-   dpu<UPMEM> (gemv.s0.i.block, gemv.s0.i.block.loop_min, gemv.s0.i.block.loop_extent) {
+   pim_bank<Default_PIM> (gemv.s0.i.block, gemv.s0.i.block.loop_min, gemv.s0.i.block.loop_extent) {
     let gemv.s0.i.thread.base = min(likely_if_innermost((gemv.s0.i.block*2048) + gemv.s0.i.loop_min), gemv.s0.i.loop_max + (1 - 2048))
-    for (gemv.s0.i.thread, gemv.s0.i.thread.loop_min, gemv.s0.i.thread.loop_extent) {
-     let gemv.s0.i = gemv.s0.i.thread.base + gemv.s0.i.thread
-     gemv(gemv.s0.i) = sum(gemv.s0.i)
+    pim_thread<Default_PIM> (gemv.s0.i.thread.thread, gemv.s0.i.thread.thread.loop_min, gemv.s0.i.thread.thread.loop_extent) {
+     let gemv.s0.i.thread.inner_loop.base = (gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.loop_min
+     for (gemv.s0.i.thread.inner_loop, gemv.s0.i.thread.inner_loop.loop_min, gemv.s0.i.thread.inner_loop.loop_extent) {
+      let gemv.s0.i.thread = gemv.s0.i.thread.inner_loop.base + gemv.s0.i.thread.inner_loop
+      let gemv.s0.i = gemv.s0.i.thread.base + gemv.s0.i.thread
+      gemv(gemv.s0.i) = sum(gemv.s0.i)
+     }
     }
    }
   }
@@ -82,43 +92,53 @@ for (.__root, 0, 1) {
   let gemv.s0.i.thread.loop_extent = 2048
   let gemv.s0.i.thread.loop_max = 2048 - 1
   let gemv.s0.i.thread.loop_min = 0
+  let gemv.s0.i.thread.thread.loop_extent = ((gemv.s0.i.thread.loop_max - gemv.s0.i.thread.loop_min) + 128)/128
+  let gemv.s0.i.thread.thread.loop_max = (((gemv.s0.i.thread.loop_max - gemv.s0.i.thread.loop_min) + 128)/128) - 1
+  let gemv.s0.i.thread.thread.loop_min = 0
+  let gemv.s0.i.thread.inner_loop.loop_extent = 128
+  let gemv.s0.i.thread.inner_loop.loop_max = 128 - 1
+  let gemv.s0.i.thread.inner_loop.loop_min = 0
   for (gemv.s0.__outermost, gemv.s0.__outermost.loop_min, gemv.s0.__outermost.loop_extent) {
-   dpu<UPMEM> (gemv.s0.i.block, gemv.s0.i.block.loop_min, gemv.s0.i.block.loop_extent) {
+   pim_bank<Default_PIM> (gemv.s0.i.block, gemv.s0.i.block.loop_min, gemv.s0.i.block.loop_extent) {
     let gemv.s0.i.thread.base = min(likely_if_innermost((gemv.s0.i.block*2048) + gemv.s0.i.loop_min), gemv.s0.i.loop_max + (1 - 2048))
-    for (gemv.s0.i.thread, gemv.s0.i.thread.loop_min, gemv.s0.i.thread.loop_extent) {
-     let gemv.s0.i = gemv.s0.i.thread.base + gemv.s0.i.thread
-     realize sum([sum.i.min_realized, sum.i.extent_realized]) {
-      produce sum {
-       let sum.s0.i.loop_max = sum.s0.i.max
-       let sum.s0.i.loop_min = sum.s0.i.min
-       let sum.s0.i.loop_extent = (sum.s0.i.max + 1) - sum.s0.i.min
-       let sum.s0.__outermost.loop_extent = 1
-       let sum.s0.__outermost.loop_max = 0
-       let sum.s0.__outermost.loop_min = 0
-       let sum.s1.r$x.loop_extent = (sum.s1.r$x.max - sum.s1.r$x.min) + 1
-       let sum.s1.r$x.loop_max = sum.s1.r$x.max
-       let sum.s1.r$x.loop_min = sum.s1.r$x.min
-       let sum.s1.i.loop_max = sum.s1.i.max
-       let sum.s1.i.loop_min = sum.s1.i.min
-       let sum.s1.i.loop_extent = (sum.s1.i.max + 1) - sum.s1.i.min
-       let sum.s1.__outermost.loop_extent = 1
-       let sum.s1.__outermost.loop_max = 0
-       let sum.s1.__outermost.loop_min = 0
-       for (sum.s0.__outermost, sum.s0.__outermost.loop_min, sum.s0.__outermost.loop_extent) {
-        for (sum.s0.i, sum.s0.i.loop_min, sum.s0.i.loop_extent) {
-         sum(sum.s0.i) = 0
+    pim_thread<Default_PIM> (gemv.s0.i.thread.thread, gemv.s0.i.thread.thread.loop_min, gemv.s0.i.thread.thread.loop_extent) {
+     let gemv.s0.i.thread.inner_loop.base = (gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.loop_min
+     for (gemv.s0.i.thread.inner_loop, gemv.s0.i.thread.inner_loop.loop_min, gemv.s0.i.thread.inner_loop.loop_extent) {
+      let gemv.s0.i.thread = gemv.s0.i.thread.inner_loop.base + gemv.s0.i.thread.inner_loop
+      let gemv.s0.i = gemv.s0.i.thread.base + gemv.s0.i.thread
+      realize sum([sum.i.min_realized, sum.i.extent_realized]) {
+       produce sum {
+        let sum.s0.i.loop_max = sum.s0.i.max
+        let sum.s0.i.loop_min = sum.s0.i.min
+        let sum.s0.i.loop_extent = (sum.s0.i.max + 1) - sum.s0.i.min
+        let sum.s0.__outermost.loop_extent = 1
+        let sum.s0.__outermost.loop_max = 0
+        let sum.s0.__outermost.loop_min = 0
+        let sum.s1.r$x.loop_extent = (sum.s1.r$x.max - sum.s1.r$x.min) + 1
+        let sum.s1.r$x.loop_max = sum.s1.r$x.max
+        let sum.s1.r$x.loop_min = sum.s1.r$x.min
+        let sum.s1.i.loop_max = sum.s1.i.max
+        let sum.s1.i.loop_min = sum.s1.i.min
+        let sum.s1.i.loop_extent = (sum.s1.i.max + 1) - sum.s1.i.min
+        let sum.s1.__outermost.loop_extent = 1
+        let sum.s1.__outermost.loop_max = 0
+        let sum.s1.__outermost.loop_min = 0
+        for (sum.s0.__outermost, sum.s0.__outermost.loop_min, sum.s0.__outermost.loop_extent) {
+         for (sum.s0.i, sum.s0.i.loop_min, sum.s0.i.loop_extent) {
+          sum(sum.s0.i) = 0
+         }
         }
-       }
-       for (sum.s1.__outermost, sum.s1.__outermost.loop_min, sum.s1.__outermost.loop_extent) {
-        for (sum.s1.i, sum.s1.i.loop_min, sum.s1.i.loop_extent) {
-         for (sum.s1.r$x, sum.s1.r$x.loop_min, sum.s1.r$x.loop_extent) {
-          sum(sum.s1.i) = sum(sum.s1.i) + intermediate(sum.s1.i, sum.s1.r$x)
+        for (sum.s1.__outermost, sum.s1.__outermost.loop_min, sum.s1.__outermost.loop_extent) {
+         for (sum.s1.i, sum.s1.i.loop_min, sum.s1.i.loop_extent) {
+          for (sum.s1.r$x, sum.s1.r$x.loop_min, sum.s1.r$x.loop_extent) {
+           sum(sum.s1.i) = sum(sum.s1.i) + intermediate(sum.s1.i, sum.s1.r$x)
+          }
          }
         }
        }
-      }
-      consume sum {
-       gemv(gemv.s0.i) = sum(gemv.s0.i)
+       consume sum {
+        gemv(gemv.s0.i) = sum(gemv.s0.i)
+       }
       }
      }
     }
@@ -142,43 +162,53 @@ for (.__root, 0, 1) {
   let gemv.s0.i.thread.loop_extent = 2048
   let gemv.s0.i.thread.loop_max = 2048 - 1
   let gemv.s0.i.thread.loop_min = 0
+  let gemv.s0.i.thread.thread.loop_extent = ((gemv.s0.i.thread.loop_max - gemv.s0.i.thread.loop_min) + 128)/128
+  let gemv.s0.i.thread.thread.loop_max = (((gemv.s0.i.thread.loop_max - gemv.s0.i.thread.loop_min) + 128)/128) - 1
+  let gemv.s0.i.thread.thread.loop_min = 0
+  let gemv.s0.i.thread.inner_loop.loop_extent = 128
+  let gemv.s0.i.thread.inner_loop.loop_max = 128 - 1
+  let gemv.s0.i.thread.inner_loop.loop_min = 0
   for (gemv.s0.__outermost, gemv.s0.__outermost.loop_min, gemv.s0.__outermost.loop_extent) {
-   dpu<UPMEM> (gemv.s0.i.block, gemv.s0.i.block.loop_min, gemv.s0.i.block.loop_extent) {
+   pim_bank<Default_PIM> (gemv.s0.i.block, gemv.s0.i.block.loop_min, gemv.s0.i.block.loop_extent) {
     let gemv.s0.i.thread.base = min(likely_if_innermost((gemv.s0.i.block*2048) + gemv.s0.i.loop_min), gemv.s0.i.loop_max + (1 - 2048))
-    for (gemv.s0.i.thread, gemv.s0.i.thread.loop_min, gemv.s0.i.thread.loop_extent) {
-     let gemv.s0.i = gemv.s0.i.thread.base + gemv.s0.i.thread
-     realize sum([sum.i.min_realized, sum.i.extent_realized]) {
-      produce sum {
-       let sum.s0.i.loop_max = sum.s0.i.max
-       let sum.s0.i.loop_min = sum.s0.i.min
-       let sum.s0.i.loop_extent = (sum.s0.i.max + 1) - sum.s0.i.min
-       let sum.s0.__outermost.loop_extent = 1
-       let sum.s0.__outermost.loop_max = 0
-       let sum.s0.__outermost.loop_min = 0
-       let sum.s1.r$x.loop_extent = (sum.s1.r$x.max - sum.s1.r$x.min) + 1
-       let sum.s1.r$x.loop_max = sum.s1.r$x.max
-       let sum.s1.r$x.loop_min = sum.s1.r$x.min
-       let sum.s1.i.loop_max = sum.s1.i.max
-       let sum.s1.i.loop_min = sum.s1.i.min
-       let sum.s1.i.loop_extent = (sum.s1.i.max + 1) - sum.s1.i.min
-       let sum.s1.__outermost.loop_extent = 1
-       let sum.s1.__outermost.loop_max = 0
-       let sum.s1.__outermost.loop_min = 0
-       for (sum.s0.__outermost, sum.s0.__outermost.loop_min, sum.s0.__outermost.loop_extent) {
-        for (sum.s0.i, sum.s0.i.loop_min, sum.s0.i.loop_extent) {
-         sum(sum.s0.i) = 0
+    pim_thread<Default_PIM> (gemv.s0.i.thread.thread, gemv.s0.i.thread.thread.loop_min, gemv.s0.i.thread.thread.loop_extent) {
+     let gemv.s0.i.thread.inner_loop.base = (gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.loop_min
+     for (gemv.s0.i.thread.inner_loop, gemv.s0.i.thread.inner_loop.loop_min, gemv.s0.i.thread.inner_loop.loop_extent) {
+      let gemv.s0.i.thread = gemv.s0.i.thread.inner_loop.base + gemv.s0.i.thread.inner_loop
+      let gemv.s0.i = gemv.s0.i.thread.base + gemv.s0.i.thread
+      realize sum([sum.i.min_realized, sum.i.extent_realized]) {
+       produce sum {
+        let sum.s0.i.loop_max = sum.s0.i.max
+        let sum.s0.i.loop_min = sum.s0.i.min
+        let sum.s0.i.loop_extent = (sum.s0.i.max + 1) - sum.s0.i.min
+        let sum.s0.__outermost.loop_extent = 1
+        let sum.s0.__outermost.loop_max = 0
+        let sum.s0.__outermost.loop_min = 0
+        let sum.s1.r$x.loop_extent = (sum.s1.r$x.max - sum.s1.r$x.min) + 1
+        let sum.s1.r$x.loop_max = sum.s1.r$x.max
+        let sum.s1.r$x.loop_min = sum.s1.r$x.min
+        let sum.s1.i.loop_max = sum.s1.i.max
+        let sum.s1.i.loop_min = sum.s1.i.min
+        let sum.s1.i.loop_extent = (sum.s1.i.max + 1) - sum.s1.i.min
+        let sum.s1.__outermost.loop_extent = 1
+        let sum.s1.__outermost.loop_max = 0
+        let sum.s1.__outermost.loop_min = 0
+        for (sum.s0.__outermost, sum.s0.__outermost.loop_min, sum.s0.__outermost.loop_extent) {
+         for (sum.s0.i, sum.s0.i.loop_min, sum.s0.i.loop_extent) {
+          sum(sum.s0.i) = 0
+         }
         }
-       }
-       for (sum.s1.__outermost, sum.s1.__outermost.loop_min, sum.s1.__outermost.loop_extent) {
-        for (sum.s1.i, sum.s1.i.loop_min, sum.s1.i.loop_extent) {
-         for (sum.s1.r$x, sum.s1.r$x.loop_min, sum.s1.r$x.loop_extent) {
-          sum(sum.s1.i) = sum(sum.s1.i) + (A(sum.s1.i, sum.s1.r$x)*x(sum.s1.r$x))
+        for (sum.s1.__outermost, sum.s1.__outermost.loop_min, sum.s1.__outermost.loop_extent) {
+         for (sum.s1.i, sum.s1.i.loop_min, sum.s1.i.loop_extent) {
+          for (sum.s1.r$x, sum.s1.r$x.loop_min, sum.s1.r$x.loop_extent) {
+           sum(sum.s1.i) = sum(sum.s1.i) + (A(sum.s1.i, sum.s1.r$x)*x(sum.s1.r$x))
+          }
          }
         }
        }
-      }
-      consume sum {
-       gemv(gemv.s0.i) = sum(gemv.s0.i)
+       consume sum {
+        gemv(gemv.s0.i) = sum(gemv.s0.i)
+       }
       }
      }
     }
@@ -198,32 +228,42 @@ produce gemv {
  let gemv.s0.i.thread.loop_extent = 2048
  let gemv.s0.i.thread.loop_max = 2048 - 1
  let gemv.s0.i.thread.loop_min = 0
- dpu<UPMEM> (gemv.s0.i.block, gemv.s0.i.block.loop_min, gemv.s0.i.block.loop_extent) {
+ let gemv.s0.i.thread.thread.loop_extent = ((gemv.s0.i.thread.loop_max - gemv.s0.i.thread.loop_min) + 128)/128
+ let gemv.s0.i.thread.thread.loop_max = (((gemv.s0.i.thread.loop_max - gemv.s0.i.thread.loop_min) + 128)/128) - 1
+ let gemv.s0.i.thread.thread.loop_min = 0
+ let gemv.s0.i.thread.inner_loop.loop_extent = 128
+ let gemv.s0.i.thread.inner_loop.loop_max = 128 - 1
+ let gemv.s0.i.thread.inner_loop.loop_min = 0
+ pim_bank<Default_PIM> (gemv.s0.i.block, gemv.s0.i.block.loop_min, gemv.s0.i.block.loop_extent) {
   let gemv.s0.i.thread.base = min(likely_if_innermost((gemv.s0.i.block*2048) + gemv.s0.i.loop_min), gemv.s0.i.loop_max + (1 - 2048))
-  for (gemv.s0.i.thread, gemv.s0.i.thread.loop_min, gemv.s0.i.thread.loop_extent) {
-   let gemv.s0.i = gemv.s0.i.thread.base + gemv.s0.i.thread
-   realize sum([sum.i.min_realized, sum.i.extent_realized]) {
-    produce sum {
-     let sum.s0.i.loop_max = sum.s0.i.max
-     let sum.s0.i.loop_min = sum.s0.i.min
-     let sum.s0.i.loop_extent = (sum.s0.i.max + 1) - sum.s0.i.min
-     let sum.s1.r$x.loop_extent = (sum.s1.r$x.max - sum.s1.r$x.min) + 1
-     let sum.s1.r$x.loop_max = sum.s1.r$x.max
-     let sum.s1.r$x.loop_min = sum.s1.r$x.min
-     let sum.s1.i.loop_max = sum.s1.i.max
-     let sum.s1.i.loop_min = sum.s1.i.min
-     let sum.s1.i.loop_extent = (sum.s1.i.max + 1) - sum.s1.i.min
-     for (sum.s0.i, sum.s0.i.loop_min, sum.s0.i.loop_extent) {
-      sum(sum.s0.i) = 0
-     }
-     for (sum.s1.i, sum.s1.i.loop_min, sum.s1.i.loop_extent) {
-      for (sum.s1.r$x, sum.s1.r$x.loop_min, sum.s1.r$x.loop_extent) {
-       sum(sum.s1.i) = sum(sum.s1.i) + (A(sum.s1.i, sum.s1.r$x)*x(sum.s1.r$x))
+  pim_thread<Default_PIM> (gemv.s0.i.thread.thread, gemv.s0.i.thread.thread.loop_min, gemv.s0.i.thread.thread.loop_extent) {
+   let gemv.s0.i.thread.inner_loop.base = (gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.loop_min
+   for (gemv.s0.i.thread.inner_loop, gemv.s0.i.thread.inner_loop.loop_min, gemv.s0.i.thread.inner_loop.loop_extent) {
+    let gemv.s0.i.thread = gemv.s0.i.thread.inner_loop.base + gemv.s0.i.thread.inner_loop
+    let gemv.s0.i = gemv.s0.i.thread.base + gemv.s0.i.thread
+    realize sum([sum.i.min_realized, sum.i.extent_realized]) {
+     produce sum {
+      let sum.s0.i.loop_max = sum.s0.i.max
+      let sum.s0.i.loop_min = sum.s0.i.min
+      let sum.s0.i.loop_extent = (sum.s0.i.max + 1) - sum.s0.i.min
+      let sum.s1.r$x.loop_extent = (sum.s1.r$x.max - sum.s1.r$x.min) + 1
+      let sum.s1.r$x.loop_max = sum.s1.r$x.max
+      let sum.s1.r$x.loop_min = sum.s1.r$x.min
+      let sum.s1.i.loop_max = sum.s1.i.max
+      let sum.s1.i.loop_min = sum.s1.i.min
+      let sum.s1.i.loop_extent = (sum.s1.i.max + 1) - sum.s1.i.min
+      for (sum.s0.i, sum.s0.i.loop_min, sum.s0.i.loop_extent) {
+       sum(sum.s0.i) = 0
+      }
+      for (sum.s1.i, sum.s1.i.loop_min, sum.s1.i.loop_extent) {
+       for (sum.s1.r$x, sum.s1.r$x.loop_min, sum.s1.r$x.loop_extent) {
+        sum(sum.s1.i) = sum(sum.s1.i) + (A(sum.s1.i, sum.s1.r$x)*x(sum.s1.r$x))
+       }
       }
      }
-    }
-    consume sum {
-     gemv(gemv.s0.i) = sum(gemv.s0.i)
+     consume sum {
+      gemv(gemv.s0.i) = sum(gemv.s0.i)
+     }
     }
    }
   }
@@ -253,32 +293,42 @@ produce gemv {
  let gemv.s0.i.thread.loop_extent = 2048
  let gemv.s0.i.thread.loop_max = 2048 - 1
  let gemv.s0.i.thread.loop_min = 0
- dpu<UPMEM> (gemv.s0.i.block, gemv.s0.i.block.loop_min, gemv.s0.i.block.loop_extent) {
+ let gemv.s0.i.thread.thread.loop_extent = ((gemv.s0.i.thread.loop_max - gemv.s0.i.thread.loop_min) + 128)/128
+ let gemv.s0.i.thread.thread.loop_max = (((gemv.s0.i.thread.loop_max - gemv.s0.i.thread.loop_min) + 128)/128) - 1
+ let gemv.s0.i.thread.thread.loop_min = 0
+ let gemv.s0.i.thread.inner_loop.loop_extent = 128
+ let gemv.s0.i.thread.inner_loop.loop_max = 128 - 1
+ let gemv.s0.i.thread.inner_loop.loop_min = 0
+ pim_bank<Default_PIM> (gemv.s0.i.block, gemv.s0.i.block.loop_min, gemv.s0.i.block.loop_extent) {
   let gemv.s0.i.thread.base = min(likely_if_innermost((gemv.s0.i.block*2048) + gemv.s0.i.loop_min), gemv.s0.i.loop_max + (1 - 2048))
-  for (gemv.s0.i.thread, gemv.s0.i.thread.loop_min, gemv.s0.i.thread.loop_extent) {
-   let gemv.s0.i = gemv.s0.i.thread.base + gemv.s0.i.thread
-   realize sum([sum.i.min_realized, sum.i.extent_realized]) {
-    produce sum {
-     let sum.s0.i.loop_max = sum.s0.i.max
-     let sum.s0.i.loop_min = sum.s0.i.min
-     let sum.s0.i.loop_extent = (sum.s0.i.max + 1) - sum.s0.i.min
-     let sum.s1.r$x.loop_extent = (sum.s1.r$x.max - sum.s1.r$x.min) + 1
-     let sum.s1.r$x.loop_max = sum.s1.r$x.max
-     let sum.s1.r$x.loop_min = sum.s1.r$x.min
-     let sum.s1.i.loop_max = sum.s1.i.max
-     let sum.s1.i.loop_min = sum.s1.i.min
-     let sum.s1.i.loop_extent = (sum.s1.i.max + 1) - sum.s1.i.min
-     for (sum.s0.i, sum.s0.i.loop_min, sum.s0.i.loop_extent) {
-      sum(sum.s0.i) = 0
-     }
-     for (sum.s1.i, sum.s1.i.loop_min, sum.s1.i.loop_extent) {
-      for (sum.s1.r$x, sum.s1.r$x.loop_min, sum.s1.r$x.loop_extent) {
-       sum(sum.s1.i) = sum(sum.s1.i) + (A(sum.s1.i, sum.s1.r$x)*x(sum.s1.r$x))
+  pim_thread<Default_PIM> (gemv.s0.i.thread.thread, gemv.s0.i.thread.thread.loop_min, gemv.s0.i.thread.thread.loop_extent) {
+   let gemv.s0.i.thread.inner_loop.base = (gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.loop_min
+   for (gemv.s0.i.thread.inner_loop, gemv.s0.i.thread.inner_loop.loop_min, gemv.s0.i.thread.inner_loop.loop_extent) {
+    let gemv.s0.i.thread = gemv.s0.i.thread.inner_loop.base + gemv.s0.i.thread.inner_loop
+    let gemv.s0.i = gemv.s0.i.thread.base + gemv.s0.i.thread
+    realize sum([sum.i.min_realized, sum.i.extent_realized]) {
+     produce sum {
+      let sum.s0.i.loop_max = sum.s0.i.max
+      let sum.s0.i.loop_min = sum.s0.i.min
+      let sum.s0.i.loop_extent = (sum.s0.i.max + 1) - sum.s0.i.min
+      let sum.s1.r$x.loop_extent = (sum.s1.r$x.max - sum.s1.r$x.min) + 1
+      let sum.s1.r$x.loop_max = sum.s1.r$x.max
+      let sum.s1.r$x.loop_min = sum.s1.r$x.min
+      let sum.s1.i.loop_max = sum.s1.i.max
+      let sum.s1.i.loop_min = sum.s1.i.min
+      let sum.s1.i.loop_extent = (sum.s1.i.max + 1) - sum.s1.i.min
+      for (sum.s0.i, sum.s0.i.loop_min, sum.s0.i.loop_extent) {
+       sum(sum.s0.i) = 0
+      }
+      for (sum.s1.i, sum.s1.i.loop_min, sum.s1.i.loop_extent) {
+       for (sum.s1.r$x, sum.s1.r$x.loop_min, sum.s1.r$x.loop_extent) {
+        sum(sum.s1.i) = sum(sum.s1.i) + (A(sum.s1.i, sum.s1.r$x)*x(sum.s1.r$x))
+       }
       }
      }
-    }
-    consume sum {
-     gemv(gemv.s0.i) = sum(gemv.s0.i)
+     consume sum {
+      gemv(gemv.s0.i) = sum(gemv.s0.i)
+     }
     }
    }
   }
@@ -306,42 +356,52 @@ produce gemv {
  let gemv.s0.i.thread.loop_extent = 2048
  let gemv.s0.i.thread.loop_max = 2048 - 1
  let gemv.s0.i.thread.loop_min = 0
- dpu<UPMEM> (gemv.s0.i.block, gemv.s0.i.block.loop_min, gemv.s0.i.block.loop_extent) {
+ let gemv.s0.i.thread.thread.loop_extent = ((gemv.s0.i.thread.loop_max - gemv.s0.i.thread.loop_min) + 128)/128
+ let gemv.s0.i.thread.thread.loop_max = (((gemv.s0.i.thread.loop_max - gemv.s0.i.thread.loop_min) + 128)/128) - 1
+ let gemv.s0.i.thread.thread.loop_min = 0
+ let gemv.s0.i.thread.inner_loop.loop_extent = 128
+ let gemv.s0.i.thread.inner_loop.loop_max = 128 - 1
+ let gemv.s0.i.thread.inner_loop.loop_min = 0
+ pim_bank<Default_PIM> (gemv.s0.i.block, gemv.s0.i.block.loop_min, gemv.s0.i.block.loop_extent) {
   let gemv.s0.i.thread.base = min(likely_if_innermost((gemv.s0.i.block*2048) + gemv.s0.i.loop_min), gemv.s0.i.loop_max + (1 - 2048))
-  for (gemv.s0.i.thread, gemv.s0.i.thread.loop_min, gemv.s0.i.thread.loop_extent) {
-   let gemv.s0.i = gemv.s0.i.thread.base + gemv.s0.i.thread
-   let gemv.s0.i.min = gemv.s0.i
-   let gemv.s0.i.max = gemv.s0.i.min
-   let sum.s1.r$x.max = (2671 + 0) - 1
-   let sum.s1.r$x.min = 0
-   let sum.s1.i.max = gemv.s0.i.max
-   let sum.s1.i.min = gemv.s0.i.min
-   let sum.s0.i.max = sum.s1.i.max
-   let sum.s0.i.min = sum.s1.i.min
-   realize sum([sum.i.min_realized, sum.i.extent_realized]) {
-    produce sum {
-     let sum.s0.i.loop_max = sum.s0.i.max
-     let sum.s0.i.loop_min = sum.s0.i.min
-     let sum.s0.i.loop_extent = (sum.s0.i.max + 1) - sum.s0.i.min
-     let sum.s1.r$x.loop_extent = (sum.s1.r$x.max - sum.s1.r$x.min) + 1
-     let sum.s1.r$x.loop_max = sum.s1.r$x.max
-     let sum.s1.r$x.loop_min = sum.s1.r$x.min
-     let sum.s1.i.loop_max = sum.s1.i.max
-     let sum.s1.i.loop_min = sum.s1.i.min
-     let sum.s1.i.loop_extent = (sum.s1.i.max + 1) - sum.s1.i.min
-     for (sum.s0.i, sum.s0.i.loop_min, sum.s0.i.loop_extent) {
-      sum(sum.s0.i) = 0
-     }
-     for (sum.s1.i, sum.s1.i.loop_min, sum.s1.i.loop_extent) {
-      for (sum.s1.r$x, sum.s1.r$x.loop_min, sum.s1.r$x.loop_extent) {
-       let sum.s1.r$x.max = sum.s1.r$x
-       let sum.s1.r$x.min = sum.s1.r$x
-       sum(sum.s1.i) = sum(sum.s1.i) + (A(sum.s1.i, sum.s1.r$x)*x(sum.s1.r$x))
+  pim_thread<Default_PIM> (gemv.s0.i.thread.thread, gemv.s0.i.thread.thread.loop_min, gemv.s0.i.thread.thread.loop_extent) {
+   let gemv.s0.i.thread.inner_loop.base = (gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.loop_min
+   for (gemv.s0.i.thread.inner_loop, gemv.s0.i.thread.inner_loop.loop_min, gemv.s0.i.thread.inner_loop.loop_extent) {
+    let gemv.s0.i.thread = gemv.s0.i.thread.inner_loop.base + gemv.s0.i.thread.inner_loop
+    let gemv.s0.i = gemv.s0.i.thread.base + gemv.s0.i.thread
+    let gemv.s0.i.min = gemv.s0.i
+    let gemv.s0.i.max = gemv.s0.i.min
+    let sum.s1.r$x.max = (2671 + 0) - 1
+    let sum.s1.r$x.min = 0
+    let sum.s1.i.max = gemv.s0.i.max
+    let sum.s1.i.min = gemv.s0.i.min
+    let sum.s0.i.max = sum.s1.i.max
+    let sum.s0.i.min = sum.s1.i.min
+    realize sum([sum.i.min_realized, sum.i.extent_realized]) {
+     produce sum {
+      let sum.s0.i.loop_max = sum.s0.i.max
+      let sum.s0.i.loop_min = sum.s0.i.min
+      let sum.s0.i.loop_extent = (sum.s0.i.max + 1) - sum.s0.i.min
+      let sum.s1.r$x.loop_extent = (sum.s1.r$x.max - sum.s1.r$x.min) + 1
+      let sum.s1.r$x.loop_max = sum.s1.r$x.max
+      let sum.s1.r$x.loop_min = sum.s1.r$x.min
+      let sum.s1.i.loop_max = sum.s1.i.max
+      let sum.s1.i.loop_min = sum.s1.i.min
+      let sum.s1.i.loop_extent = (sum.s1.i.max + 1) - sum.s1.i.min
+      for (sum.s0.i, sum.s0.i.loop_min, sum.s0.i.loop_extent) {
+       sum(sum.s0.i) = 0
+      }
+      for (sum.s1.i, sum.s1.i.loop_min, sum.s1.i.loop_extent) {
+       for (sum.s1.r$x, sum.s1.r$x.loop_min, sum.s1.r$x.loop_extent) {
+        let sum.s1.r$x.max = sum.s1.r$x
+        let sum.s1.r$x.min = sum.s1.r$x
+        sum(sum.s1.i) = sum(sum.s1.i) + (A(sum.s1.i, sum.s1.r$x)*x(sum.s1.r$x))
+       }
       }
      }
-    }
-    consume sum {
-     gemv(gemv.s0.i) = sum(gemv.s0.i)
+     consume sum {
+      gemv(gemv.s0.i) = sum(gemv.s0.i)
+     }
     }
    }
   }
@@ -372,47 +432,58 @@ produce gemv {
  let gemv.s0.i.thread.loop_extent = 2048
  let gemv.s0.i.thread.loop_max = 2048 - 1
  let gemv.s0.i.thread.loop_min = 0
+ let gemv.s0.i.thread.thread.loop_extent = ((gemv.s0.i.thread.loop_max - gemv.s0.i.thread.loop_min) + 128)/128
+ let gemv.s0.i.thread.thread.loop_max = (((gemv.s0.i.thread.loop_max - gemv.s0.i.thread.loop_min) + 128)/128) - 1
+ let gemv.s0.i.thread.thread.loop_min = 0
+ let gemv.s0.i.thread.inner_loop.loop_extent = 128
+ let gemv.s0.i.thread.inner_loop.loop_max = 128 - 1
+ let gemv.s0.i.thread.inner_loop.loop_min = 0
  let gemv.s0.i.block.loop_min.orig = gemv.s0.i.block.loop_min
- dpu<UPMEM> (gemv.s0.i.block, gemv.s0.i.block.loop_min, gemv.s0.i.block.loop_extent) {
+ pim_bank<Default_PIM> (gemv.s0.i.block, gemv.s0.i.block.loop_min, gemv.s0.i.block.loop_extent) {
   let gemv.s0.i.thread.base = min(likely_if_innermost((gemv.s0.i.block*2048) + gemv.s0.i.loop_min), gemv.s0.i.loop_max + (1 - 2048))
-  let gemv.s0.i.thread.loop_min.orig = gemv.s0.i.thread.loop_min
-  for (gemv.s0.i.thread, gemv.s0.i.thread.loop_min, gemv.s0.i.thread.loop_extent) {
-   let gemv.s0.i = gemv.s0.i.thread.base + gemv.s0.i.thread
-   let gemv.s0.i.min = gemv.s0.i
-   let gemv.s0.i.max = gemv.s0.i.min
-   let sum.s1.r$x.max = (2671 + 0) - 1
-   let sum.s1.r$x.min = 0
-   let sum.s1.i.max = gemv.s0.i.max
-   let sum.s1.i.min = gemv.s0.i.min
-   let sum.s0.i.max = sum.s1.i.max
-   let sum.s0.i.min = sum.s1.i.min
-   realize sum([sum.i.min_realized, sum.i.extent_realized]) {
-    produce sum {
-     let sum.s0.i.loop_max = sum.s0.i.max
-     let sum.s0.i.loop_min = sum.s0.i.min
-     let sum.s0.i.loop_extent = (sum.s0.i.max + 1) - sum.s0.i.min
-     let sum.s1.r$x.loop_extent = (sum.s1.r$x.max - sum.s1.r$x.min) + 1
-     let sum.s1.r$x.loop_max = sum.s1.r$x.max
-     let sum.s1.r$x.loop_min = sum.s1.r$x.min
-     let sum.s1.i.loop_max = sum.s1.i.max
-     let sum.s1.i.loop_min = sum.s1.i.min
-     let sum.s1.i.loop_extent = (sum.s1.i.max + 1) - sum.s1.i.min
-     let sum.s0.i.loop_min.orig = sum.s0.i.loop_min
-     for (sum.s0.i, sum.s0.i.loop_min, sum.s0.i.loop_extent) {
-      sum(sum.s0.i) = 0
-     }
-     let sum.s1.i.loop_min.orig = sum.s1.i.loop_min
-     for (sum.s1.i, sum.s1.i.loop_min, sum.s1.i.loop_extent) {
-      let sum.s1.r$x.loop_min.orig = sum.s1.r$x.loop_min
-      for (sum.s1.r$x, sum.s1.r$x.loop_min, sum.s1.r$x.loop_extent) {
-       let sum.s1.r$x.max = sum.s1.r$x
-       let sum.s1.r$x.min = sum.s1.r$x
-       sum(sum.s1.i) = sum(sum.s1.i) + (A(sum.s1.i, sum.s1.r$x)*x(sum.s1.r$x))
+  let gemv.s0.i.thread.thread.loop_min.orig = gemv.s0.i.thread.thread.loop_min
+  pim_thread<Default_PIM> (gemv.s0.i.thread.thread, gemv.s0.i.thread.thread.loop_min, gemv.s0.i.thread.thread.loop_extent) {
+   let gemv.s0.i.thread.inner_loop.base = (gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.loop_min
+   let gemv.s0.i.thread.inner_loop.loop_min.orig = gemv.s0.i.thread.inner_loop.loop_min
+   for (gemv.s0.i.thread.inner_loop, gemv.s0.i.thread.inner_loop.loop_min, gemv.s0.i.thread.inner_loop.loop_extent) {
+    let gemv.s0.i.thread = gemv.s0.i.thread.inner_loop.base + gemv.s0.i.thread.inner_loop
+    let gemv.s0.i = gemv.s0.i.thread.base + gemv.s0.i.thread
+    let gemv.s0.i.min = gemv.s0.i
+    let gemv.s0.i.max = gemv.s0.i.min
+    let sum.s1.r$x.max = (2671 + 0) - 1
+    let sum.s1.r$x.min = 0
+    let sum.s1.i.max = gemv.s0.i.max
+    let sum.s1.i.min = gemv.s0.i.min
+    let sum.s0.i.max = sum.s1.i.max
+    let sum.s0.i.min = sum.s1.i.min
+    realize sum([sum.i.min_realized, sum.i.extent_realized]) {
+     produce sum {
+      let sum.s0.i.loop_max = sum.s0.i.max
+      let sum.s0.i.loop_min = sum.s0.i.min
+      let sum.s0.i.loop_extent = (sum.s0.i.max + 1) - sum.s0.i.min
+      let sum.s1.r$x.loop_extent = (sum.s1.r$x.max - sum.s1.r$x.min) + 1
+      let sum.s1.r$x.loop_max = sum.s1.r$x.max
+      let sum.s1.r$x.loop_min = sum.s1.r$x.min
+      let sum.s1.i.loop_max = sum.s1.i.max
+      let sum.s1.i.loop_min = sum.s1.i.min
+      let sum.s1.i.loop_extent = (sum.s1.i.max + 1) - sum.s1.i.min
+      let sum.s0.i.loop_min.orig = sum.s0.i.loop_min
+      for (sum.s0.i, sum.s0.i.loop_min, sum.s0.i.loop_extent) {
+       sum(sum.s0.i) = 0
+      }
+      let sum.s1.i.loop_min.orig = sum.s1.i.loop_min
+      for (sum.s1.i, sum.s1.i.loop_min, sum.s1.i.loop_extent) {
+       let sum.s1.r$x.loop_min.orig = sum.s1.r$x.loop_min
+       for (sum.s1.r$x, sum.s1.r$x.loop_min, sum.s1.r$x.loop_extent) {
+        let sum.s1.r$x.max = sum.s1.r$x
+        let sum.s1.r$x.min = sum.s1.r$x
+        sum(sum.s1.i) = sum(sum.s1.i) + (A(sum.s1.i, sum.s1.r$x)*x(sum.s1.r$x))
+       }
       }
      }
-    }
-    consume sum {
-     gemv(gemv.s0.i) = sum(gemv.s0.i)
+     consume sum {
+      gemv(gemv.s0.i) = sum(gemv.s0.i)
+     }
     }
    }
   }
@@ -440,47 +511,58 @@ produce gemv {
  let gemv.s0.i.thread.loop_extent = 2048
  let gemv.s0.i.thread.loop_max = 2048 - 1
  let gemv.s0.i.thread.loop_min = 0
+ let gemv.s0.i.thread.thread.loop_extent = ((gemv.s0.i.thread.loop_max - gemv.s0.i.thread.loop_min) + 128)/128
+ let gemv.s0.i.thread.thread.loop_max = (((gemv.s0.i.thread.loop_max - gemv.s0.i.thread.loop_min) + 128)/128) - 1
+ let gemv.s0.i.thread.thread.loop_min = 0
+ let gemv.s0.i.thread.inner_loop.loop_extent = 128
+ let gemv.s0.i.thread.inner_loop.loop_max = 128 - 1
+ let gemv.s0.i.thread.inner_loop.loop_min = 0
  let gemv.s0.i.block.loop_min.orig = gemv.s0.i.block.loop_min
- dpu<UPMEM> (gemv.s0.i.block, gemv.s0.i.block.loop_min, gemv.s0.i.block.loop_extent) {
+ pim_bank<Default_PIM> (gemv.s0.i.block, gemv.s0.i.block.loop_min, gemv.s0.i.block.loop_extent) {
   let gemv.s0.i.thread.base = min(likely_if_innermost((gemv.s0.i.block*2048) + gemv.s0.i.loop_min), gemv.s0.i.loop_max + (1 - 2048))
-  let gemv.s0.i.thread.loop_min.orig = gemv.s0.i.thread.loop_min
-  for (gemv.s0.i.thread, gemv.s0.i.thread.loop_min, gemv.s0.i.thread.loop_extent) {
-   let gemv.s0.i = gemv.s0.i.thread.base + gemv.s0.i.thread
-   let gemv.s0.i.min_1 = gemv.s0.i
-   let gemv.s0.i.max_1 = gemv.s0.i.min_1
-   let sum.s1.r$x.max_1 = (2671 + 0) - 1
-   let sum.s1.r$x.min_1 = 0
-   let sum.s1.i.max_1 = gemv.s0.i.max_1
-   let sum.s1.i.min_1 = gemv.s0.i.min_1
-   let sum.s0.i.max_1 = sum.s1.i.max_1
-   let sum.s0.i.min_1 = sum.s1.i.min_1
-   realize sum([sum.i.min_realized, sum.i.extent_realized]) {
-    produce sum {
-     let sum.s0.i.loop_max = sum.s0.i.max_1
-     let sum.s0.i.loop_min = sum.s0.i.min_1
-     let sum.s0.i.loop_extent = (sum.s0.i.max_1 + 1) - sum.s0.i.min_1
-     let sum.s1.r$x.loop_extent = (sum.s1.r$x.max_1 - sum.s1.r$x.min_1) + 1
-     let sum.s1.r$x.loop_max = sum.s1.r$x.max_1
-     let sum.s1.r$x.loop_min = sum.s1.r$x.min_1
-     let sum.s1.i.loop_max = sum.s1.i.max_1
-     let sum.s1.i.loop_min = sum.s1.i.min_1
-     let sum.s1.i.loop_extent = (sum.s1.i.max_1 + 1) - sum.s1.i.min_1
-     let sum.s0.i.loop_min.orig = sum.s0.i.loop_min
-     for (sum.s0.i, sum.s0.i.loop_min, sum.s0.i.loop_extent) {
-      sum(sum.s0.i) = 0
-     }
-     let sum.s1.i.loop_min.orig = sum.s1.i.loop_min
-     for (sum.s1.i, sum.s1.i.loop_min, sum.s1.i.loop_extent) {
-      let sum.s1.r$x.loop_min.orig = sum.s1.r$x.loop_min
-      for (sum.s1.r$x, sum.s1.r$x.loop_min, sum.s1.r$x.loop_extent) {
-       let sum.s1.r$x.max_2 = sum.s1.r$x
-       let sum.s1.r$x.min_2 = sum.s1.r$x
-       sum(sum.s1.i) = sum(sum.s1.i) + (A(sum.s1.i, sum.s1.r$x)*x(sum.s1.r$x))
+  let gemv.s0.i.thread.thread.loop_min.orig = gemv.s0.i.thread.thread.loop_min
+  pim_thread<Default_PIM> (gemv.s0.i.thread.thread, gemv.s0.i.thread.thread.loop_min, gemv.s0.i.thread.thread.loop_extent) {
+   let gemv.s0.i.thread.inner_loop.base = (gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.loop_min
+   let gemv.s0.i.thread.inner_loop.loop_min.orig = gemv.s0.i.thread.inner_loop.loop_min
+   for (gemv.s0.i.thread.inner_loop, gemv.s0.i.thread.inner_loop.loop_min, gemv.s0.i.thread.inner_loop.loop_extent) {
+    let gemv.s0.i.thread = gemv.s0.i.thread.inner_loop.base + gemv.s0.i.thread.inner_loop
+    let gemv.s0.i = gemv.s0.i.thread.base + gemv.s0.i.thread
+    let gemv.s0.i.min_1 = gemv.s0.i
+    let gemv.s0.i.max_1 = gemv.s0.i.min_1
+    let sum.s1.r$x.max_1 = (2671 + 0) - 1
+    let sum.s1.r$x.min_1 = 0
+    let sum.s1.i.max_1 = gemv.s0.i.max_1
+    let sum.s1.i.min_1 = gemv.s0.i.min_1
+    let sum.s0.i.max_1 = sum.s1.i.max_1
+    let sum.s0.i.min_1 = sum.s1.i.min_1
+    realize sum([sum.i.min_realized, sum.i.extent_realized]) {
+     produce sum {
+      let sum.s0.i.loop_max = sum.s0.i.max_1
+      let sum.s0.i.loop_min = sum.s0.i.min_1
+      let sum.s0.i.loop_extent = (sum.s0.i.max_1 + 1) - sum.s0.i.min_1
+      let sum.s1.r$x.loop_extent = (sum.s1.r$x.max_1 - sum.s1.r$x.min_1) + 1
+      let sum.s1.r$x.loop_max = sum.s1.r$x.max_1
+      let sum.s1.r$x.loop_min = sum.s1.r$x.min_1
+      let sum.s1.i.loop_max = sum.s1.i.max_1
+      let sum.s1.i.loop_min = sum.s1.i.min_1
+      let sum.s1.i.loop_extent = (sum.s1.i.max_1 + 1) - sum.s1.i.min_1
+      let sum.s0.i.loop_min.orig = sum.s0.i.loop_min
+      for (sum.s0.i, sum.s0.i.loop_min, sum.s0.i.loop_extent) {
+       sum(sum.s0.i) = 0
+      }
+      let sum.s1.i.loop_min.orig = sum.s1.i.loop_min
+      for (sum.s1.i, sum.s1.i.loop_min, sum.s1.i.loop_extent) {
+       let sum.s1.r$x.loop_min.orig = sum.s1.r$x.loop_min
+       for (sum.s1.r$x, sum.s1.r$x.loop_min, sum.s1.r$x.loop_extent) {
+        let sum.s1.r$x.max_2 = sum.s1.r$x
+        let sum.s1.r$x.min_2 = sum.s1.r$x
+        sum(sum.s1.i) = sum(sum.s1.i) + (A(sum.s1.i, sum.s1.r$x)*x(sum.s1.r$x))
+       }
       }
      }
-    }
-    consume sum {
-     gemv(gemv.s0.i) = sum(gemv.s0.i)
+     consume sum {
+      gemv(gemv.s0.i) = sum(gemv.s0.i)
+     }
     }
    }
   }
@@ -508,43 +590,54 @@ produce gemv {
  let gemv.s0.i.thread.loop_extent = 2048
  let gemv.s0.i.thread.loop_max = 2047
  let gemv.s0.i.thread.loop_min = 0
+ let gemv.s0.i.thread.thread.loop_extent = 16
+ let gemv.s0.i.thread.thread.loop_max = 15
+ let gemv.s0.i.thread.thread.loop_min = 0
+ let gemv.s0.i.thread.inner_loop.loop_extent = 128
+ let gemv.s0.i.thread.inner_loop.loop_max = 127
+ let gemv.s0.i.thread.inner_loop.loop_min = 0
  let gemv.s0.i.block.loop_min.orig = 0
- dpu<UPMEM> (gemv.s0.i.block, 0, (gemv.extent.0 + 2047)/2048) {
+ pim_bank<Default_PIM> (gemv.s0.i.block, 0, (gemv.extent.0 + 2047)/2048) {
   let gemv.s0.i.thread.base = min(likely_if_innermost((gemv.s0.i.block*2048) + gemv.min.0), (gemv.extent.0 + gemv.min.0) + -2048)
-  let gemv.s0.i.thread.loop_min.orig = 0
-  for (gemv.s0.i.thread, 0, 2048) {
-   let gemv.s0.i = gemv.s0.i.thread + gemv.s0.i.thread.base
-   let gemv.s0.i.min_1 = gemv.s0.i.thread + gemv.s0.i.thread.base
-   let gemv.s0.i.max_1 = gemv.s0.i.thread + gemv.s0.i.thread.base
-   let sum.s1.r$x.max_1 = 2670
-   let sum.s1.r$x.min_1 = 0
-   let sum.s1.i.max_1 = gemv.s0.i.thread + gemv.s0.i.thread.base
-   let sum.s1.i.min_1 = gemv.s0.i.thread + gemv.s0.i.thread.base
-   let sum.s0.i.max_1 = gemv.s0.i.thread + gemv.s0.i.thread.base
-   let sum.s0.i.min_1 = gemv.s0.i.thread + gemv.s0.i.thread.base
-   realize sum([sum.i.min_realized, sum.i.extent_realized]) {
-    produce sum {
-     let sum.s0.i.loop_max = gemv.s0.i.thread + gemv.s0.i.thread.base
-     let sum.s0.i.loop_min = gemv.s0.i.thread + gemv.s0.i.thread.base
-     let sum.s0.i.loop_extent = 1
-     let sum.s1.r$x.loop_extent = 2671
-     let sum.s1.r$x.loop_max = 2670
-     let sum.s1.r$x.loop_min = 0
-     let sum.s1.i.loop_max = gemv.s0.i.thread + gemv.s0.i.thread.base
-     let sum.s1.i.loop_min = gemv.s0.i.thread + gemv.s0.i.thread.base
-     let sum.s1.i.loop_extent = 1
-     let t2 = gemv.s0.i.thread + gemv.s0.i.thread.base
-     let t1 = gemv.s0.i.thread + gemv.s0.i.thread.base
-     sum(gemv.s0.i.thread + gemv.s0.i.thread.base) = 0
-     let sum.s1.r$x.loop_min.orig = 0
-     for (sum.s1.r$x, 0, 2671) {
-      let sum.s1.r$x.max_2 = sum.s1.r$x
-      let sum.s1.r$x.min_2 = sum.s1.r$x
-      sum(gemv.s0.i.thread + gemv.s0.i.thread.base) = sum(gemv.s0.i.thread + gemv.s0.i.thread.base) + (A(gemv.s0.i.thread + gemv.s0.i.thread.base, sum.s1.r$x)*x(sum.s1.r$x))
+  let gemv.s0.i.thread.thread.loop_min.orig = 0
+  pim_thread<Default_PIM> (gemv.s0.i.thread.thread, 0, 16) {
+   let gemv.s0.i.thread.inner_loop.base = gemv.s0.i.thread.thread*128
+   let gemv.s0.i.thread.inner_loop.loop_min.orig = 0
+   for (gemv.s0.i.thread.inner_loop, 0, 128) {
+    let gemv.s0.i.thread = (gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop
+    let gemv.s0.i = ((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base
+    let gemv.s0.i.min_1 = ((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base
+    let gemv.s0.i.max_1 = ((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base
+    let sum.s1.r$x.max_1 = 2670
+    let sum.s1.r$x.min_1 = 0
+    let sum.s1.i.max_1 = ((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base
+    let sum.s1.i.min_1 = ((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base
+    let sum.s0.i.max_1 = ((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base
+    let sum.s0.i.min_1 = ((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base
+    realize sum([sum.i.min_realized, sum.i.extent_realized]) {
+     produce sum {
+      let sum.s0.i.loop_max = ((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base
+      let sum.s0.i.loop_min = ((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base
+      let sum.s0.i.loop_extent = 1
+      let sum.s1.r$x.loop_extent = 2671
+      let sum.s1.r$x.loop_max = 2670
+      let sum.s1.r$x.loop_min = 0
+      let sum.s1.i.loop_max = ((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base
+      let sum.s1.i.loop_min = ((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base
+      let sum.s1.i.loop_extent = 1
+      let t2 = ((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base
+      let t1 = ((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base
+      sum(((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base) = 0
+      let sum.s1.r$x.loop_min.orig = 0
+      for (sum.s1.r$x, 0, 2671) {
+       let sum.s1.r$x.max_2 = sum.s1.r$x
+       let sum.s1.r$x.min_2 = sum.s1.r$x
+       sum(((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base) = sum(((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base) + (A(((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base, sum.s1.r$x)*x(sum.s1.r$x))
+      }
      }
-    }
-    consume sum {
-     gemv(gemv.s0.i.thread + gemv.s0.i.thread.base) = sum(gemv.s0.i.thread + gemv.s0.i.thread.base)
+     consume sum {
+      gemv(((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base) = sum(((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base)
+     }
     }
    }
   }
@@ -572,43 +665,54 @@ produce gemv {
  let gemv.s0.i.thread.loop_extent = 2048
  let gemv.s0.i.thread.loop_max = 2047
  let gemv.s0.i.thread.loop_min = 0
+ let gemv.s0.i.thread.thread.loop_extent = 16
+ let gemv.s0.i.thread.thread.loop_max = 15
+ let gemv.s0.i.thread.thread.loop_min = 0
+ let gemv.s0.i.thread.inner_loop.loop_extent = 128
+ let gemv.s0.i.thread.inner_loop.loop_max = 127
+ let gemv.s0.i.thread.inner_loop.loop_min = 0
  let gemv.s0.i.block.loop_min.orig = 0
- dpu<UPMEM> (gemv.s0.i.block, 0, (gemv.extent.0 + 2047)/2048) {
+ pim_bank<Default_PIM> (gemv.s0.i.block, 0, (gemv.extent.0 + 2047)/2048) {
   let gemv.s0.i.thread.base = min(likely_if_innermost((gemv.s0.i.block*2048) + gemv.min.0), (gemv.extent.0 + gemv.min.0) + -2048)
-  let gemv.s0.i.thread.loop_min.orig = 0
-  for (gemv.s0.i.thread, 0, 2048) {
-   let gemv.s0.i = gemv.s0.i.thread + gemv.s0.i.thread.base
-   let gemv.s0.i.min_1 = gemv.s0.i.thread + gemv.s0.i.thread.base
-   let gemv.s0.i.max_1 = gemv.s0.i.thread + gemv.s0.i.thread.base
-   let sum.s1.r$x.max_1 = 2670
-   let sum.s1.r$x.min_1 = 0
-   let sum.s1.i.max_1 = gemv.s0.i.thread + gemv.s0.i.thread.base
-   let sum.s1.i.min_1 = gemv.s0.i.thread + gemv.s0.i.thread.base
-   let sum.s0.i.max_1 = gemv.s0.i.thread + gemv.s0.i.thread.base
-   let sum.s0.i.min_1 = gemv.s0.i.thread + gemv.s0.i.thread.base
-   realize sum([sum.i.min_realized, sum.i.extent_realized]) {
-    produce sum {
-     let sum.s0.i.loop_max = gemv.s0.i.thread + gemv.s0.i.thread.base
-     let sum.s0.i.loop_min = gemv.s0.i.thread + gemv.s0.i.thread.base
-     let sum.s0.i.loop_extent = 1
-     let sum.s1.r$x.loop_extent = 2671
-     let sum.s1.r$x.loop_max = 2670
-     let sum.s1.r$x.loop_min = 0
-     let sum.s1.i.loop_max = gemv.s0.i.thread + gemv.s0.i.thread.base
-     let sum.s1.i.loop_min = gemv.s0.i.thread + gemv.s0.i.thread.base
-     let sum.s1.i.loop_extent = 1
-     let t2 = gemv.s0.i.thread + gemv.s0.i.thread.base
-     let t1 = gemv.s0.i.thread + gemv.s0.i.thread.base
-     sum(gemv.s0.i.thread + gemv.s0.i.thread.base) = 0
-     let sum.s1.r$x.loop_min.orig = 0
-     for (sum.s1.r$x, 0, 2671) {
-      let sum.s1.r$x.max_2 = sum.s1.r$x
-      let sum.s1.r$x.min_2 = sum.s1.r$x
-      sum(gemv.s0.i.thread + gemv.s0.i.thread.base) = sum(gemv.s0.i.thread + gemv.s0.i.thread.base) + (A(gemv.s0.i.thread + gemv.s0.i.thread.base, sum.s1.r$x)*x(sum.s1.r$x))
+  let gemv.s0.i.thread.thread.loop_min.orig = 0
+  pim_thread<Default_PIM> (gemv.s0.i.thread.thread, 0, 16) {
+   let gemv.s0.i.thread.inner_loop.base = gemv.s0.i.thread.thread*128
+   let gemv.s0.i.thread.inner_loop.loop_min.orig = 0
+   for (gemv.s0.i.thread.inner_loop, 0, 128) {
+    let gemv.s0.i.thread = (gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop
+    let gemv.s0.i = ((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base
+    let gemv.s0.i.min_1 = ((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base
+    let gemv.s0.i.max_1 = ((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base
+    let sum.s1.r$x.max_1 = 2670
+    let sum.s1.r$x.min_1 = 0
+    let sum.s1.i.max_1 = ((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base
+    let sum.s1.i.min_1 = ((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base
+    let sum.s0.i.max_1 = ((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base
+    let sum.s0.i.min_1 = ((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base
+    realize sum([sum.i.min_realized, sum.i.extent_realized]) {
+     produce sum {
+      let sum.s0.i.loop_max = ((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base
+      let sum.s0.i.loop_min = ((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base
+      let sum.s0.i.loop_extent = 1
+      let sum.s1.r$x.loop_extent = 2671
+      let sum.s1.r$x.loop_max = 2670
+      let sum.s1.r$x.loop_min = 0
+      let sum.s1.i.loop_max = ((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base
+      let sum.s1.i.loop_min = ((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base
+      let sum.s1.i.loop_extent = 1
+      let t2 = ((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base
+      let t1 = ((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base
+      sum(((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base) = 0
+      let sum.s1.r$x.loop_min.orig = 0
+      for (sum.s1.r$x, 0, 2671) {
+       let sum.s1.r$x.max_2 = sum.s1.r$x
+       let sum.s1.r$x.min_2 = sum.s1.r$x
+       sum(((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base) = sum(((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base) + (A(((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base, sum.s1.r$x)*x(sum.s1.r$x))
+      }
      }
-    }
-    consume sum {
-     gemv(gemv.s0.i.thread + gemv.s0.i.thread.base) = sum(gemv.s0.i.thread + gemv.s0.i.thread.base)
+     consume sum {
+      gemv(((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base) = sum(((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base)
+     }
     }
    }
   }
@@ -636,46 +740,57 @@ produce gemv {
  let gemv.s0.i.thread.loop_extent = 2048
  let gemv.s0.i.thread.loop_max = 2047
  let gemv.s0.i.thread.loop_min = 0
+ let gemv.s0.i.thread.thread.loop_extent = 16
+ let gemv.s0.i.thread.thread.loop_max = 15
+ let gemv.s0.i.thread.thread.loop_min = 0
+ let gemv.s0.i.thread.inner_loop.loop_extent = 128
+ let gemv.s0.i.thread.inner_loop.loop_max = 127
+ let gemv.s0.i.thread.inner_loop.loop_min = 0
  let gemv.s0.i.block.loop_min.orig = 0
- dpu<UPMEM> (gemv.s0.i.block, 0, (gemv.extent.0 + 2047)/2048) {
+ pim_bank<Default_PIM> (gemv.s0.i.block, 0, (gemv.extent.0 + 2047)/2048) {
   let gemv.s0.i.thread.base = min(likely_if_innermost((gemv.s0.i.block*2048) + gemv.min.0), (gemv.extent.0 + gemv.min.0) + -2048)
-  let gemv.s0.i.thread.loop_min.orig = 0
-  for (gemv.s0.i.thread, 0, 2048) {
-   let gemv.s0.i = gemv.s0.i.thread + gemv.s0.i.thread.base
-   let gemv.s0.i.min_1 = gemv.s0.i.thread + gemv.s0.i.thread.base
-   let gemv.s0.i.max_1 = gemv.s0.i.thread + gemv.s0.i.thread.base
-   let sum.s1.r$x.max_1 = 2670
-   let sum.s1.r$x.min_1 = 0
-   let sum.s1.i.max_1 = gemv.s0.i.thread + gemv.s0.i.thread.base
-   let sum.s1.i.min_1 = gemv.s0.i.thread + gemv.s0.i.thread.base
-   let sum.s0.i.max_1 = gemv.s0.i.thread + gemv.s0.i.thread.base
-   let sum.s0.i.min_1 = gemv.s0.i.thread + gemv.s0.i.thread.base
-   let sum.i.max_realized = gemv.s0.i.thread + gemv.s0.i.thread.base
-   let sum.i.min_realized = gemv.s0.i.thread + gemv.s0.i.thread.base
-   let sum.i.extent_realized = 1
-   realize sum([sum.i.min_realized, sum.i.extent_realized]) {
-    produce sum {
-     let sum.s0.i.loop_max = gemv.s0.i.thread + gemv.s0.i.thread.base
-     let sum.s0.i.loop_min = gemv.s0.i.thread + gemv.s0.i.thread.base
-     let sum.s0.i.loop_extent = 1
-     let sum.s1.r$x.loop_extent = 2671
-     let sum.s1.r$x.loop_max = 2670
-     let sum.s1.r$x.loop_min = 0
-     let sum.s1.i.loop_max = gemv.s0.i.thread + gemv.s0.i.thread.base
-     let sum.s1.i.loop_min = gemv.s0.i.thread + gemv.s0.i.thread.base
-     let sum.s1.i.loop_extent = 1
-     let t2 = gemv.s0.i.thread + gemv.s0.i.thread.base
-     let t1 = gemv.s0.i.thread + gemv.s0.i.thread.base
-     sum(gemv.s0.i.thread + gemv.s0.i.thread.base) = 0
-     let sum.s1.r$x.loop_min.orig = 0
-     for (sum.s1.r$x, 0, 2671) {
-      let sum.s1.r$x.max_2 = sum.s1.r$x
-      let sum.s1.r$x.min_2 = sum.s1.r$x
-      sum(gemv.s0.i.thread + gemv.s0.i.thread.base) = sum(gemv.s0.i.thread + gemv.s0.i.thread.base) + (A(gemv.s0.i.thread + gemv.s0.i.thread.base, sum.s1.r$x)*x(sum.s1.r$x))
+  let gemv.s0.i.thread.thread.loop_min.orig = 0
+  pim_thread<Default_PIM> (gemv.s0.i.thread.thread, 0, 16) {
+   let gemv.s0.i.thread.inner_loop.base = gemv.s0.i.thread.thread*128
+   let gemv.s0.i.thread.inner_loop.loop_min.orig = 0
+   for (gemv.s0.i.thread.inner_loop, 0, 128) {
+    let gemv.s0.i.thread = (gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop
+    let gemv.s0.i = ((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base
+    let gemv.s0.i.min_1 = ((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base
+    let gemv.s0.i.max_1 = ((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base
+    let sum.s1.r$x.max_1 = 2670
+    let sum.s1.r$x.min_1 = 0
+    let sum.s1.i.max_1 = ((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base
+    let sum.s1.i.min_1 = ((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base
+    let sum.s0.i.max_1 = ((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base
+    let sum.s0.i.min_1 = ((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base
+    let sum.i.max_realized = ((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base
+    let sum.i.min_realized = ((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base
+    let sum.i.extent_realized = 1
+    realize sum([sum.i.min_realized, sum.i.extent_realized]) {
+     produce sum {
+      let sum.s0.i.loop_max = ((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base
+      let sum.s0.i.loop_min = ((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base
+      let sum.s0.i.loop_extent = 1
+      let sum.s1.r$x.loop_extent = 2671
+      let sum.s1.r$x.loop_max = 2670
+      let sum.s1.r$x.loop_min = 0
+      let sum.s1.i.loop_max = ((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base
+      let sum.s1.i.loop_min = ((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base
+      let sum.s1.i.loop_extent = 1
+      let t2 = ((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base
+      let t1 = ((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base
+      sum(((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base) = 0
+      let sum.s1.r$x.loop_min.orig = 0
+      for (sum.s1.r$x, 0, 2671) {
+       let sum.s1.r$x.max_2 = sum.s1.r$x
+       let sum.s1.r$x.min_2 = sum.s1.r$x
+       sum(((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base) = sum(((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base) + (A(((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base, sum.s1.r$x)*x(sum.s1.r$x))
+      }
      }
-    }
-    consume sum {
-     gemv(gemv.s0.i.thread + gemv.s0.i.thread.base) = sum(gemv.s0.i.thread + gemv.s0.i.thread.base)
+     consume sum {
+      gemv(((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base) = sum(((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base)
+     }
     }
    }
   }
@@ -696,14 +811,14 @@ let sum.s1.i.max = (gemv.extent.0 + gemv.min.0) + -1
 let sum.s1.i.min = gemv.min.0
 let sum.s0.i.max = (gemv.extent.0 + gemv.min.0) + -1
 let sum.s0.i.min = gemv.min.0
-let A.extent.0.required = ((2047 + ((gemv.extent.0 + gemv.min.0) + -2048)) + 1) - (0 + ((min(gemv.extent.0, 2048) + gemv.min.0) + -2048))
-let A.min.0.required = 0 + ((min(gemv.extent.0, 2048) + gemv.min.0) + -2048)
+let A.extent.0.required = ((((15*128) + 127) + ((gemv.extent.0 + gemv.min.0) + -2048)) + 1) - (((0*128) + 0) + ((min(gemv.extent.0, 2048) + gemv.min.0) + -2048))
+let A.min.0.required = ((0*128) + 0) + ((min(gemv.extent.0, 2048) + gemv.min.0) + -2048)
 let A.stride.0.required = 1
 let A.extent.1.required = (2670 + 1) - 0
 let A.min.1.required = 0
 let A.stride.1.required = A.stride.0.required*A.extent.0.required
-let gemv.extent.0.required = ((2047 + ((gemv.extent.0 + gemv.min.0) + -2048)) + 1) - (0 + ((min(gemv.extent.0, 2048) + gemv.min.0) + -2048))
-let gemv.min.0.required = 0 + ((min(gemv.extent.0, 2048) + gemv.min.0) + -2048)
+let gemv.extent.0.required = ((((15*128) + 127) + ((gemv.extent.0 + gemv.min.0) + -2048)) + 1) - (((0*128) + 0) + ((min(gemv.extent.0, 2048) + gemv.min.0) + -2048))
+let gemv.min.0.required = ((0*128) + 0) + ((min(gemv.extent.0, 2048) + gemv.min.0) + -2048)
 let gemv.stride.0.required = 1
 let x.extent.0.required = (2670 + 1) - 0
 let x.min.0.required = 0
@@ -787,46 +902,57 @@ if (!((((uint1)0 || (uint1)_halide_buffer_is_bounds_query((struct halide_buffer_
   let gemv.s0.i.thread.loop_extent = 2048
   let gemv.s0.i.thread.loop_max = 2047
   let gemv.s0.i.thread.loop_min = 0
+  let gemv.s0.i.thread.thread.loop_extent = 16
+  let gemv.s0.i.thread.thread.loop_max = 15
+  let gemv.s0.i.thread.thread.loop_min = 0
+  let gemv.s0.i.thread.inner_loop.loop_extent = 128
+  let gemv.s0.i.thread.inner_loop.loop_max = 127
+  let gemv.s0.i.thread.inner_loop.loop_min = 0
   let gemv.s0.i.block.loop_min.orig = 0
-  dpu<UPMEM> (gemv.s0.i.block, 0, (gemv.extent.0 + 2047)/2048) {
+  pim_bank<Default_PIM> (gemv.s0.i.block, 0, (gemv.extent.0 + 2047)/2048) {
    let gemv.s0.i.thread.base = min(likely_if_innermost((gemv.s0.i.block*2048) + gemv.min.0), (gemv.extent.0 + gemv.min.0) + -2048)
-   let gemv.s0.i.thread.loop_min.orig = 0
-   for (gemv.s0.i.thread, 0, 2048) {
-    let gemv.s0.i = gemv.s0.i.thread + gemv.s0.i.thread.base
-    let gemv.s0.i.min_1 = gemv.s0.i.thread + gemv.s0.i.thread.base
-    let gemv.s0.i.max_1 = gemv.s0.i.thread + gemv.s0.i.thread.base
-    let sum.s1.r$x.max_1 = 2670
-    let sum.s1.r$x.min_1 = 0
-    let sum.s1.i.max_1 = gemv.s0.i.thread + gemv.s0.i.thread.base
-    let sum.s1.i.min_1 = gemv.s0.i.thread + gemv.s0.i.thread.base
-    let sum.s0.i.max_1 = gemv.s0.i.thread + gemv.s0.i.thread.base
-    let sum.s0.i.min_1 = gemv.s0.i.thread + gemv.s0.i.thread.base
-    let sum.i.max_realized = gemv.s0.i.thread + gemv.s0.i.thread.base
-    let sum.i.min_realized = gemv.s0.i.thread + gemv.s0.i.thread.base
-    let sum.i.extent_realized = 1
-    realize sum([sum.i.min_realized, sum.i.extent_realized]) {
-     produce sum {
-      let sum.s0.i.loop_max = gemv.s0.i.thread + gemv.s0.i.thread.base
-      let sum.s0.i.loop_min = gemv.s0.i.thread + gemv.s0.i.thread.base
-      let sum.s0.i.loop_extent = 1
-      let sum.s1.r$x.loop_extent = 2671
-      let sum.s1.r$x.loop_max = 2670
-      let sum.s1.r$x.loop_min = 0
-      let sum.s1.i.loop_max = gemv.s0.i.thread + gemv.s0.i.thread.base
-      let sum.s1.i.loop_min = gemv.s0.i.thread + gemv.s0.i.thread.base
-      let sum.s1.i.loop_extent = 1
-      let t2 = gemv.s0.i.thread + gemv.s0.i.thread.base
-      let t1 = gemv.s0.i.thread + gemv.s0.i.thread.base
-      sum(gemv.s0.i.thread + gemv.s0.i.thread.base) = 0
-      let sum.s1.r$x.loop_min.orig = 0
-      for (sum.s1.r$x, 0, 2671) {
-       let sum.s1.r$x.max_2 = sum.s1.r$x
-       let sum.s1.r$x.min_2 = sum.s1.r$x
-       sum(gemv.s0.i.thread + gemv.s0.i.thread.base) = sum(gemv.s0.i.thread + gemv.s0.i.thread.base) + (A(gemv.s0.i.thread + gemv.s0.i.thread.base, sum.s1.r$x)*x(sum.s1.r$x))
+   let gemv.s0.i.thread.thread.loop_min.orig = 0
+   pim_thread<Default_PIM> (gemv.s0.i.thread.thread, 0, 16) {
+    let gemv.s0.i.thread.inner_loop.base = gemv.s0.i.thread.thread*128
+    let gemv.s0.i.thread.inner_loop.loop_min.orig = 0
+    for (gemv.s0.i.thread.inner_loop, 0, 128) {
+     let gemv.s0.i.thread = (gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop
+     let gemv.s0.i = ((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base
+     let gemv.s0.i.min_1 = ((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base
+     let gemv.s0.i.max_1 = ((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base
+     let sum.s1.r$x.max_1 = 2670
+     let sum.s1.r$x.min_1 = 0
+     let sum.s1.i.max_1 = ((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base
+     let sum.s1.i.min_1 = ((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base
+     let sum.s0.i.max_1 = ((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base
+     let sum.s0.i.min_1 = ((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base
+     let sum.i.max_realized = ((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base
+     let sum.i.min_realized = ((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base
+     let sum.i.extent_realized = 1
+     realize sum([sum.i.min_realized, sum.i.extent_realized]) {
+      produce sum {
+       let sum.s0.i.loop_max = ((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base
+       let sum.s0.i.loop_min = ((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base
+       let sum.s0.i.loop_extent = 1
+       let sum.s1.r$x.loop_extent = 2671
+       let sum.s1.r$x.loop_max = 2670
+       let sum.s1.r$x.loop_min = 0
+       let sum.s1.i.loop_max = ((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base
+       let sum.s1.i.loop_min = ((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base
+       let sum.s1.i.loop_extent = 1
+       let t2 = ((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base
+       let t1 = ((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base
+       sum(((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base) = 0
+       let sum.s1.r$x.loop_min.orig = 0
+       for (sum.s1.r$x, 0, 2671) {
+        let sum.s1.r$x.max_2 = sum.s1.r$x
+        let sum.s1.r$x.min_2 = sum.s1.r$x
+        sum(((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base) = sum(((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base) + (A(((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base, sum.s1.r$x)*x(sum.s1.r$x))
+       }
       }
-     }
-     consume sum {
-      gemv(gemv.s0.i.thread + gemv.s0.i.thread.base) = sum(gemv.s0.i.thread + gemv.s0.i.thread.base)
+      consume sum {
+       gemv(((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base) = sum(((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base)
+      }
      }
     }
    }
@@ -850,14 +976,14 @@ let sum.s1.i.max = (gemv.extent.0 + gemv.min.0) + -1
 let sum.s1.i.min = gemv.min.0
 let sum.s0.i.max = (gemv.extent.0 + gemv.min.0) + -1
 let sum.s0.i.min = gemv.min.0
-let A.extent.0.required = ((2047 + ((gemv.extent.0 + gemv.min.0) + -2048)) + 1) - (0 + ((min(gemv.extent.0, 2048) + gemv.min.0) + -2048))
-let A.min.0.required = 0 + ((min(gemv.extent.0, 2048) + gemv.min.0) + -2048)
+let A.extent.0.required = ((((15*128) + 127) + ((gemv.extent.0 + gemv.min.0) + -2048)) + 1) - (((0*128) + 0) + ((min(gemv.extent.0, 2048) + gemv.min.0) + -2048))
+let A.min.0.required = ((0*128) + 0) + ((min(gemv.extent.0, 2048) + gemv.min.0) + -2048)
 let A.stride.0.required = 1
 let A.extent.1.required = (2670 + 1) - 0
 let A.min.1.required = 0
 let A.stride.1.required = A.stride.0.required*A.extent.0.required
-let gemv.extent.0.required = ((2047 + ((gemv.extent.0 + gemv.min.0) + -2048)) + 1) - (0 + ((min(gemv.extent.0, 2048) + gemv.min.0) + -2048))
-let gemv.min.0.required = 0 + ((min(gemv.extent.0, 2048) + gemv.min.0) + -2048)
+let gemv.extent.0.required = ((((15*128) + 127) + ((gemv.extent.0 + gemv.min.0) + -2048)) + 1) - (((0*128) + 0) + ((min(gemv.extent.0, 2048) + gemv.min.0) + -2048))
+let gemv.min.0.required = ((0*128) + 0) + ((min(gemv.extent.0, 2048) + gemv.min.0) + -2048)
 let gemv.stride.0.required = 1
 let x.extent.0.required = (2670 + 1) - 0
 let x.min.0.required = 0
@@ -941,46 +1067,57 @@ if (!((((uint1)0 || (uint1)_halide_buffer_is_bounds_query((struct halide_buffer_
   let gemv.s0.i.thread.loop_extent = 2048
   let gemv.s0.i.thread.loop_max = 2047
   let gemv.s0.i.thread.loop_min = 0
+  let gemv.s0.i.thread.thread.loop_extent = 16
+  let gemv.s0.i.thread.thread.loop_max = 15
+  let gemv.s0.i.thread.thread.loop_min = 0
+  let gemv.s0.i.thread.inner_loop.loop_extent = 128
+  let gemv.s0.i.thread.inner_loop.loop_max = 127
+  let gemv.s0.i.thread.inner_loop.loop_min = 0
   let gemv.s0.i.block.loop_min.orig = 0
-  dpu<UPMEM> (gemv.s0.i.block, 0, (gemv.extent.0 + 2047)/2048) {
+  pim_bank<Default_PIM> (gemv.s0.i.block, 0, (gemv.extent.0 + 2047)/2048) {
    let gemv.s0.i.thread.base = min(likely_if_innermost((gemv.s0.i.block*2048) + gemv.min.0), (gemv.extent.0 + gemv.min.0) + -2048)
-   let gemv.s0.i.thread.loop_min.orig = 0
-   for (gemv.s0.i.thread, 0, 2048) {
-    let gemv.s0.i = gemv.s0.i.thread + gemv.s0.i.thread.base
-    let gemv.s0.i.min_1 = gemv.s0.i.thread + gemv.s0.i.thread.base
-    let gemv.s0.i.max_1 = gemv.s0.i.thread + gemv.s0.i.thread.base
-    let sum.s1.r$x.max_1 = 2670
-    let sum.s1.r$x.min_1 = 0
-    let sum.s1.i.max_1 = gemv.s0.i.thread + gemv.s0.i.thread.base
-    let sum.s1.i.min_1 = gemv.s0.i.thread + gemv.s0.i.thread.base
-    let sum.s0.i.max_1 = gemv.s0.i.thread + gemv.s0.i.thread.base
-    let sum.s0.i.min_1 = gemv.s0.i.thread + gemv.s0.i.thread.base
-    let sum.i.max_realized = gemv.s0.i.thread + gemv.s0.i.thread.base
-    let sum.i.min_realized = gemv.s0.i.thread + gemv.s0.i.thread.base
-    let sum.i.extent_realized = 1
-    realize sum([sum.i.min_realized, sum.i.extent_realized]) {
-     produce sum {
-      let sum.s0.i.loop_max = gemv.s0.i.thread + gemv.s0.i.thread.base
-      let sum.s0.i.loop_min = gemv.s0.i.thread + gemv.s0.i.thread.base
-      let sum.s0.i.loop_extent = 1
-      let sum.s1.r$x.loop_extent = 2671
-      let sum.s1.r$x.loop_max = 2670
-      let sum.s1.r$x.loop_min = 0
-      let sum.s1.i.loop_max = gemv.s0.i.thread + gemv.s0.i.thread.base
-      let sum.s1.i.loop_min = gemv.s0.i.thread + gemv.s0.i.thread.base
-      let sum.s1.i.loop_extent = 1
-      let t2 = gemv.s0.i.thread + gemv.s0.i.thread.base
-      let t1 = gemv.s0.i.thread + gemv.s0.i.thread.base
-      sum(gemv.s0.i.thread + gemv.s0.i.thread.base) = 0
-      let sum.s1.r$x.loop_min.orig = 0
-      for (sum.s1.r$x, 0, 2671) {
-       let sum.s1.r$x.max_2 = sum.s1.r$x
-       let sum.s1.r$x.min_2 = sum.s1.r$x
-       sum(gemv.s0.i.thread + gemv.s0.i.thread.base) = sum(gemv.s0.i.thread + gemv.s0.i.thread.base) + (A(gemv.s0.i.thread + gemv.s0.i.thread.base, sum.s1.r$x)*x(sum.s1.r$x))
+   let gemv.s0.i.thread.thread.loop_min.orig = 0
+   pim_thread<Default_PIM> (gemv.s0.i.thread.thread, 0, 16) {
+    let gemv.s0.i.thread.inner_loop.base = gemv.s0.i.thread.thread*128
+    let gemv.s0.i.thread.inner_loop.loop_min.orig = 0
+    for (gemv.s0.i.thread.inner_loop, 0, 128) {
+     let gemv.s0.i.thread = (gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop
+     let gemv.s0.i = ((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base
+     let gemv.s0.i.min_1 = ((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base
+     let gemv.s0.i.max_1 = ((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base
+     let sum.s1.r$x.max_1 = 2670
+     let sum.s1.r$x.min_1 = 0
+     let sum.s1.i.max_1 = ((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base
+     let sum.s1.i.min_1 = ((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base
+     let sum.s0.i.max_1 = ((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base
+     let sum.s0.i.min_1 = ((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base
+     let sum.i.max_realized = ((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base
+     let sum.i.min_realized = ((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base
+     let sum.i.extent_realized = 1
+     realize sum([sum.i.min_realized, sum.i.extent_realized]) {
+      produce sum {
+       let sum.s0.i.loop_max = ((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base
+       let sum.s0.i.loop_min = ((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base
+       let sum.s0.i.loop_extent = 1
+       let sum.s1.r$x.loop_extent = 2671
+       let sum.s1.r$x.loop_max = 2670
+       let sum.s1.r$x.loop_min = 0
+       let sum.s1.i.loop_max = ((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base
+       let sum.s1.i.loop_min = ((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base
+       let sum.s1.i.loop_extent = 1
+       let t2 = ((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base
+       let t1 = ((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base
+       sum(((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base) = 0
+       let sum.s1.r$x.loop_min.orig = 0
+       for (sum.s1.r$x, 0, 2671) {
+        let sum.s1.r$x.max_2 = sum.s1.r$x
+        let sum.s1.r$x.min_2 = sum.s1.r$x
+        sum(((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base) = sum(((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base) + (A(((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base, sum.s1.r$x)*x(sum.s1.r$x))
+       }
       }
-     }
-     consume sum {
-      gemv(gemv.s0.i.thread + gemv.s0.i.thread.base) = sum(gemv.s0.i.thread + gemv.s0.i.thread.base)
+      consume sum {
+       gemv(((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base) = sum(((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base)
+      }
      }
     }
    }
@@ -1007,14 +1144,14 @@ let sum.s1.i.max = (gemv.extent.0 + gemv.min.0) + -1
 let sum.s1.i.min = gemv.min.0
 let sum.s0.i.max = (gemv.extent.0 + gemv.min.0) + -1
 let sum.s0.i.min = gemv.min.0
-let A.extent.0.required = ((2047 + ((gemv.extent.0 + gemv.min.0) + -2048)) + 1) - (0 + ((min(gemv.extent.0, 2048) + gemv.min.0) + -2048))
-let A.min.0.required = 0 + ((min(gemv.extent.0, 2048) + gemv.min.0) + -2048)
+let A.extent.0.required = ((((15*128) + 127) + ((gemv.extent.0 + gemv.min.0) + -2048)) + 1) - (((0*128) + 0) + ((min(gemv.extent.0, 2048) + gemv.min.0) + -2048))
+let A.min.0.required = ((0*128) + 0) + ((min(gemv.extent.0, 2048) + gemv.min.0) + -2048)
 let A.stride.0.required = 1
 let A.extent.1.required = (2670 + 1) - 0
 let A.min.1.required = 0
 let A.stride.1.required = A.stride.0.required*A.extent.0.required
-let gemv.extent.0.required = ((2047 + ((gemv.extent.0 + gemv.min.0) + -2048)) + 1) - (0 + ((min(gemv.extent.0, 2048) + gemv.min.0) + -2048))
-let gemv.min.0.required = 0 + ((min(gemv.extent.0, 2048) + gemv.min.0) + -2048)
+let gemv.extent.0.required = ((((15*128) + 127) + ((gemv.extent.0 + gemv.min.0) + -2048)) + 1) - (((0*128) + 0) + ((min(gemv.extent.0, 2048) + gemv.min.0) + -2048))
+let gemv.min.0.required = ((0*128) + 0) + ((min(gemv.extent.0, 2048) + gemv.min.0) + -2048)
 let gemv.stride.0.required = 1
 let x.extent.0.required = (2670 + 1) - 0
 let x.min.0.required = 0
@@ -1098,46 +1235,57 @@ if (!((((uint1)0 || (uint1)_halide_buffer_is_bounds_query((struct halide_buffer_
   let gemv.s0.i.thread.loop_extent = 2048
   let gemv.s0.i.thread.loop_max = 2047
   let gemv.s0.i.thread.loop_min = 0
+  let gemv.s0.i.thread.thread.loop_extent = 16
+  let gemv.s0.i.thread.thread.loop_max = 15
+  let gemv.s0.i.thread.thread.loop_min = 0
+  let gemv.s0.i.thread.inner_loop.loop_extent = 128
+  let gemv.s0.i.thread.inner_loop.loop_max = 127
+  let gemv.s0.i.thread.inner_loop.loop_min = 0
   let gemv.s0.i.block.loop_min.orig = 0
-  dpu<UPMEM> (gemv.s0.i.block, 0, (gemv.extent.0 + 2047)/2048) {
+  pim_bank<Default_PIM> (gemv.s0.i.block, 0, (gemv.extent.0 + 2047)/2048) {
    let gemv.s0.i.thread.base = min(likely_if_innermost((gemv.s0.i.block*2048) + gemv.min.0), (gemv.extent.0 + gemv.min.0) + -2048)
-   let gemv.s0.i.thread.loop_min.orig = 0
-   for (gemv.s0.i.thread, 0, 2048) {
-    let gemv.s0.i = gemv.s0.i.thread + gemv.s0.i.thread.base
-    let gemv.s0.i.min_1 = gemv.s0.i.thread + gemv.s0.i.thread.base
-    let gemv.s0.i.max_1 = gemv.s0.i.thread + gemv.s0.i.thread.base
-    let sum.s1.r$x.max_1 = 2670
-    let sum.s1.r$x.min_1 = 0
-    let sum.s1.i.max_1 = gemv.s0.i.thread + gemv.s0.i.thread.base
-    let sum.s1.i.min_1 = gemv.s0.i.thread + gemv.s0.i.thread.base
-    let sum.s0.i.max_1 = gemv.s0.i.thread + gemv.s0.i.thread.base
-    let sum.s0.i.min_1 = gemv.s0.i.thread + gemv.s0.i.thread.base
-    let sum.i.max_realized = gemv.s0.i.thread + gemv.s0.i.thread.base
-    let sum.i.min_realized = gemv.s0.i.thread + gemv.s0.i.thread.base
-    let sum.i.extent_realized = 1
-    realize sum([sum.i.min_realized, sum.i.extent_realized]) {
-     produce sum {
-      let sum.s0.i.loop_max = gemv.s0.i.thread + gemv.s0.i.thread.base
-      let sum.s0.i.loop_min = gemv.s0.i.thread + gemv.s0.i.thread.base
-      let sum.s0.i.loop_extent = 1
-      let sum.s1.r$x.loop_extent = 2671
-      let sum.s1.r$x.loop_max = 2670
-      let sum.s1.r$x.loop_min = 0
-      let sum.s1.i.loop_max = gemv.s0.i.thread + gemv.s0.i.thread.base
-      let sum.s1.i.loop_min = gemv.s0.i.thread + gemv.s0.i.thread.base
-      let sum.s1.i.loop_extent = 1
-      let t2 = gemv.s0.i.thread + gemv.s0.i.thread.base
-      let t1 = gemv.s0.i.thread + gemv.s0.i.thread.base
-      sum(gemv.s0.i.thread + gemv.s0.i.thread.base) = 0
-      let sum.s1.r$x.loop_min.orig = 0
-      for (sum.s1.r$x, 0, 2671) {
-       let sum.s1.r$x.max_2 = sum.s1.r$x
-       let sum.s1.r$x.min_2 = sum.s1.r$x
-       sum(gemv.s0.i.thread + gemv.s0.i.thread.base) = sum(gemv.s0.i.thread + gemv.s0.i.thread.base) + (A(gemv.s0.i.thread + gemv.s0.i.thread.base, sum.s1.r$x)*x(sum.s1.r$x))
+   let gemv.s0.i.thread.thread.loop_min.orig = 0
+   pim_thread<Default_PIM> (gemv.s0.i.thread.thread, 0, 16) {
+    let gemv.s0.i.thread.inner_loop.base = gemv.s0.i.thread.thread*128
+    let gemv.s0.i.thread.inner_loop.loop_min.orig = 0
+    for (gemv.s0.i.thread.inner_loop, 0, 128) {
+     let gemv.s0.i.thread = (gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop
+     let gemv.s0.i = ((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base
+     let gemv.s0.i.min_1 = ((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base
+     let gemv.s0.i.max_1 = ((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base
+     let sum.s1.r$x.max_1 = 2670
+     let sum.s1.r$x.min_1 = 0
+     let sum.s1.i.max_1 = ((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base
+     let sum.s1.i.min_1 = ((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base
+     let sum.s0.i.max_1 = ((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base
+     let sum.s0.i.min_1 = ((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base
+     let sum.i.max_realized = ((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base
+     let sum.i.min_realized = ((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base
+     let sum.i.extent_realized = 1
+     realize sum([sum.i.min_realized, sum.i.extent_realized]) {
+      produce sum {
+       let sum.s0.i.loop_max = ((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base
+       let sum.s0.i.loop_min = ((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base
+       let sum.s0.i.loop_extent = 1
+       let sum.s1.r$x.loop_extent = 2671
+       let sum.s1.r$x.loop_max = 2670
+       let sum.s1.r$x.loop_min = 0
+       let sum.s1.i.loop_max = ((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base
+       let sum.s1.i.loop_min = ((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base
+       let sum.s1.i.loop_extent = 1
+       let t2 = ((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base
+       let t1 = ((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base
+       sum(((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base) = 0
+       let sum.s1.r$x.loop_min.orig = 0
+       for (sum.s1.r$x, 0, 2671) {
+        let sum.s1.r$x.max_2 = sum.s1.r$x
+        let sum.s1.r$x.min_2 = sum.s1.r$x
+        sum(((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base) = sum(((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base) + (A(((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base, sum.s1.r$x)*x(sum.s1.r$x))
+       }
       }
-     }
-     consume sum {
-      gemv(gemv.s0.i.thread + gemv.s0.i.thread.base) = sum(gemv.s0.i.thread + gemv.s0.i.thread.base)
+      consume sum {
+       gemv(((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base) = sum(((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base)
+      }
      }
     }
    }
@@ -1155,14 +1303,14 @@ let sum.s1.i.max = (gemv.extent.0 + gemv.min.0) + -1
 let sum.s1.i.min = gemv.min.0
 let sum.s0.i.max = (gemv.extent.0 + gemv.min.0) + -1
 let sum.s0.i.min = gemv.min.0
-let A.extent.0.required = ((2047 + ((gemv.extent.0 + gemv.min.0) + -2048)) + 1) - (0 + ((min(gemv.extent.0, 2048) + gemv.min.0) + -2048))
-let A.min.0.required = 0 + ((min(gemv.extent.0, 2048) + gemv.min.0) + -2048)
+let A.extent.0.required = ((((15*128) + 127) + ((gemv.extent.0 + gemv.min.0) + -2048)) + 1) - (((0*128) + 0) + ((min(gemv.extent.0, 2048) + gemv.min.0) + -2048))
+let A.min.0.required = ((0*128) + 0) + ((min(gemv.extent.0, 2048) + gemv.min.0) + -2048)
 let A.stride.0.required = 1
 let A.extent.1.required = (2670 + 1) - 0
 let A.min.1.required = 0
 let A.stride.1.required = A.stride.0.required*A.extent.0.required
-let gemv.extent.0.required = ((2047 + ((gemv.extent.0 + gemv.min.0) + -2048)) + 1) - (0 + ((min(gemv.extent.0, 2048) + gemv.min.0) + -2048))
-let gemv.min.0.required = 0 + ((min(gemv.extent.0, 2048) + gemv.min.0) + -2048)
+let gemv.extent.0.required = ((((15*128) + 127) + ((gemv.extent.0 + gemv.min.0) + -2048)) + 1) - (((0*128) + 0) + ((min(gemv.extent.0, 2048) + gemv.min.0) + -2048))
+let gemv.min.0.required = ((0*128) + 0) + ((min(gemv.extent.0, 2048) + gemv.min.0) + -2048)
 let gemv.stride.0.required = 1
 let x.extent.0.required = (2670 + 1) - 0
 let x.min.0.required = 0
@@ -1245,47 +1393,58 @@ if (!((((uint1)0 || (uint1)_halide_buffer_is_bounds_query((struct halide_buffer_
  let gemv.s0.i.thread.loop_extent = 2048
  let gemv.s0.i.thread.loop_max = 2047
  let gemv.s0.i.thread.loop_min = 0
+ let gemv.s0.i.thread.thread.loop_extent = 16
+ let gemv.s0.i.thread.thread.loop_max = 15
+ let gemv.s0.i.thread.thread.loop_min = 0
+ let gemv.s0.i.thread.inner_loop.loop_extent = 128
+ let gemv.s0.i.thread.inner_loop.loop_max = 127
+ let gemv.s0.i.thread.inner_loop.loop_min = 0
  let gemv.s0.i.block.loop_min.orig = 0
  produce gemv {
-  dpu<UPMEM> (gemv.s0.i.block, 0, (gemv.extent.0 + 2047)/2048) {
+  pim_bank<Default_PIM> (gemv.s0.i.block, 0, (gemv.extent.0 + 2047)/2048) {
    let gemv.s0.i.thread.base = min(likely_if_innermost((gemv.s0.i.block*2048) + gemv.min.0), (gemv.extent.0 + gemv.min.0) + -2048)
-   let gemv.s0.i.thread.loop_min.orig = 0
-   for (gemv.s0.i.thread, 0, 2048) {
-    let gemv.s0.i = gemv.s0.i.thread + gemv.s0.i.thread.base
-    let gemv.s0.i.min_1 = gemv.s0.i.thread + gemv.s0.i.thread.base
-    let gemv.s0.i.max_1 = gemv.s0.i.thread + gemv.s0.i.thread.base
-    let sum.s1.r$x.max_1 = 2670
-    let sum.s1.r$x.min_1 = 0
-    let sum.s1.i.max_1 = gemv.s0.i.thread + gemv.s0.i.thread.base
-    let sum.s1.i.min_1 = gemv.s0.i.thread + gemv.s0.i.thread.base
-    let sum.s0.i.max_1 = gemv.s0.i.thread + gemv.s0.i.thread.base
-    let sum.s0.i.min_1 = gemv.s0.i.thread + gemv.s0.i.thread.base
-    let sum.i.max_realized = gemv.s0.i.thread + gemv.s0.i.thread.base
-    let sum.i.min_realized = gemv.s0.i.thread + gemv.s0.i.thread.base
-    let sum.i.extent_realized = 1
-    realize sum([sum.i.min_realized, sum.i.extent_realized]) {
-     let sum.s0.i.loop_max = gemv.s0.i.thread + gemv.s0.i.thread.base
-     let sum.s0.i.loop_min = gemv.s0.i.thread + gemv.s0.i.thread.base
-     let sum.s0.i.loop_extent = 1
-     let sum.s1.r$x.loop_extent = 2671
-     let sum.s1.r$x.loop_max = 2670
-     let sum.s1.r$x.loop_min = 0
-     let sum.s1.i.loop_max = gemv.s0.i.thread + gemv.s0.i.thread.base
-     let sum.s1.i.loop_min = gemv.s0.i.thread + gemv.s0.i.thread.base
-     let sum.s1.i.loop_extent = 1
-     let t2 = gemv.s0.i.thread + gemv.s0.i.thread.base
-     let t1 = gemv.s0.i.thread + gemv.s0.i.thread.base
-     produce sum {
-      sum(gemv.s0.i.thread + gemv.s0.i.thread.base) = 0
-      let sum.s1.r$x.loop_min.orig = 0
-      for (sum.s1.r$x, 0, 2671) {
-       let sum.s1.r$x.max_2 = sum.s1.r$x
-       let sum.s1.r$x.min_2 = sum.s1.r$x
-       sum(gemv.s0.i.thread + gemv.s0.i.thread.base) = sum(gemv.s0.i.thread + gemv.s0.i.thread.base) + (A(gemv.s0.i.thread + gemv.s0.i.thread.base, sum.s1.r$x)*x(sum.s1.r$x))
+   let gemv.s0.i.thread.thread.loop_min.orig = 0
+   pim_thread<Default_PIM> (gemv.s0.i.thread.thread, 0, 16) {
+    let gemv.s0.i.thread.inner_loop.base = gemv.s0.i.thread.thread*128
+    let gemv.s0.i.thread.inner_loop.loop_min.orig = 0
+    for (gemv.s0.i.thread.inner_loop, 0, 128) {
+     let gemv.s0.i.thread = (gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop
+     let gemv.s0.i = ((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base
+     let gemv.s0.i.min_1 = ((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base
+     let gemv.s0.i.max_1 = ((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base
+     let sum.s1.r$x.max_1 = 2670
+     let sum.s1.r$x.min_1 = 0
+     let sum.s1.i.max_1 = ((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base
+     let sum.s1.i.min_1 = ((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base
+     let sum.s0.i.max_1 = ((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base
+     let sum.s0.i.min_1 = ((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base
+     let sum.i.max_realized = ((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base
+     let sum.i.min_realized = ((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base
+     let sum.i.extent_realized = 1
+     realize sum([sum.i.min_realized, sum.i.extent_realized]) {
+      let sum.s0.i.loop_max = ((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base
+      let sum.s0.i.loop_min = ((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base
+      let sum.s0.i.loop_extent = 1
+      let sum.s1.r$x.loop_extent = 2671
+      let sum.s1.r$x.loop_max = 2670
+      let sum.s1.r$x.loop_min = 0
+      let sum.s1.i.loop_max = ((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base
+      let sum.s1.i.loop_min = ((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base
+      let sum.s1.i.loop_extent = 1
+      let t2 = ((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base
+      let t1 = ((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base
+      produce sum {
+       sum(((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base) = 0
+       let sum.s1.r$x.loop_min.orig = 0
+       for (sum.s1.r$x, 0, 2671) {
+        let sum.s1.r$x.max_2 = sum.s1.r$x
+        let sum.s1.r$x.min_2 = sum.s1.r$x
+        sum(((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base) = sum(((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base) + (A(((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base, sum.s1.r$x)*x(sum.s1.r$x))
+       }
       }
-     }
-     consume sum {
-      gemv(gemv.s0.i.thread + gemv.s0.i.thread.base) = sum(gemv.s0.i.thread + gemv.s0.i.thread.base)
+      consume sum {
+       gemv(((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base) = sum(((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base)
+      }
      }
     }
    }
@@ -1303,14 +1462,14 @@ let sum.s1.i.max = (gemv.extent.0 + gemv.min.0) + -1
 let sum.s1.i.min = gemv.min.0
 let sum.s0.i.max = (gemv.extent.0 + gemv.min.0) + -1
 let sum.s0.i.min = gemv.min.0
-let A.extent.0.required = ((2047 + ((gemv.extent.0 + gemv.min.0) + -2048)) + 1) - (0 + ((min(gemv.extent.0, 2048) + gemv.min.0) + -2048))
-let A.min.0.required = 0 + ((min(gemv.extent.0, 2048) + gemv.min.0) + -2048)
+let A.extent.0.required = ((((15*128) + 127) + ((gemv.extent.0 + gemv.min.0) + -2048)) + 1) - (((0*128) + 0) + ((min(gemv.extent.0, 2048) + gemv.min.0) + -2048))
+let A.min.0.required = ((0*128) + 0) + ((min(gemv.extent.0, 2048) + gemv.min.0) + -2048)
 let A.stride.0.required = 1
 let A.extent.1.required = (2670 + 1) - 0
 let A.min.1.required = 0
 let A.stride.1.required = A.stride.0.required*A.extent.0.required
-let gemv.extent.0.required = ((2047 + ((gemv.extent.0 + gemv.min.0) + -2048)) + 1) - (0 + ((min(gemv.extent.0, 2048) + gemv.min.0) + -2048))
-let gemv.min.0.required = 0 + ((min(gemv.extent.0, 2048) + gemv.min.0) + -2048)
+let gemv.extent.0.required = ((((15*128) + 127) + ((gemv.extent.0 + gemv.min.0) + -2048)) + 1) - (((0*128) + 0) + ((min(gemv.extent.0, 2048) + gemv.min.0) + -2048))
+let gemv.min.0.required = ((0*128) + 0) + ((min(gemv.extent.0, 2048) + gemv.min.0) + -2048)
 let gemv.stride.0.required = 1
 let x.extent.0.required = (2670 + 1) - 0
 let x.min.0.required = 0
@@ -1393,47 +1552,58 @@ if (!((((uint1)0 || (uint1)_halide_buffer_is_bounds_query((struct halide_buffer_
  let gemv.s0.i.thread.loop_extent = 2048
  let gemv.s0.i.thread.loop_max = 2047
  let gemv.s0.i.thread.loop_min = 0
+ let gemv.s0.i.thread.thread.loop_extent = 16
+ let gemv.s0.i.thread.thread.loop_max = 15
+ let gemv.s0.i.thread.thread.loop_min = 0
+ let gemv.s0.i.thread.inner_loop.loop_extent = 128
+ let gemv.s0.i.thread.inner_loop.loop_max = 127
+ let gemv.s0.i.thread.inner_loop.loop_min = 0
  let gemv.s0.i.block.loop_min.orig = 0
  produce gemv {
-  dpu<UPMEM> (gemv.s0.i.block, 0, (gemv.extent.0 + 2047)/2048) {
+  pim_bank<Default_PIM> (gemv.s0.i.block, 0, (gemv.extent.0 + 2047)/2048) {
    let gemv.s0.i.thread.base = min(likely_if_innermost((gemv.s0.i.block*2048) + gemv.min.0), (gemv.extent.0 + gemv.min.0) + -2048)
-   let gemv.s0.i.thread.loop_min.orig = 0
-   for (gemv.s0.i.thread, 0, 2048) {
-    let gemv.s0.i = gemv.s0.i.thread + gemv.s0.i.thread.base
-    let gemv.s0.i.min_1 = gemv.s0.i.thread + gemv.s0.i.thread.base
-    let gemv.s0.i.max_1 = gemv.s0.i.thread + gemv.s0.i.thread.base
-    let sum.s1.r$x.max_1 = 2670
-    let sum.s1.r$x.min_1 = 0
-    let sum.s1.i.max_1 = gemv.s0.i.thread + gemv.s0.i.thread.base
-    let sum.s1.i.min_1 = gemv.s0.i.thread + gemv.s0.i.thread.base
-    let sum.s0.i.max_1 = gemv.s0.i.thread + gemv.s0.i.thread.base
-    let sum.s0.i.min_1 = gemv.s0.i.thread + gemv.s0.i.thread.base
-    let sum.i.max_realized = gemv.s0.i.thread + gemv.s0.i.thread.base
-    let sum.i.min_realized = gemv.s0.i.thread + gemv.s0.i.thread.base
-    let sum.i.extent_realized = 1
-    realize sum([sum.i.min_realized, sum.i.extent_realized]) {
-     let sum.s0.i.loop_max = gemv.s0.i.thread + gemv.s0.i.thread.base
-     let sum.s0.i.loop_min = gemv.s0.i.thread + gemv.s0.i.thread.base
-     let sum.s0.i.loop_extent = 1
-     let sum.s1.r$x.loop_extent = 2671
-     let sum.s1.r$x.loop_max = 2670
-     let sum.s1.r$x.loop_min = 0
-     let sum.s1.i.loop_max = gemv.s0.i.thread + gemv.s0.i.thread.base
-     let sum.s1.i.loop_min = gemv.s0.i.thread + gemv.s0.i.thread.base
-     let sum.s1.i.loop_extent = 1
-     let t2 = gemv.s0.i.thread + gemv.s0.i.thread.base
-     let t1 = gemv.s0.i.thread + gemv.s0.i.thread.base
-     produce sum {
-      sum(gemv.s0.i.thread + gemv.s0.i.thread.base) = 0
-      let sum.s1.r$x.loop_min.orig = 0
-      for (sum.s1.r$x, 0, 2671) {
-       let sum.s1.r$x.max_2 = sum.s1.r$x
-       let sum.s1.r$x.min_2 = sum.s1.r$x
-       sum(gemv.s0.i.thread + gemv.s0.i.thread.base) = sum(gemv.s0.i.thread + gemv.s0.i.thread.base) + (A(gemv.s0.i.thread + gemv.s0.i.thread.base, sum.s1.r$x)*x(sum.s1.r$x))
+   let gemv.s0.i.thread.thread.loop_min.orig = 0
+   pim_thread<Default_PIM> (gemv.s0.i.thread.thread, 0, 16) {
+    let gemv.s0.i.thread.inner_loop.base = gemv.s0.i.thread.thread*128
+    let gemv.s0.i.thread.inner_loop.loop_min.orig = 0
+    for (gemv.s0.i.thread.inner_loop, 0, 128) {
+     let gemv.s0.i.thread = (gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop
+     let gemv.s0.i = ((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base
+     let gemv.s0.i.min_1 = ((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base
+     let gemv.s0.i.max_1 = ((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base
+     let sum.s1.r$x.max_1 = 2670
+     let sum.s1.r$x.min_1 = 0
+     let sum.s1.i.max_1 = ((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base
+     let sum.s1.i.min_1 = ((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base
+     let sum.s0.i.max_1 = ((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base
+     let sum.s0.i.min_1 = ((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base
+     let sum.i.max_realized = ((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base
+     let sum.i.min_realized = ((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base
+     let sum.i.extent_realized = 1
+     realize sum([sum.i.min_realized, sum.i.extent_realized]) {
+      let sum.s0.i.loop_max = ((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base
+      let sum.s0.i.loop_min = ((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base
+      let sum.s0.i.loop_extent = 1
+      let sum.s1.r$x.loop_extent = 2671
+      let sum.s1.r$x.loop_max = 2670
+      let sum.s1.r$x.loop_min = 0
+      let sum.s1.i.loop_max = ((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base
+      let sum.s1.i.loop_min = ((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base
+      let sum.s1.i.loop_extent = 1
+      let t2 = ((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base
+      let t1 = ((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base
+      produce sum {
+       sum(((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base) = 0
+       let sum.s1.r$x.loop_min.orig = 0
+       for (sum.s1.r$x, 0, 2671) {
+        let sum.s1.r$x.max_2 = sum.s1.r$x
+        let sum.s1.r$x.min_2 = sum.s1.r$x
+        sum(((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base) = sum(((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base) + (A(((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base, sum.s1.r$x)*x(sum.s1.r$x))
+       }
       }
-     }
-     consume sum {
-      gemv(gemv.s0.i.thread + gemv.s0.i.thread.base) = sum(gemv.s0.i.thread + gemv.s0.i.thread.base)
+      consume sum {
+       gemv(((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base) = sum(((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base)
+      }
      }
     }
    }
@@ -1451,14 +1621,14 @@ let sum.s1.i.max = (gemv.extent.0 + gemv.min.0) + -1
 let sum.s1.i.min = gemv.min.0
 let sum.s0.i.max = (gemv.extent.0 + gemv.min.0) + -1
 let sum.s0.i.min = gemv.min.0
-let A.extent.0.required = ((2047 + ((gemv.extent.0 + gemv.min.0) + -2048)) + 1) - (0 + ((min(gemv.extent.0, 2048) + gemv.min.0) + -2048))
-let A.min.0.required = 0 + ((min(gemv.extent.0, 2048) + gemv.min.0) + -2048)
+let A.extent.0.required = ((((15*128) + 127) + ((gemv.extent.0 + gemv.min.0) + -2048)) + 1) - (((0*128) + 0) + ((min(gemv.extent.0, 2048) + gemv.min.0) + -2048))
+let A.min.0.required = ((0*128) + 0) + ((min(gemv.extent.0, 2048) + gemv.min.0) + -2048)
 let A.stride.0.required = 1
 let A.extent.1.required = (2670 + 1) - 0
 let A.min.1.required = 0
 let A.stride.1.required = A.stride.0.required*A.extent.0.required
-let gemv.extent.0.required = ((2047 + ((gemv.extent.0 + gemv.min.0) + -2048)) + 1) - (0 + ((min(gemv.extent.0, 2048) + gemv.min.0) + -2048))
-let gemv.min.0.required = 0 + ((min(gemv.extent.0, 2048) + gemv.min.0) + -2048)
+let gemv.extent.0.required = ((((15*128) + 127) + ((gemv.extent.0 + gemv.min.0) + -2048)) + 1) - (((0*128) + 0) + ((min(gemv.extent.0, 2048) + gemv.min.0) + -2048))
+let gemv.min.0.required = ((0*128) + 0) + ((min(gemv.extent.0, 2048) + gemv.min.0) + -2048)
 let gemv.stride.0.required = 1
 let x.extent.0.required = (2670 + 1) - 0
 let x.min.0.required = 0
@@ -1541,47 +1711,58 @@ if (!((((uint1)0 || (uint1)_halide_buffer_is_bounds_query((struct halide_buffer_
  let gemv.s0.i.thread.loop_extent = 2048
  let gemv.s0.i.thread.loop_max = 2047
  let gemv.s0.i.thread.loop_min = 0
+ let gemv.s0.i.thread.thread.loop_extent = 16
+ let gemv.s0.i.thread.thread.loop_max = 15
+ let gemv.s0.i.thread.thread.loop_min = 0
+ let gemv.s0.i.thread.inner_loop.loop_extent = 128
+ let gemv.s0.i.thread.inner_loop.loop_max = 127
+ let gemv.s0.i.thread.inner_loop.loop_min = 0
  let gemv.s0.i.block.loop_min.orig = 0
  produce gemv {
-  dpu<UPMEM> (gemv.s0.i.block, 0, (gemv.extent.0 + 2047)/2048) {
+  pim_bank<Default_PIM> (gemv.s0.i.block, 0, (gemv.extent.0 + 2047)/2048) {
    let gemv.s0.i.thread.base = min(likely_if_innermost((gemv.s0.i.block*2048) + gemv.min.0), (gemv.extent.0 + gemv.min.0) + -2048)
-   let gemv.s0.i.thread.loop_min.orig = 0
-   for (gemv.s0.i.thread, 0, 2048) {
-    let gemv.s0.i = gemv.s0.i.thread + gemv.s0.i.thread.base
-    let gemv.s0.i.min_1 = gemv.s0.i.thread + gemv.s0.i.thread.base
-    let gemv.s0.i.max_1 = gemv.s0.i.thread + gemv.s0.i.thread.base
-    let sum.s1.r$x.max_1 = 2670
-    let sum.s1.r$x.min_1 = 0
-    let sum.s1.i.max_1 = gemv.s0.i.thread + gemv.s0.i.thread.base
-    let sum.s1.i.min_1 = gemv.s0.i.thread + gemv.s0.i.thread.base
-    let sum.s0.i.max_1 = gemv.s0.i.thread + gemv.s0.i.thread.base
-    let sum.s0.i.min_1 = gemv.s0.i.thread + gemv.s0.i.thread.base
-    let sum.i.max_realized = gemv.s0.i.thread + gemv.s0.i.thread.base
-    let sum.i.min_realized = gemv.s0.i.thread + gemv.s0.i.thread.base
-    let sum.i.extent_realized = 1
-    realize sum([sum.i.min_realized, sum.i.extent_realized]) {
-     let sum.s0.i.loop_max = gemv.s0.i.thread + gemv.s0.i.thread.base
-     let sum.s0.i.loop_min = gemv.s0.i.thread + gemv.s0.i.thread.base
-     let sum.s0.i.loop_extent = 1
-     let sum.s1.r$x.loop_extent = 2671
-     let sum.s1.r$x.loop_max = 2670
-     let sum.s1.r$x.loop_min = 0
-     let sum.s1.i.loop_max = gemv.s0.i.thread + gemv.s0.i.thread.base
-     let sum.s1.i.loop_min = gemv.s0.i.thread + gemv.s0.i.thread.base
-     let sum.s1.i.loop_extent = 1
-     let t2 = gemv.s0.i.thread + gemv.s0.i.thread.base
-     let t1 = gemv.s0.i.thread + gemv.s0.i.thread.base
-     produce sum {
-      sum(gemv.s0.i.thread + gemv.s0.i.thread.base) = 0
-      let sum.s1.r$x.loop_min.orig = 0
-      for (sum.s1.r$x, 0, 2671) {
-       let sum.s1.r$x.max_2 = sum.s1.r$x
-       let sum.s1.r$x.min_2 = sum.s1.r$x
-       sum(gemv.s0.i.thread + gemv.s0.i.thread.base) = sum(gemv.s0.i.thread + gemv.s0.i.thread.base) + (A(gemv.s0.i.thread + gemv.s0.i.thread.base, sum.s1.r$x)*x(sum.s1.r$x))
+   let gemv.s0.i.thread.thread.loop_min.orig = 0
+   pim_thread<Default_PIM> (gemv.s0.i.thread.thread, 0, 16) {
+    let gemv.s0.i.thread.inner_loop.base = gemv.s0.i.thread.thread*128
+    let gemv.s0.i.thread.inner_loop.loop_min.orig = 0
+    for (gemv.s0.i.thread.inner_loop, 0, 128) {
+     let gemv.s0.i.thread = (gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop
+     let gemv.s0.i = ((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base
+     let gemv.s0.i.min_1 = ((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base
+     let gemv.s0.i.max_1 = ((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base
+     let sum.s1.r$x.max_1 = 2670
+     let sum.s1.r$x.min_1 = 0
+     let sum.s1.i.max_1 = ((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base
+     let sum.s1.i.min_1 = ((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base
+     let sum.s0.i.max_1 = ((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base
+     let sum.s0.i.min_1 = ((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base
+     let sum.i.max_realized = ((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base
+     let sum.i.min_realized = ((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base
+     let sum.i.extent_realized = 1
+     realize sum([sum.i.min_realized, sum.i.extent_realized]) {
+      let sum.s0.i.loop_max = ((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base
+      let sum.s0.i.loop_min = ((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base
+      let sum.s0.i.loop_extent = 1
+      let sum.s1.r$x.loop_extent = 2671
+      let sum.s1.r$x.loop_max = 2670
+      let sum.s1.r$x.loop_min = 0
+      let sum.s1.i.loop_max = ((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base
+      let sum.s1.i.loop_min = ((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base
+      let sum.s1.i.loop_extent = 1
+      let t2 = ((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base
+      let t1 = ((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base
+      produce sum {
+       sum(((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base) = 0
+       let sum.s1.r$x.loop_min.orig = 0
+       for (sum.s1.r$x, 0, 2671) {
+        let sum.s1.r$x.max_2 = sum.s1.r$x
+        let sum.s1.r$x.min_2 = sum.s1.r$x
+        sum(((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base) = sum(((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base) + (A(((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base, sum.s1.r$x)*x(sum.s1.r$x))
+       }
       }
-     }
-     consume sum {
-      gemv(gemv.s0.i.thread + gemv.s0.i.thread.base) = sum(gemv.s0.i.thread + gemv.s0.i.thread.base)
+      consume sum {
+       gemv(((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base) = sum(((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base)
+      }
      }
     }
    }
@@ -1603,14 +1784,14 @@ let sum.s1.i.max = (gemv.extent.0 + gemv.min.0) + -1
 let sum.s1.i.min = gemv.min.0
 let sum.s0.i.max = (gemv.extent.0 + gemv.min.0) + -1
 let sum.s0.i.min = gemv.min.0
-let A.extent.0.required = ((2047 + ((gemv.extent.0 + gemv.min.0) + -2048)) + 1) - (0 + ((min(gemv.extent.0, 2048) + gemv.min.0) + -2048))
-let A.min.0.required = 0 + ((min(gemv.extent.0, 2048) + gemv.min.0) + -2048)
+let A.extent.0.required = ((((15*128) + 127) + ((gemv.extent.0 + gemv.min.0) + -2048)) + 1) - (((0*128) + 0) + ((min(gemv.extent.0, 2048) + gemv.min.0) + -2048))
+let A.min.0.required = ((0*128) + 0) + ((min(gemv.extent.0, 2048) + gemv.min.0) + -2048)
 let A.stride.0.required = 1
 let A.extent.1.required = (2670 + 1) - 0
 let A.min.1.required = 0
 let A.stride.1.required = A.stride.0.required*A.extent.0.required
-let gemv.extent.0.required = ((2047 + ((gemv.extent.0 + gemv.min.0) + -2048)) + 1) - (0 + ((min(gemv.extent.0, 2048) + gemv.min.0) + -2048))
-let gemv.min.0.required = 0 + ((min(gemv.extent.0, 2048) + gemv.min.0) + -2048)
+let gemv.extent.0.required = ((((15*128) + 127) + ((gemv.extent.0 + gemv.min.0) + -2048)) + 1) - (((0*128) + 0) + ((min(gemv.extent.0, 2048) + gemv.min.0) + -2048))
+let gemv.min.0.required = ((0*128) + 0) + ((min(gemv.extent.0, 2048) + gemv.min.0) + -2048)
 let gemv.stride.0.required = 1
 let x.extent.0.required = (2670 + 1) - 0
 let x.min.0.required = 0
@@ -1693,51 +1874,62 @@ if (!((((uint1)0 || (uint1)_halide_buffer_is_bounds_query((struct halide_buffer_
  let gemv.s0.i.thread.loop_extent = 2048
  let gemv.s0.i.thread.loop_max = 2047
  let gemv.s0.i.thread.loop_min = 0
+ let gemv.s0.i.thread.thread.loop_extent = 16
+ let gemv.s0.i.thread.thread.loop_max = 15
+ let gemv.s0.i.thread.thread.loop_min = 0
+ let gemv.s0.i.thread.inner_loop.loop_extent = 128
+ let gemv.s0.i.thread.inner_loop.loop_max = 127
+ let gemv.s0.i.thread.inner_loop.loop_min = 0
  let gemv.s0.i.block.loop_min.orig = 0
  produce gemv {
-  dpu<UPMEM> (gemv.s0.i.block, 0, (gemv.extent.0 + 2047)/2048) {
+  pim_bank<Default_PIM> (gemv.s0.i.block, 0, (gemv.extent.0 + 2047)/2048) {
    let gemv.s0.i.thread.base = min(likely_if_innermost((gemv.s0.i.block*2048) + gemv.min.0), (gemv.extent.0 + gemv.min.0) + -2048)
-   let gemv.s0.i.thread.loop_min.orig = 0
-   for (gemv.s0.i.thread, 0, 2048) {
-    let gemv.s0.i = gemv.s0.i.thread + gemv.s0.i.thread.base
-    let gemv.s0.i.min_1 = gemv.s0.i.thread + gemv.s0.i.thread.base
-    let gemv.s0.i.max_1 = gemv.s0.i.thread + gemv.s0.i.thread.base
-    let sum.s1.r$x.max_1 = 2670
-    let sum.s1.r$x.min_1 = 0
-    let sum.s1.i.max_1 = gemv.s0.i.thread + gemv.s0.i.thread.base
-    let sum.s1.i.min_1 = gemv.s0.i.thread + gemv.s0.i.thread.base
-    let sum.s0.i.max_1 = gemv.s0.i.thread + gemv.s0.i.thread.base
-    let sum.s0.i.min_1 = gemv.s0.i.thread + gemv.s0.i.thread.base
-    let sum.i.max_realized = gemv.s0.i.thread + gemv.s0.i.thread.base
-    let sum.i.min_realized = gemv.s0.i.thread + gemv.s0.i.thread.base
-    let sum.i.extent_realized = 1
-    let sum.extent.0 = sum.i.extent_realized
-    let sum.min.0 = sum.i.min_realized
-    let sum.stride.0 = 1
-    allocate sum[int32 * sum.i.extent_realized]
-    let sum.buffer = let t7 = (struct halide_dimension_t *)make_struct(sum.min.0, sum.extent.0, sum.stride.0, 0) in (struct halide_buffer_t *)_halide_buffer_init((struct halide_buffer_t *)alloca(size_of_halide_buffer_t()), t7, sum, (uint64)0, reinterpret<(struct halide_device_interface_t *)>((uint64)0), 0, 32, 1, t7, (uint64)0)
-    let sum.s0.i.loop_max = gemv.s0.i.thread + gemv.s0.i.thread.base
-    let sum.s0.i.loop_min = gemv.s0.i.thread + gemv.s0.i.thread.base
-    let sum.s0.i.loop_extent = 1
-    let sum.s1.r$x.loop_extent = 2671
-    let sum.s1.r$x.loop_max = 2670
-    let sum.s1.r$x.loop_min = 0
-    let sum.s1.i.loop_max = gemv.s0.i.thread + gemv.s0.i.thread.base
-    let sum.s1.i.loop_min = gemv.s0.i.thread + gemv.s0.i.thread.base
-    let sum.s1.i.loop_extent = 1
-    let t2 = gemv.s0.i.thread + gemv.s0.i.thread.base
-    let t1 = gemv.s0.i.thread + gemv.s0.i.thread.base
-    produce sum {
-     sum[0 + (((gemv.s0.i.thread + gemv.s0.i.thread.base) - sum.min.0)*sum.stride.0)] = 0
-     let sum.s1.r$x.loop_min.orig = 0
-     for (sum.s1.r$x, 0, 2671) {
-      let sum.s1.r$x.max_2 = sum.s1.r$x
-      let sum.s1.r$x.min_2 = sum.s1.r$x
-      sum[0 + (((gemv.s0.i.thread + gemv.s0.i.thread.base) - sum.min.0)*sum.stride.0)] = sum[0 + (((gemv.s0.i.thread + gemv.s0.i.thread.base) - sum.min.0)*sum.stride.0)] + ((int32)A[((0 + ((gemv.s0.i.thread + gemv.s0.i.thread.base)*A.stride.0)) + (sum.s1.r$x*A.stride.1)) - ((0 + (A.min.0*A.stride.0)) + (A.min.1*A.stride.1))]*(int32)x[(0 + (sum.s1.r$x*x.stride.0)) - (0 + (x.min.0*x.stride.0))])
+   let gemv.s0.i.thread.thread.loop_min.orig = 0
+   pim_thread<Default_PIM> (gemv.s0.i.thread.thread, 0, 16) {
+    let gemv.s0.i.thread.inner_loop.base = gemv.s0.i.thread.thread*128
+    let gemv.s0.i.thread.inner_loop.loop_min.orig = 0
+    for (gemv.s0.i.thread.inner_loop, 0, 128) {
+     let gemv.s0.i.thread = (gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop
+     let gemv.s0.i = ((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base
+     let gemv.s0.i.min_1 = ((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base
+     let gemv.s0.i.max_1 = ((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base
+     let sum.s1.r$x.max_1 = 2670
+     let sum.s1.r$x.min_1 = 0
+     let sum.s1.i.max_1 = ((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base
+     let sum.s1.i.min_1 = ((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base
+     let sum.s0.i.max_1 = ((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base
+     let sum.s0.i.min_1 = ((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base
+     let sum.i.max_realized = ((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base
+     let sum.i.min_realized = ((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base
+     let sum.i.extent_realized = 1
+     let sum.extent.0 = sum.i.extent_realized
+     let sum.min.0 = sum.i.min_realized
+     let sum.stride.0 = 1
+     allocate sum[int32 * sum.i.extent_realized]
+     let sum.buffer = let t7 = (struct halide_dimension_t *)make_struct(sum.min.0, sum.extent.0, sum.stride.0, 0) in (struct halide_buffer_t *)_halide_buffer_init((struct halide_buffer_t *)alloca(size_of_halide_buffer_t()), t7, sum, (uint64)0, reinterpret<(struct halide_device_interface_t *)>((uint64)0), 0, 32, 1, t7, (uint64)0)
+     let sum.s0.i.loop_max = ((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base
+     let sum.s0.i.loop_min = ((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base
+     let sum.s0.i.loop_extent = 1
+     let sum.s1.r$x.loop_extent = 2671
+     let sum.s1.r$x.loop_max = 2670
+     let sum.s1.r$x.loop_min = 0
+     let sum.s1.i.loop_max = ((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base
+     let sum.s1.i.loop_min = ((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base
+     let sum.s1.i.loop_extent = 1
+     let t2 = ((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base
+     let t1 = ((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base
+     produce sum {
+      sum[0 + (((((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base) - sum.min.0)*sum.stride.0)] = 0
+      let sum.s1.r$x.loop_min.orig = 0
+      for (sum.s1.r$x, 0, 2671) {
+       let sum.s1.r$x.max_2 = sum.s1.r$x
+       let sum.s1.r$x.min_2 = sum.s1.r$x
+       sum[0 + (((((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base) - sum.min.0)*sum.stride.0)] = sum[0 + (((((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base) - sum.min.0)*sum.stride.0)] + ((int32)A[((0 + ((((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base)*A.stride.0)) + (sum.s1.r$x*A.stride.1)) - ((0 + (A.min.0*A.stride.0)) + (A.min.1*A.stride.1))]*(int32)x[(0 + (sum.s1.r$x*x.stride.0)) - (0 + (x.min.0*x.stride.0))])
+      }
      }
-    }
-    consume sum {
-     gemv[(0 + ((gemv.s0.i.thread + gemv.s0.i.thread.base)*gemv.stride.0)) - (0 + (gemv.min.0*gemv.stride.0))] = sum[0 + (((gemv.s0.i.thread + gemv.s0.i.thread.base) - sum.min.0)*sum.stride.0)]
+     consume sum {
+      gemv[(0 + ((((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base)*gemv.stride.0)) - (0 + (gemv.min.0*gemv.stride.0))] = sum[0 + (((((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base) - sum.min.0)*sum.stride.0)]
+     }
     }
    }
   }
@@ -1781,14 +1973,14 @@ let sum.s1.i.max = (gemv.extent.0 + gemv.min.0) + -1
 let sum.s1.i.min = gemv.min.0
 let sum.s0.i.max = (gemv.extent.0 + gemv.min.0) + -1
 let sum.s0.i.min = gemv.min.0
-let A.extent.0.required = ((2047 + ((gemv.extent.0 + gemv.min.0) + -2048)) + 1) - (0 + ((min(gemv.extent.0, 2048) + gemv.min.0) + -2048))
-let A.min.0.required = 0 + ((min(gemv.extent.0, 2048) + gemv.min.0) + -2048)
+let A.extent.0.required = ((((15*128) + 127) + ((gemv.extent.0 + gemv.min.0) + -2048)) + 1) - (((0*128) + 0) + ((min(gemv.extent.0, 2048) + gemv.min.0) + -2048))
+let A.min.0.required = ((0*128) + 0) + ((min(gemv.extent.0, 2048) + gemv.min.0) + -2048)
 let A.stride.0.required = 1
 let A.extent.1.required = (2670 + 1) - 0
 let A.min.1.required = 0
 let A.stride.1.required = A.stride.0.required*A.extent.0.required
-let gemv.extent.0.required = ((2047 + ((gemv.extent.0 + gemv.min.0) + -2048)) + 1) - (0 + ((min(gemv.extent.0, 2048) + gemv.min.0) + -2048))
-let gemv.min.0.required = 0 + ((min(gemv.extent.0, 2048) + gemv.min.0) + -2048)
+let gemv.extent.0.required = ((((15*128) + 127) + ((gemv.extent.0 + gemv.min.0) + -2048)) + 1) - (((0*128) + 0) + ((min(gemv.extent.0, 2048) + gemv.min.0) + -2048))
+let gemv.min.0.required = ((0*128) + 0) + ((min(gemv.extent.0, 2048) + gemv.min.0) + -2048)
 let gemv.stride.0.required = 1
 let x.extent.0.required = (2670 + 1) - 0
 let x.min.0.required = 0
@@ -1871,51 +2063,62 @@ if (!((((uint1)0 || (uint1)_halide_buffer_is_bounds_query((struct halide_buffer_
  let gemv.s0.i.thread.loop_extent = 2048
  let gemv.s0.i.thread.loop_max = 2047
  let gemv.s0.i.thread.loop_min = 0
+ let gemv.s0.i.thread.thread.loop_extent = 16
+ let gemv.s0.i.thread.thread.loop_max = 15
+ let gemv.s0.i.thread.thread.loop_min = 0
+ let gemv.s0.i.thread.inner_loop.loop_extent = 128
+ let gemv.s0.i.thread.inner_loop.loop_max = 127
+ let gemv.s0.i.thread.inner_loop.loop_min = 0
  let gemv.s0.i.block.loop_min.orig = 0
  produce gemv {
-  dpu<UPMEM> (gemv.s0.i.block, 0, (gemv.extent.0 + 2047)/2048) {
+  pim_bank<Default_PIM> (gemv.s0.i.block, 0, (gemv.extent.0 + 2047)/2048) {
    let gemv.s0.i.thread.base = min(likely_if_innermost((gemv.s0.i.block*2048) + gemv.min.0), (gemv.extent.0 + gemv.min.0) + -2048)
-   let gemv.s0.i.thread.loop_min.orig = 0
-   for (gemv.s0.i.thread, 0, 2048) {
-    let gemv.s0.i = gemv.s0.i.thread + gemv.s0.i.thread.base
-    let gemv.s0.i.min_1 = gemv.s0.i.thread + gemv.s0.i.thread.base
-    let gemv.s0.i.max_1 = gemv.s0.i.thread + gemv.s0.i.thread.base
-    let sum.s1.r$x.max_1 = 2670
-    let sum.s1.r$x.min_1 = 0
-    let sum.s1.i.max_1 = gemv.s0.i.thread + gemv.s0.i.thread.base
-    let sum.s1.i.min_1 = gemv.s0.i.thread + gemv.s0.i.thread.base
-    let sum.s0.i.max_1 = gemv.s0.i.thread + gemv.s0.i.thread.base
-    let sum.s0.i.min_1 = gemv.s0.i.thread + gemv.s0.i.thread.base
-    let sum.i.max_realized = gemv.s0.i.thread + gemv.s0.i.thread.base
-    let sum.i.min_realized = gemv.s0.i.thread + gemv.s0.i.thread.base
-    let sum.i.extent_realized = 1
-    let sum.extent.0 = sum.i.extent_realized
-    let sum.min.0 = sum.i.min_realized
-    let sum.stride.0 = 1
-    allocate sum[int32 * sum.i.extent_realized]
-    let sum.buffer = let t7 = (struct halide_dimension_t *)make_struct(sum.min.0, sum.extent.0, sum.stride.0, 0) in (struct halide_buffer_t *)_halide_buffer_init((struct halide_buffer_t *)alloca(size_of_halide_buffer_t()), t7, sum, (uint64)0, reinterpret<(struct halide_device_interface_t *)>((uint64)0), 0, 32, 1, t7, (uint64)0)
-    let sum.s0.i.loop_max = gemv.s0.i.thread + gemv.s0.i.thread.base
-    let sum.s0.i.loop_min = gemv.s0.i.thread + gemv.s0.i.thread.base
-    let sum.s0.i.loop_extent = 1
-    let sum.s1.r$x.loop_extent = 2671
-    let sum.s1.r$x.loop_max = 2670
-    let sum.s1.r$x.loop_min = 0
-    let sum.s1.i.loop_max = gemv.s0.i.thread + gemv.s0.i.thread.base
-    let sum.s1.i.loop_min = gemv.s0.i.thread + gemv.s0.i.thread.base
-    let sum.s1.i.loop_extent = 1
-    let t2 = gemv.s0.i.thread + gemv.s0.i.thread.base
-    let t1 = gemv.s0.i.thread + gemv.s0.i.thread.base
-    produce sum {
-     sum[0 + (((gemv.s0.i.thread + gemv.s0.i.thread.base) - sum.min.0)*sum.stride.0)] = 0
-     let sum.s1.r$x.loop_min.orig = 0
-     for (sum.s1.r$x, 0, 2671) {
-      let sum.s1.r$x.max_2 = sum.s1.r$x
-      let sum.s1.r$x.min_2 = sum.s1.r$x
-      sum[0 + (((gemv.s0.i.thread + gemv.s0.i.thread.base) - sum.min.0)*sum.stride.0)] = sum[0 + (((gemv.s0.i.thread + gemv.s0.i.thread.base) - sum.min.0)*sum.stride.0)] + (A[((0 + ((gemv.s0.i.thread + gemv.s0.i.thread.base)*A.stride.0)) + (sum.s1.r$x*A.stride.1)) - ((0 + (A.min.0*A.stride.0)) + (A.min.1*A.stride.1))]*x[(0 + (sum.s1.r$x*x.stride.0)) - (0 + (x.min.0*x.stride.0))])
+   let gemv.s0.i.thread.thread.loop_min.orig = 0
+   pim_thread<Default_PIM> (gemv.s0.i.thread.thread, 0, 16) {
+    let gemv.s0.i.thread.inner_loop.base = gemv.s0.i.thread.thread*128
+    let gemv.s0.i.thread.inner_loop.loop_min.orig = 0
+    for (gemv.s0.i.thread.inner_loop, 0, 128) {
+     let gemv.s0.i.thread = (gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop
+     let gemv.s0.i = ((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base
+     let gemv.s0.i.min_1 = ((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base
+     let gemv.s0.i.max_1 = ((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base
+     let sum.s1.r$x.max_1 = 2670
+     let sum.s1.r$x.min_1 = 0
+     let sum.s1.i.max_1 = ((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base
+     let sum.s1.i.min_1 = ((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base
+     let sum.s0.i.max_1 = ((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base
+     let sum.s0.i.min_1 = ((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base
+     let sum.i.max_realized = ((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base
+     let sum.i.min_realized = ((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base
+     let sum.i.extent_realized = 1
+     let sum.extent.0 = sum.i.extent_realized
+     let sum.min.0 = sum.i.min_realized
+     let sum.stride.0 = 1
+     allocate sum[int32 * sum.i.extent_realized]
+     let sum.buffer = let t7 = (struct halide_dimension_t *)make_struct(sum.min.0, sum.extent.0, sum.stride.0, 0) in (struct halide_buffer_t *)_halide_buffer_init((struct halide_buffer_t *)alloca(size_of_halide_buffer_t()), t7, sum, (uint64)0, reinterpret<(struct halide_device_interface_t *)>((uint64)0), 0, 32, 1, t7, (uint64)0)
+     let sum.s0.i.loop_max = ((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base
+     let sum.s0.i.loop_min = ((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base
+     let sum.s0.i.loop_extent = 1
+     let sum.s1.r$x.loop_extent = 2671
+     let sum.s1.r$x.loop_max = 2670
+     let sum.s1.r$x.loop_min = 0
+     let sum.s1.i.loop_max = ((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base
+     let sum.s1.i.loop_min = ((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base
+     let sum.s1.i.loop_extent = 1
+     let t2 = ((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base
+     let t1 = ((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base
+     produce sum {
+      sum[0 + (((((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base) - sum.min.0)*sum.stride.0)] = 0
+      let sum.s1.r$x.loop_min.orig = 0
+      for (sum.s1.r$x, 0, 2671) {
+       let sum.s1.r$x.max_2 = sum.s1.r$x
+       let sum.s1.r$x.min_2 = sum.s1.r$x
+       sum[0 + (((((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base) - sum.min.0)*sum.stride.0)] = sum[0 + (((((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base) - sum.min.0)*sum.stride.0)] + (A[((0 + ((((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base)*A.stride.0)) + (sum.s1.r$x*A.stride.1)) - ((0 + (A.min.0*A.stride.0)) + (A.min.1*A.stride.1))]*x[(0 + (sum.s1.r$x*x.stride.0)) - (0 + (x.min.0*x.stride.0))])
+      }
      }
-    }
-    consume sum {
-     gemv[(0 + ((gemv.s0.i.thread + gemv.s0.i.thread.base)*gemv.stride.0)) - (0 + (gemv.min.0*gemv.stride.0))] = sum[0 + (((gemv.s0.i.thread + gemv.s0.i.thread.base) - sum.min.0)*sum.stride.0)]
+     consume sum {
+      gemv[(0 + ((((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base)*gemv.stride.0)) - (0 + (gemv.min.0*gemv.stride.0))] = sum[0 + (((((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base) - sum.min.0)*sum.stride.0)]
+     }
     }
    }
   }
@@ -1923,6 +2126,388 @@ if (!((((uint1)0 || (uint1)_halide_buffer_is_bounds_query((struct halide_buffer_
 }
 
 Skipping rewriting memoized allocations...
+Selecting a GPU API for GPU loops...
+Lowering after selecting a GPU API:
+assert(reinterpret<uint64>((struct halide_buffer_t *)x.buffer) != (uint64)0, halide_error_buffer_argument_is_null("x"))
+assert(reinterpret<uint64>((struct halide_buffer_t *)gemv.buffer) != (uint64)0, halide_error_buffer_argument_is_null("gemv"))
+assert(reinterpret<uint64>((struct halide_buffer_t *)A.buffer) != (uint64)0, halide_error_buffer_argument_is_null("A"))
+let A = (void *)_halide_buffer_get_host((struct halide_buffer_t *)A.buffer)
+let A.type = (uint32)_halide_buffer_get_type((struct halide_buffer_t *)A.buffer)
+let A.dimensions = _halide_buffer_get_dimensions((struct halide_buffer_t *)A.buffer)
+let A.min.0 = _halide_buffer_get_min((struct halide_buffer_t *)A.buffer, 0)
+let A.extent.0 = _halide_buffer_get_extent((struct halide_buffer_t *)A.buffer, 0)
+let A.stride.0 = _halide_buffer_get_stride((struct halide_buffer_t *)A.buffer, 0)
+let A.min.1 = _halide_buffer_get_min((struct halide_buffer_t *)A.buffer, 1)
+let A.extent.1 = _halide_buffer_get_extent((struct halide_buffer_t *)A.buffer, 1)
+let A.stride.1 = _halide_buffer_get_stride((struct halide_buffer_t *)A.buffer, 1)
+let gemv = (void *)_halide_buffer_get_host((struct halide_buffer_t *)gemv.buffer)
+let gemv.type = (uint32)_halide_buffer_get_type((struct halide_buffer_t *)gemv.buffer)
+let gemv.dimensions = _halide_buffer_get_dimensions((struct halide_buffer_t *)gemv.buffer)
+let gemv.min.0 = _halide_buffer_get_min((struct halide_buffer_t *)gemv.buffer, 0)
+let gemv.extent.0 = _halide_buffer_get_extent((struct halide_buffer_t *)gemv.buffer, 0)
+let gemv.stride.0 = _halide_buffer_get_stride((struct halide_buffer_t *)gemv.buffer, 0)
+let x = (void *)_halide_buffer_get_host((struct halide_buffer_t *)x.buffer)
+let x.type = (uint32)_halide_buffer_get_type((struct halide_buffer_t *)x.buffer)
+let x.dimensions = _halide_buffer_get_dimensions((struct halide_buffer_t *)x.buffer)
+let x.min.0 = _halide_buffer_get_min((struct halide_buffer_t *)x.buffer, 0)
+let x.extent.0 = _halide_buffer_get_extent((struct halide_buffer_t *)x.buffer, 0)
+let x.stride.0 = _halide_buffer_get_stride((struct halide_buffer_t *)x.buffer, 0)
+let gemv.s0.i.max = (gemv.extent.0 + gemv.min.0) + -1
+let gemv.s0.i.min = gemv.min.0
+let sum.s1.r$x.max = 2670
+let sum.s1.r$x.min = 0
+let sum.s1.i.max = (gemv.extent.0 + gemv.min.0) + -1
+let sum.s1.i.min = gemv.min.0
+let sum.s0.i.max = (gemv.extent.0 + gemv.min.0) + -1
+let sum.s0.i.min = gemv.min.0
+let A.extent.0.required = ((((15*128) + 127) + ((gemv.extent.0 + gemv.min.0) + -2048)) + 1) - (((0*128) + 0) + ((min(gemv.extent.0, 2048) + gemv.min.0) + -2048))
+let A.min.0.required = ((0*128) + 0) + ((min(gemv.extent.0, 2048) + gemv.min.0) + -2048)
+let A.stride.0.required = 1
+let A.extent.1.required = (2670 + 1) - 0
+let A.min.1.required = 0
+let A.stride.1.required = A.stride.0.required*A.extent.0.required
+let gemv.extent.0.required = ((((15*128) + 127) + ((gemv.extent.0 + gemv.min.0) + -2048)) + 1) - (((0*128) + 0) + ((min(gemv.extent.0, 2048) + gemv.min.0) + -2048))
+let gemv.min.0.required = ((0*128) + 0) + ((min(gemv.extent.0, 2048) + gemv.min.0) + -2048)
+let gemv.stride.0.required = 1
+let x.extent.0.required = (2670 + 1) - 0
+let x.min.0.required = 0
+let x.stride.0.required = 1
+let A.stride.0.constrained = 1
+let A.min.0.constrained = 0
+let A.extent.0.constrained = 8337
+let A.stride.1.constrained = 8337
+let A.min.1.constrained = 0
+let A.extent.1.constrained = 2671
+let gemv.stride.0.constrained = 1
+let x.stride.0.constrained = 1
+let x.min.0.constrained = 0
+let x.extent.0.constrained = 2671
+let A.stride.0.proposed = 1
+let A.min.0.proposed = 0
+let A.extent.0.proposed = 8337
+let A.stride.1.proposed = 8337
+let A.min.1.proposed = 0
+let A.extent.1.proposed = 2671
+let gemv.stride.0.proposed = 1
+let gemv.min.0.proposed = gemv.min.0.required
+let gemv.extent.0.proposed = gemv.extent.0.required
+let x.stride.0.proposed = 1
+let x.min.0.proposed = 0
+let x.extent.0.proposed = 2671
+assert(!(uint1)_halide_buffer_is_bounds_query((struct halide_buffer_t *)A.buffer) || ((A.min.0.proposed <= A.min.0.required) && (((A.min.0.proposed + A.extent.0.proposed) - 1) >= ((A.min.0.required + A.extent.0.required) - 1))), halide_error_constraints_make_required_region_smaller("Input buffer A", 0, A.min.0.proposed, (A.min.0.proposed + A.extent.0.proposed) - 1, A.min.0.required, (A.min.0.required + A.extent.0.required) - 1))
+assert(!(uint1)_halide_buffer_is_bounds_query((struct halide_buffer_t *)A.buffer) || ((A.min.1.proposed <= A.min.1.required) && (((A.min.1.proposed + A.extent.1.proposed) - 1) >= ((A.min.1.required + A.extent.1.required) - 1))), halide_error_constraints_make_required_region_smaller("Input buffer A", 1, A.min.1.proposed, (A.min.1.proposed + A.extent.1.proposed) - 1, A.min.1.required, (A.min.1.required + A.extent.1.required) - 1))
+assert(!(uint1)_halide_buffer_is_bounds_query((struct halide_buffer_t *)gemv.buffer) || ((gemv.min.0.proposed <= gemv.min.0.required) && (((gemv.min.0.proposed + gemv.extent.0.proposed) - 1) >= ((gemv.min.0.required + gemv.extent.0.required) - 1))), halide_error_constraints_make_required_region_smaller("Output buffer gemv", 0, gemv.min.0.proposed, (gemv.min.0.proposed + gemv.extent.0.proposed) - 1, gemv.min.0.required, (gemv.min.0.required + gemv.extent.0.required) - 1))
+assert(!(uint1)_halide_buffer_is_bounds_query((struct halide_buffer_t *)x.buffer) || ((x.min.0.proposed <= x.min.0.required) && (((x.min.0.proposed + x.extent.0.proposed) - 1) >= ((x.min.0.required + x.extent.0.required) - 1))), halide_error_constraints_make_required_region_smaller("Input buffer x", 0, x.min.0.proposed, (x.min.0.proposed + x.extent.0.proposed) - 1, x.min.0.required, (x.min.0.required + x.extent.0.required) - 1))
+if ((uint1)_halide_buffer_is_bounds_query((struct halide_buffer_t *)A.buffer)) {
+ (struct halide_buffer_t *)_halide_buffer_init((struct halide_buffer_t *)A.buffer, (struct halide_dimension_t *)_halide_buffer_get_shape((struct halide_buffer_t *)A.buffer), reinterpret<(void *)>((uint64)0), (uint64)0, reinterpret<(struct halide_device_interface_t *)>((uint64)0), 0, 32, 2, (struct halide_dimension_t *)make_struct(A.min.0.proposed, A.extent.0.proposed, A.stride.0.proposed, 0, A.min.1.proposed, A.extent.1.proposed, A.stride.1.proposed, 0), (uint64)0)
+}
+if ((uint1)_halide_buffer_is_bounds_query((struct halide_buffer_t *)gemv.buffer)) {
+ (struct halide_buffer_t *)_halide_buffer_init((struct halide_buffer_t *)gemv.buffer, (struct halide_dimension_t *)_halide_buffer_get_shape((struct halide_buffer_t *)gemv.buffer), reinterpret<(void *)>((uint64)0), (uint64)0, reinterpret<(struct halide_device_interface_t *)>((uint64)0), 0, 32, 1, (struct halide_dimension_t *)make_struct(gemv.min.0.proposed, gemv.extent.0.proposed, gemv.stride.0.proposed, 0), (uint64)0)
+}
+if ((uint1)_halide_buffer_is_bounds_query((struct halide_buffer_t *)x.buffer)) {
+ (struct halide_buffer_t *)_halide_buffer_init((struct halide_buffer_t *)x.buffer, (struct halide_dimension_t *)_halide_buffer_get_shape((struct halide_buffer_t *)x.buffer), reinterpret<(void *)>((uint64)0), (uint64)0, reinterpret<(struct halide_device_interface_t *)>((uint64)0), 0, 32, 1, (struct halide_dimension_t *)make_struct(x.min.0.proposed, x.extent.0.proposed, x.stride.0.proposed, 0), (uint64)0)
+}
+if (!((((uint1)0 || (uint1)_halide_buffer_is_bounds_query((struct halide_buffer_t *)A.buffer)) || (uint1)_halide_buffer_is_bounds_query((struct halide_buffer_t *)gemv.buffer)) || (uint1)_halide_buffer_is_bounds_query((struct halide_buffer_t *)x.buffer))) {
+ assert(A.type == (uint32)73728, halide_error_bad_type("Input buffer A", A.type, (uint32)73728))
+ assert(A.dimensions == 2, halide_error_bad_dimensions("Input buffer A", A.dimensions, 2))
+ assert(gemv.type == (uint32)73728, halide_error_bad_type("Output buffer gemv", gemv.type, (uint32)73728))
+ assert(gemv.dimensions == 1, halide_error_bad_dimensions("Output buffer gemv", gemv.dimensions, 1))
+ assert(x.type == (uint32)73728, halide_error_bad_type("Input buffer x", x.type, (uint32)73728))
+ assert(x.dimensions == 1, halide_error_bad_dimensions("Input buffer x", x.dimensions, 1))
+ assert((A.min.0 <= A.min.0.required) && (((A.min.0 + A.extent.0) - 1) >= ((A.min.0.required + A.extent.0.required) - 1)), halide_error_access_out_of_bounds("Input buffer A", 0, A.min.0.required, (A.min.0.required + A.extent.0.required) - 1, A.min.0, (A.min.0 + A.extent.0) - 1))
+ assert(A.extent.0 >= 0, halide_error_buffer_extents_negative("Input buffer A", 0, A.extent.0))
+ assert((A.min.1 <= A.min.1.required) && (((A.min.1 + A.extent.1) - 1) >= ((A.min.1.required + A.extent.1.required) - 1)), halide_error_access_out_of_bounds("Input buffer A", 1, A.min.1.required, (A.min.1.required + A.extent.1.required) - 1, A.min.1, (A.min.1 + A.extent.1) - 1))
+ assert(A.extent.1 >= 0, halide_error_buffer_extents_negative("Input buffer A", 1, A.extent.1))
+ assert((gemv.min.0 <= gemv.min.0.required) && (((gemv.min.0 + gemv.extent.0) - 1) >= ((gemv.min.0.required + gemv.extent.0.required) - 1)), halide_error_access_out_of_bounds("Output buffer gemv", 0, gemv.min.0.required, (gemv.min.0.required + gemv.extent.0.required) - 1, gemv.min.0, (gemv.min.0 + gemv.extent.0) - 1))
+ assert(gemv.extent.0 >= 0, halide_error_buffer_extents_negative("Output buffer gemv", 0, gemv.extent.0))
+ assert((x.min.0 <= x.min.0.required) && (((x.min.0 + x.extent.0) - 1) >= ((x.min.0.required + x.extent.0.required) - 1)), halide_error_access_out_of_bounds("Input buffer x", 0, x.min.0.required, (x.min.0.required + x.extent.0.required) - 1, x.min.0, (x.min.0 + x.extent.0) - 1))
+ assert(x.extent.0 >= 0, halide_error_buffer_extents_negative("Input buffer x", 0, x.extent.0))
+ assert(A.stride.0 == A.stride.0.constrained, halide_error_constraint_violated("A.stride.0", A.stride.0, "1", A.stride.0.constrained))
+ assert(A.min.0 == A.min.0.constrained, halide_error_constraint_violated("A.min.0", A.min.0, "0", A.min.0.constrained))
+ assert(A.extent.0 == A.extent.0.constrained, halide_error_constraint_violated("A.extent.0", A.extent.0, "8337", A.extent.0.constrained))
+ assert(A.stride.1 == A.stride.1.constrained, halide_error_constraint_violated("A.stride.1", A.stride.1, "8337", A.stride.1.constrained))
+ assert(A.min.1 == A.min.1.constrained, halide_error_constraint_violated("A.min.1", A.min.1, "0", A.min.1.constrained))
+ assert(A.extent.1 == A.extent.1.constrained, halide_error_constraint_violated("A.extent.1", A.extent.1, "2671", A.extent.1.constrained))
+ assert(gemv.stride.0 == gemv.stride.0.constrained, halide_error_constraint_violated("gemv.stride.0", gemv.stride.0, "1", gemv.stride.0.constrained))
+ assert(x.stride.0 == x.stride.0.constrained, halide_error_constraint_violated("x.stride.0", x.stride.0, "1", x.stride.0.constrained))
+ assert(x.min.0 == x.min.0.constrained, halide_error_constraint_violated("x.min.0", x.min.0, "0", x.min.0.constrained))
+ assert(x.extent.0 == x.extent.0.constrained, halide_error_constraint_violated("x.extent.0", x.extent.0, "2671", x.extent.0.constrained))
+ let A.total_extent.0 = int64(A.extent.0.constrained)
+ let A.total_extent.1 = int64(A.extent.1.constrained)*A.total_extent.0
+ let gemv.total_extent.0 = int64(gemv.extent.0)
+ let x.total_extent.0 = int64(x.extent.0.constrained)
+ assert((uint64)abs(int64(A.extent.0.constrained)*int64(A.stride.0.constrained)) <= (uint64)2147483647, halide_error_buffer_allocation_too_large("A", (uint64)abs(int64(A.extent.0.constrained)*int64(A.stride.0.constrained)), (uint64)2147483647))
+ assert((uint64)abs(int64(A.extent.1.constrained)*int64(A.stride.1.constrained)) <= (uint64)2147483647, halide_error_buffer_allocation_too_large("A", (uint64)abs(int64(A.extent.1.constrained)*int64(A.stride.1.constrained)), (uint64)2147483647))
+ assert(A.total_extent.1 <= (int64)2147483647, halide_error_buffer_extents_too_large("A", A.total_extent.1, (int64)2147483647))
+ assert((uint64)abs(int64(gemv.extent.0)*int64(gemv.stride.0.constrained)) <= (uint64)2147483647, halide_error_buffer_allocation_too_large("gemv", (uint64)abs(int64(gemv.extent.0)*int64(gemv.stride.0.constrained)), (uint64)2147483647))
+ assert((uint64)abs(int64(x.extent.0.constrained)*int64(x.stride.0.constrained)) <= (uint64)2147483647, halide_error_buffer_allocation_too_large("x", (uint64)abs(int64(x.extent.0.constrained)*int64(x.stride.0.constrained)), (uint64)2147483647))
+ let gemv.s0.i.loop_max = (gemv.extent.0 + gemv.min.0) + -1
+ let gemv.s0.i.loop_min = gemv.min.0
+ let gemv.s0.i.loop_extent = gemv.extent.0
+ let gemv.s0.i.block.loop_extent = (gemv.extent.0 + 2047)/2048
+ let gemv.s0.i.block.loop_max = (gemv.extent.0 + -1)/2048
+ let gemv.s0.i.block.loop_min = 0
+ let gemv.s0.i.thread.loop_extent = 2048
+ let gemv.s0.i.thread.loop_max = 2047
+ let gemv.s0.i.thread.loop_min = 0
+ let gemv.s0.i.thread.thread.loop_extent = 16
+ let gemv.s0.i.thread.thread.loop_max = 15
+ let gemv.s0.i.thread.thread.loop_min = 0
+ let gemv.s0.i.thread.inner_loop.loop_extent = 128
+ let gemv.s0.i.thread.inner_loop.loop_max = 127
+ let gemv.s0.i.thread.inner_loop.loop_min = 0
+ let gemv.s0.i.block.loop_min.orig = 0
+ produce gemv {
+  pim_bank<UPMEM> (gemv.s0.i.block, 0, (gemv.extent.0 + 2047)/2048) {
+   let gemv.s0.i.thread.base = min(likely_if_innermost((gemv.s0.i.block*2048) + gemv.min.0), (gemv.extent.0 + gemv.min.0) + -2048)
+   let gemv.s0.i.thread.thread.loop_min.orig = 0
+   pim_thread<UPMEM> (gemv.s0.i.thread.thread, 0, 16) {
+    let gemv.s0.i.thread.inner_loop.base = gemv.s0.i.thread.thread*128
+    let gemv.s0.i.thread.inner_loop.loop_min.orig = 0
+    for (gemv.s0.i.thread.inner_loop, 0, 128) {
+     let gemv.s0.i.thread = (gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop
+     let gemv.s0.i = ((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base
+     let gemv.s0.i.min_1 = ((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base
+     let gemv.s0.i.max_1 = ((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base
+     let sum.s1.r$x.max_1 = 2670
+     let sum.s1.r$x.min_1 = 0
+     let sum.s1.i.max_1 = ((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base
+     let sum.s1.i.min_1 = ((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base
+     let sum.s0.i.max_1 = ((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base
+     let sum.s0.i.min_1 = ((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base
+     let sum.i.max_realized = ((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base
+     let sum.i.min_realized = ((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base
+     let sum.i.extent_realized = 1
+     let sum.extent.0 = sum.i.extent_realized
+     let sum.min.0 = sum.i.min_realized
+     let sum.stride.0 = 1
+     allocate sum[int32 * sum.i.extent_realized]
+     let sum.buffer = let t7 = (struct halide_dimension_t *)make_struct(sum.min.0, sum.extent.0, sum.stride.0, 0) in (struct halide_buffer_t *)_halide_buffer_init((struct halide_buffer_t *)alloca(size_of_halide_buffer_t()), t7, sum, (uint64)0, reinterpret<(struct halide_device_interface_t *)>((uint64)0), 0, 32, 1, t7, (uint64)0)
+     let sum.s0.i.loop_max = ((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base
+     let sum.s0.i.loop_min = ((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base
+     let sum.s0.i.loop_extent = 1
+     let sum.s1.r$x.loop_extent = 2671
+     let sum.s1.r$x.loop_max = 2670
+     let sum.s1.r$x.loop_min = 0
+     let sum.s1.i.loop_max = ((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base
+     let sum.s1.i.loop_min = ((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base
+     let sum.s1.i.loop_extent = 1
+     let t2 = ((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base
+     let t1 = ((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base
+     produce sum {
+      sum[0 + (((((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base) - sum.min.0)*sum.stride.0)] = 0
+      let sum.s1.r$x.loop_min.orig = 0
+      for (sum.s1.r$x, 0, 2671) {
+       let sum.s1.r$x.max_2 = sum.s1.r$x
+       let sum.s1.r$x.min_2 = sum.s1.r$x
+       sum[0 + (((((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base) - sum.min.0)*sum.stride.0)] = sum[0 + (((((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base) - sum.min.0)*sum.stride.0)] + (A[((0 + ((((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base)*A.stride.0)) + (sum.s1.r$x*A.stride.1)) - ((0 + (A.min.0*A.stride.0)) + (A.min.1*A.stride.1))]*x[(0 + (sum.s1.r$x*x.stride.0)) - (0 + (x.min.0*x.stride.0))])
+      }
+     }
+     consume sum {
+      gemv[(0 + ((((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base)*gemv.stride.0)) - (0 + (gemv.min.0*gemv.stride.0))] = sum[0 + (((((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base) - sum.min.0)*sum.stride.0)]
+     }
+    }
+   }
+  }
+ }
+}
+
+Injecting host <-> dev buffer copies...
+Lowering after injecting host <-> dev buffer copies:
+assert(reinterpret<uint64>((struct halide_buffer_t *)x.buffer) != (uint64)0, halide_error_buffer_argument_is_null("x"))
+assert(reinterpret<uint64>((struct halide_buffer_t *)gemv.buffer) != (uint64)0, halide_error_buffer_argument_is_null("gemv"))
+assert(reinterpret<uint64>((struct halide_buffer_t *)A.buffer) != (uint64)0, halide_error_buffer_argument_is_null("A"))
+let A = (void *)_halide_buffer_get_host((struct halide_buffer_t *)A.buffer)
+let A.type = (uint32)_halide_buffer_get_type((struct halide_buffer_t *)A.buffer)
+let A.dimensions = _halide_buffer_get_dimensions((struct halide_buffer_t *)A.buffer)
+let A.min.0 = _halide_buffer_get_min((struct halide_buffer_t *)A.buffer, 0)
+let A.extent.0 = _halide_buffer_get_extent((struct halide_buffer_t *)A.buffer, 0)
+let A.stride.0 = _halide_buffer_get_stride((struct halide_buffer_t *)A.buffer, 0)
+let A.min.1 = _halide_buffer_get_min((struct halide_buffer_t *)A.buffer, 1)
+let A.extent.1 = _halide_buffer_get_extent((struct halide_buffer_t *)A.buffer, 1)
+let A.stride.1 = _halide_buffer_get_stride((struct halide_buffer_t *)A.buffer, 1)
+let gemv = (void *)_halide_buffer_get_host((struct halide_buffer_t *)gemv.buffer)
+let gemv.type = (uint32)_halide_buffer_get_type((struct halide_buffer_t *)gemv.buffer)
+let gemv.dimensions = _halide_buffer_get_dimensions((struct halide_buffer_t *)gemv.buffer)
+let gemv.min.0 = _halide_buffer_get_min((struct halide_buffer_t *)gemv.buffer, 0)
+let gemv.extent.0 = _halide_buffer_get_extent((struct halide_buffer_t *)gemv.buffer, 0)
+let gemv.stride.0 = _halide_buffer_get_stride((struct halide_buffer_t *)gemv.buffer, 0)
+let x = (void *)_halide_buffer_get_host((struct halide_buffer_t *)x.buffer)
+let x.type = (uint32)_halide_buffer_get_type((struct halide_buffer_t *)x.buffer)
+let x.dimensions = _halide_buffer_get_dimensions((struct halide_buffer_t *)x.buffer)
+let x.min.0 = _halide_buffer_get_min((struct halide_buffer_t *)x.buffer, 0)
+let x.extent.0 = _halide_buffer_get_extent((struct halide_buffer_t *)x.buffer, 0)
+let x.stride.0 = _halide_buffer_get_stride((struct halide_buffer_t *)x.buffer, 0)
+let gemv.s0.i.max = (gemv.extent.0 + gemv.min.0) + -1
+let gemv.s0.i.min = gemv.min.0
+let sum.s1.r$x.max = 2670
+let sum.s1.r$x.min = 0
+let sum.s1.i.max = (gemv.extent.0 + gemv.min.0) + -1
+let sum.s1.i.min = gemv.min.0
+let sum.s0.i.max = (gemv.extent.0 + gemv.min.0) + -1
+let sum.s0.i.min = gemv.min.0
+let A.extent.0.required = ((((15*128) + 127) + ((gemv.extent.0 + gemv.min.0) + -2048)) + 1) - (((0*128) + 0) + ((min(gemv.extent.0, 2048) + gemv.min.0) + -2048))
+let A.min.0.required = ((0*128) + 0) + ((min(gemv.extent.0, 2048) + gemv.min.0) + -2048)
+let A.stride.0.required = 1
+let A.extent.1.required = (2670 + 1) - 0
+let A.min.1.required = 0
+let A.stride.1.required = A.stride.0.required*A.extent.0.required
+let gemv.extent.0.required = ((((15*128) + 127) + ((gemv.extent.0 + gemv.min.0) + -2048)) + 1) - (((0*128) + 0) + ((min(gemv.extent.0, 2048) + gemv.min.0) + -2048))
+let gemv.min.0.required = ((0*128) + 0) + ((min(gemv.extent.0, 2048) + gemv.min.0) + -2048)
+let gemv.stride.0.required = 1
+let x.extent.0.required = (2670 + 1) - 0
+let x.min.0.required = 0
+let x.stride.0.required = 1
+let A.stride.0.constrained = 1
+let A.min.0.constrained = 0
+let A.extent.0.constrained = 8337
+let A.stride.1.constrained = 8337
+let A.min.1.constrained = 0
+let A.extent.1.constrained = 2671
+let gemv.stride.0.constrained = 1
+let x.stride.0.constrained = 1
+let x.min.0.constrained = 0
+let x.extent.0.constrained = 2671
+let A.stride.0.proposed = 1
+let A.min.0.proposed = 0
+let A.extent.0.proposed = 8337
+let A.stride.1.proposed = 8337
+let A.min.1.proposed = 0
+let A.extent.1.proposed = 2671
+let gemv.stride.0.proposed = 1
+let gemv.min.0.proposed = gemv.min.0.required
+let gemv.extent.0.proposed = gemv.extent.0.required
+let x.stride.0.proposed = 1
+let x.min.0.proposed = 0
+let x.extent.0.proposed = 2671
+assert(!(uint1)_halide_buffer_is_bounds_query((struct halide_buffer_t *)A.buffer) || ((A.min.0.proposed <= A.min.0.required) && (((A.min.0.proposed + A.extent.0.proposed) - 1) >= ((A.min.0.required + A.extent.0.required) - 1))), halide_error_constraints_make_required_region_smaller("Input buffer A", 0, A.min.0.proposed, (A.min.0.proposed + A.extent.0.proposed) - 1, A.min.0.required, (A.min.0.required + A.extent.0.required) - 1))
+assert(!(uint1)_halide_buffer_is_bounds_query((struct halide_buffer_t *)A.buffer) || ((A.min.1.proposed <= A.min.1.required) && (((A.min.1.proposed + A.extent.1.proposed) - 1) >= ((A.min.1.required + A.extent.1.required) - 1))), halide_error_constraints_make_required_region_smaller("Input buffer A", 1, A.min.1.proposed, (A.min.1.proposed + A.extent.1.proposed) - 1, A.min.1.required, (A.min.1.required + A.extent.1.required) - 1))
+assert(!(uint1)_halide_buffer_is_bounds_query((struct halide_buffer_t *)gemv.buffer) || ((gemv.min.0.proposed <= gemv.min.0.required) && (((gemv.min.0.proposed + gemv.extent.0.proposed) - 1) >= ((gemv.min.0.required + gemv.extent.0.required) - 1))), halide_error_constraints_make_required_region_smaller("Output buffer gemv", 0, gemv.min.0.proposed, (gemv.min.0.proposed + gemv.extent.0.proposed) - 1, gemv.min.0.required, (gemv.min.0.required + gemv.extent.0.required) - 1))
+assert(!(uint1)_halide_buffer_is_bounds_query((struct halide_buffer_t *)x.buffer) || ((x.min.0.proposed <= x.min.0.required) && (((x.min.0.proposed + x.extent.0.proposed) - 1) >= ((x.min.0.required + x.extent.0.required) - 1))), halide_error_constraints_make_required_region_smaller("Input buffer x", 0, x.min.0.proposed, (x.min.0.proposed + x.extent.0.proposed) - 1, x.min.0.required, (x.min.0.required + x.extent.0.required) - 1))
+if ((uint1)_halide_buffer_is_bounds_query((struct halide_buffer_t *)A.buffer)) {
+ (struct halide_buffer_t *)_halide_buffer_init((struct halide_buffer_t *)A.buffer, (struct halide_dimension_t *)_halide_buffer_get_shape((struct halide_buffer_t *)A.buffer), reinterpret<(void *)>((uint64)0), (uint64)0, reinterpret<(struct halide_device_interface_t *)>((uint64)0), 0, 32, 2, (struct halide_dimension_t *)make_struct(A.min.0.proposed, A.extent.0.proposed, A.stride.0.proposed, 0, A.min.1.proposed, A.extent.1.proposed, A.stride.1.proposed, 0), (uint64)0)
+}
+if ((uint1)_halide_buffer_is_bounds_query((struct halide_buffer_t *)gemv.buffer)) {
+ (struct halide_buffer_t *)_halide_buffer_init((struct halide_buffer_t *)gemv.buffer, (struct halide_dimension_t *)_halide_buffer_get_shape((struct halide_buffer_t *)gemv.buffer), reinterpret<(void *)>((uint64)0), (uint64)0, reinterpret<(struct halide_device_interface_t *)>((uint64)0), 0, 32, 1, (struct halide_dimension_t *)make_struct(gemv.min.0.proposed, gemv.extent.0.proposed, gemv.stride.0.proposed, 0), (uint64)0)
+}
+if ((uint1)_halide_buffer_is_bounds_query((struct halide_buffer_t *)x.buffer)) {
+ (struct halide_buffer_t *)_halide_buffer_init((struct halide_buffer_t *)x.buffer, (struct halide_dimension_t *)_halide_buffer_get_shape((struct halide_buffer_t *)x.buffer), reinterpret<(void *)>((uint64)0), (uint64)0, reinterpret<(struct halide_device_interface_t *)>((uint64)0), 0, 32, 1, (struct halide_dimension_t *)make_struct(x.min.0.proposed, x.extent.0.proposed, x.stride.0.proposed, 0), (uint64)0)
+}
+if (!((((uint1)0 || (uint1)_halide_buffer_is_bounds_query((struct halide_buffer_t *)A.buffer)) || (uint1)_halide_buffer_is_bounds_query((struct halide_buffer_t *)gemv.buffer)) || (uint1)_halide_buffer_is_bounds_query((struct halide_buffer_t *)x.buffer))) {
+ assert(A.type == (uint32)73728, halide_error_bad_type("Input buffer A", A.type, (uint32)73728))
+ assert(A.dimensions == 2, halide_error_bad_dimensions("Input buffer A", A.dimensions, 2))
+ assert(gemv.type == (uint32)73728, halide_error_bad_type("Output buffer gemv", gemv.type, (uint32)73728))
+ assert(gemv.dimensions == 1, halide_error_bad_dimensions("Output buffer gemv", gemv.dimensions, 1))
+ assert(x.type == (uint32)73728, halide_error_bad_type("Input buffer x", x.type, (uint32)73728))
+ assert(x.dimensions == 1, halide_error_bad_dimensions("Input buffer x", x.dimensions, 1))
+ assert((A.min.0 <= A.min.0.required) && (((A.min.0 + A.extent.0) - 1) >= ((A.min.0.required + A.extent.0.required) - 1)), halide_error_access_out_of_bounds("Input buffer A", 0, A.min.0.required, (A.min.0.required + A.extent.0.required) - 1, A.min.0, (A.min.0 + A.extent.0) - 1))
+ assert(A.extent.0 >= 0, halide_error_buffer_extents_negative("Input buffer A", 0, A.extent.0))
+ assert((A.min.1 <= A.min.1.required) && (((A.min.1 + A.extent.1) - 1) >= ((A.min.1.required + A.extent.1.required) - 1)), halide_error_access_out_of_bounds("Input buffer A", 1, A.min.1.required, (A.min.1.required + A.extent.1.required) - 1, A.min.1, (A.min.1 + A.extent.1) - 1))
+ assert(A.extent.1 >= 0, halide_error_buffer_extents_negative("Input buffer A", 1, A.extent.1))
+ assert((gemv.min.0 <= gemv.min.0.required) && (((gemv.min.0 + gemv.extent.0) - 1) >= ((gemv.min.0.required + gemv.extent.0.required) - 1)), halide_error_access_out_of_bounds("Output buffer gemv", 0, gemv.min.0.required, (gemv.min.0.required + gemv.extent.0.required) - 1, gemv.min.0, (gemv.min.0 + gemv.extent.0) - 1))
+ assert(gemv.extent.0 >= 0, halide_error_buffer_extents_negative("Output buffer gemv", 0, gemv.extent.0))
+ assert((x.min.0 <= x.min.0.required) && (((x.min.0 + x.extent.0) - 1) >= ((x.min.0.required + x.extent.0.required) - 1)), halide_error_access_out_of_bounds("Input buffer x", 0, x.min.0.required, (x.min.0.required + x.extent.0.required) - 1, x.min.0, (x.min.0 + x.extent.0) - 1))
+ assert(x.extent.0 >= 0, halide_error_buffer_extents_negative("Input buffer x", 0, x.extent.0))
+ assert(A.stride.0 == A.stride.0.constrained, halide_error_constraint_violated("A.stride.0", A.stride.0, "1", A.stride.0.constrained))
+ assert(A.min.0 == A.min.0.constrained, halide_error_constraint_violated("A.min.0", A.min.0, "0", A.min.0.constrained))
+ assert(A.extent.0 == A.extent.0.constrained, halide_error_constraint_violated("A.extent.0", A.extent.0, "8337", A.extent.0.constrained))
+ assert(A.stride.1 == A.stride.1.constrained, halide_error_constraint_violated("A.stride.1", A.stride.1, "8337", A.stride.1.constrained))
+ assert(A.min.1 == A.min.1.constrained, halide_error_constraint_violated("A.min.1", A.min.1, "0", A.min.1.constrained))
+ assert(A.extent.1 == A.extent.1.constrained, halide_error_constraint_violated("A.extent.1", A.extent.1, "2671", A.extent.1.constrained))
+ assert(gemv.stride.0 == gemv.stride.0.constrained, halide_error_constraint_violated("gemv.stride.0", gemv.stride.0, "1", gemv.stride.0.constrained))
+ assert(x.stride.0 == x.stride.0.constrained, halide_error_constraint_violated("x.stride.0", x.stride.0, "1", x.stride.0.constrained))
+ assert(x.min.0 == x.min.0.constrained, halide_error_constraint_violated("x.min.0", x.min.0, "0", x.min.0.constrained))
+ assert(x.extent.0 == x.extent.0.constrained, halide_error_constraint_violated("x.extent.0", x.extent.0, "2671", x.extent.0.constrained))
+ let A.total_extent.0 = int64(A.extent.0.constrained)
+ let A.total_extent.1 = int64(A.extent.1.constrained)*A.total_extent.0
+ let gemv.total_extent.0 = int64(gemv.extent.0)
+ let x.total_extent.0 = int64(x.extent.0.constrained)
+ assert((uint64)abs(int64(A.extent.0.constrained)*int64(A.stride.0.constrained)) <= (uint64)2147483647, halide_error_buffer_allocation_too_large("A", (uint64)abs(int64(A.extent.0.constrained)*int64(A.stride.0.constrained)), (uint64)2147483647))
+ assert((uint64)abs(int64(A.extent.1.constrained)*int64(A.stride.1.constrained)) <= (uint64)2147483647, halide_error_buffer_allocation_too_large("A", (uint64)abs(int64(A.extent.1.constrained)*int64(A.stride.1.constrained)), (uint64)2147483647))
+ assert(A.total_extent.1 <= (int64)2147483647, halide_error_buffer_extents_too_large("A", A.total_extent.1, (int64)2147483647))
+ assert((uint64)abs(int64(gemv.extent.0)*int64(gemv.stride.0.constrained)) <= (uint64)2147483647, halide_error_buffer_allocation_too_large("gemv", (uint64)abs(int64(gemv.extent.0)*int64(gemv.stride.0.constrained)), (uint64)2147483647))
+ assert((uint64)abs(int64(x.extent.0.constrained)*int64(x.stride.0.constrained)) <= (uint64)2147483647, halide_error_buffer_allocation_too_large("x", (uint64)abs(int64(x.extent.0.constrained)*int64(x.stride.0.constrained)), (uint64)2147483647))
+ let gemv.s0.i.loop_max = (gemv.extent.0 + gemv.min.0) + -1
+ let gemv.s0.i.loop_min = gemv.min.0
+ let gemv.s0.i.loop_extent = gemv.extent.0
+ let gemv.s0.i.block.loop_extent = (gemv.extent.0 + 2047)/2048
+ let gemv.s0.i.block.loop_max = (gemv.extent.0 + -1)/2048
+ let gemv.s0.i.block.loop_min = 0
+ let gemv.s0.i.thread.loop_extent = 2048
+ let gemv.s0.i.thread.loop_max = 2047
+ let gemv.s0.i.thread.loop_min = 0
+ let gemv.s0.i.thread.thread.loop_extent = 16
+ let gemv.s0.i.thread.thread.loop_max = 15
+ let gemv.s0.i.thread.thread.loop_min = 0
+ let gemv.s0.i.thread.inner_loop.loop_extent = 128
+ let gemv.s0.i.thread.inner_loop.loop_max = 127
+ let gemv.s0.i.thread.inner_loop.loop_min = 0
+ let gemv.s0.i.block.loop_min.orig = 0
+ produce gemv {
+  let halide_copy_to_device_result = halide_copy_to_device((struct halide_buffer_t *)A.buffer, (struct halide_device_interface_t const *)halide_upmem_device_interface())
+  assert(halide_copy_to_device_result == 0, halide_copy_to_device_result)
+  let halide_copy_to_device_result$1 = halide_copy_to_device((struct halide_buffer_t *)gemv.buffer, (struct halide_device_interface_t const *)halide_upmem_device_interface())
+  assert(halide_copy_to_device_result$1 == 0, halide_copy_to_device_result$1)
+  let halide_copy_to_device_result$2 = halide_copy_to_device((struct halide_buffer_t *)x.buffer, (struct halide_device_interface_t const *)halide_upmem_device_interface())
+  assert(halide_copy_to_device_result$2 == 0, halide_copy_to_device_result$2)
+  pim_bank<UPMEM> (gemv.s0.i.block, 0, (gemv.extent.0 + 2047)/2048) {
+   let gemv.s0.i.thread.base = min(likely_if_innermost((gemv.s0.i.block*2048) + gemv.min.0), (gemv.extent.0 + gemv.min.0) + -2048)
+   let gemv.s0.i.thread.thread.loop_min.orig = 0
+   pim_thread<UPMEM> (gemv.s0.i.thread.thread, 0, 16) {
+    let gemv.s0.i.thread.inner_loop.base = gemv.s0.i.thread.thread*128
+    let gemv.s0.i.thread.inner_loop.loop_min.orig = 0
+    for (gemv.s0.i.thread.inner_loop, 0, 128) {
+     let gemv.s0.i.thread = (gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop
+     let gemv.s0.i = ((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base
+     let gemv.s0.i.min_1 = ((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base
+     let gemv.s0.i.max_1 = ((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base
+     let sum.s1.r$x.max_1 = 2670
+     let sum.s1.r$x.min_1 = 0
+     let sum.s1.i.max_1 = ((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base
+     let sum.s1.i.min_1 = ((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base
+     let sum.s0.i.max_1 = ((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base
+     let sum.s0.i.min_1 = ((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base
+     let sum.i.max_realized = ((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base
+     let sum.i.min_realized = ((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base
+     let sum.i.extent_realized = 1
+     let sum.extent.0 = sum.i.extent_realized
+     let sum.min.0 = sum.i.min_realized
+     let sum.stride.0 = 1
+     allocate sum[int32 * sum.i.extent_realized]
+     let sum.buffer = let t7 = (struct halide_dimension_t *)make_struct(sum.min.0, sum.extent.0, sum.stride.0, 0) in (struct halide_buffer_t *)_halide_buffer_init((struct halide_buffer_t *)alloca(size_of_halide_buffer_t()), t7, sum, (uint64)0, reinterpret<(struct halide_device_interface_t *)>((uint64)0), 0, 32, 1, t7, (uint64)0)
+     let sum.s0.i.loop_max = ((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base
+     let sum.s0.i.loop_min = ((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base
+     let sum.s0.i.loop_extent = 1
+     let sum.s1.r$x.loop_extent = 2671
+     let sum.s1.r$x.loop_max = 2670
+     let sum.s1.r$x.loop_min = 0
+     let sum.s1.i.loop_max = ((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base
+     let sum.s1.i.loop_min = ((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base
+     let sum.s1.i.loop_extent = 1
+     let t2 = ((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base
+     let t1 = ((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base
+     produce sum {
+      sum[0 + (((((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base) - sum.min.0)*sum.stride.0)] = 0
+      let sum.s1.r$x.loop_min.orig = 0
+      for (sum.s1.r$x, 0, 2671) {
+       let sum.s1.r$x.max_2 = sum.s1.r$x
+       let sum.s1.r$x.min_2 = sum.s1.r$x
+       sum[0 + (((((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base) - sum.min.0)*sum.stride.0)] = sum[0 + (((((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base) - sum.min.0)*sum.stride.0)] + (A[((0 + ((((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base)*A.stride.0)) + (sum.s1.r$x*A.stride.1)) - ((0 + (A.min.0*A.stride.0)) + (A.min.1*A.stride.1))]*x[(0 + (sum.s1.r$x*x.stride.0)) - (0 + (x.min.0*x.stride.0))])
+      }
+     }
+     consume sum {
+      gemv[(0 + ((((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base)*gemv.stride.0)) - (0 + (gemv.min.0*gemv.stride.0))] = sum[0 + (((((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base) - sum.min.0)*sum.stride.0)]
+     }
+    }
+   }
+  }
+  _halide_buffer_set_device_dirty((struct halide_buffer_t *)gemv.buffer, (uint1)1)
+ }
+}
+
+Selecting a GPU API for extern stages...
+Lowering after selecting a GPU API for extern stages: (unchanged)
+
 Simplifying...
 Lowering after second simplifcation:
 assert(reinterpret<uint64>((struct halide_buffer_t *)x.buffer) != (uint64)0, halide_error_buffer_argument_is_null("x"))
@@ -1990,21 +2575,30 @@ if (!((uint1)_halide_buffer_is_bounds_query((struct halide_buffer_t *)x.buffer) 
  assert(uint64(int64(gemv.extent.0)) <= (uint64)2147483647, halide_error_buffer_allocation_too_large("gemv", uint64(int64(gemv.extent.0)), (uint64)2147483647))
  0
  produce gemv {
-  dpu<UPMEM> (gemv.s0.i.block, 0, (gemv.extent.0 + 2047)/2048) {
+  let halide_copy_to_device_result = halide_copy_to_device((struct halide_buffer_t *)A.buffer, (struct halide_device_interface_t const *)halide_upmem_device_interface())
+  assert(halide_copy_to_device_result == 0, halide_copy_to_device_result)
+  let halide_copy_to_device_result$1 = halide_copy_to_device((struct halide_buffer_t *)gemv.buffer, (struct halide_device_interface_t const *)halide_upmem_device_interface())
+  assert(halide_copy_to_device_result$1 == 0, halide_copy_to_device_result$1)
+  let halide_copy_to_device_result$2 = halide_copy_to_device((struct halide_buffer_t *)x.buffer, (struct halide_device_interface_t const *)halide_upmem_device_interface())
+  assert(halide_copy_to_device_result$2 == 0, halide_copy_to_device_result$2)
+  pim_bank<UPMEM> (gemv.s0.i.block, 0, (gemv.extent.0 + 2047)/2048) {
    let gemv.s0.i.thread.base = min(likely_if_innermost((gemv.s0.i.block*2048) + gemv.min.0), (gemv.extent.0 + gemv.min.0) + -2048)
-   for (gemv.s0.i.thread, 0, 2048) {
-    allocate sum[int32 * 1]
-    produce sum {
-     sum[0] = 0
-     for (sum.s1.r$x, 0, 2671) {
-      sum[0] = sum[0] + (A[(sum.s1.r$x*8337) + (gemv.s0.i.thread + gemv.s0.i.thread.base)]*x[sum.s1.r$x])
+   pim_thread<UPMEM> (gemv.s0.i.thread.thread, 0, 16) {
+    for (gemv.s0.i.thread.inner_loop, 0, 128) {
+     allocate sum[int32 * 1]
+     produce sum {
+      sum[0] = 0
+      for (sum.s1.r$x, 0, 2671) {
+       sum[0] = sum[0] + (A[(sum.s1.r$x*8337) + (((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base)]*x[sum.s1.r$x])
+      }
      }
-    }
-    consume sum {
-     gemv[(gemv.s0.i.thread + gemv.s0.i.thread.base) - gemv.min.0] = sum[0]
+     consume sum {
+      gemv[(((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base) - gemv.min.0] = sum[0]
+     }
     }
    }
   }
+  _halide_buffer_set_device_dirty((struct halide_buffer_t *)gemv.buffer, (uint1)1)
  }
 }
 
@@ -2078,21 +2672,30 @@ if (!((uint1)_halide_buffer_is_bounds_query((struct halide_buffer_t *)x.buffer) 
  assert(uint64(int64(gemv.extent.0)) <= (uint64)2147483647, halide_error_buffer_allocation_too_large("gemv", uint64(int64(gemv.extent.0)), (uint64)2147483647))
  0
  produce gemv {
-  dpu<UPMEM> (gemv.s0.i.block, 0, (gemv.extent.0 + 2047)/2048) {
+  let halide_copy_to_device_result = halide_copy_to_device((struct halide_buffer_t *)A.buffer, (struct halide_device_interface_t const *)halide_upmem_device_interface())
+  assert(halide_copy_to_device_result == 0, halide_copy_to_device_result)
+  let halide_copy_to_device_result$1 = halide_copy_to_device((struct halide_buffer_t *)gemv.buffer, (struct halide_device_interface_t const *)halide_upmem_device_interface())
+  assert(halide_copy_to_device_result$1 == 0, halide_copy_to_device_result$1)
+  let halide_copy_to_device_result$2 = halide_copy_to_device((struct halide_buffer_t *)x.buffer, (struct halide_device_interface_t const *)halide_upmem_device_interface())
+  assert(halide_copy_to_device_result$2 == 0, halide_copy_to_device_result$2)
+  pim_bank<UPMEM> (gemv.s0.i.block, 0, (gemv.extent.0 + 2047)/2048) {
    let gemv.s0.i.thread.base = min(likely_if_innermost((gemv.s0.i.block*2048) + gemv.min.0), (gemv.extent.0 + gemv.min.0) + -2048)
-   for (gemv.s0.i.thread, 0, 2048) {
-    allocate sum[int32 * 1]
-    produce sum {
-     sum[0] = 0
-     for (sum.s1.r$x, 0, 2671) {
-      sum[0] = sum[0] + (A[(sum.s1.r$x*8337) + (gemv.s0.i.thread + gemv.s0.i.thread.base)]*x[sum.s1.r$x])
+   pim_thread<UPMEM> (gemv.s0.i.thread.thread, 0, 16) {
+    for (gemv.s0.i.thread.inner_loop, 0, 128) {
+     allocate sum[int32 * 1]
+     produce sum {
+      sum[0] = 0
+      for (sum.s1.r$x, 0, 2671) {
+       sum[0] = sum[0] + (A[(sum.s1.r$x*8337) + (((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base)]*x[sum.s1.r$x])
+      }
      }
-    }
-    consume sum {
-     gemv[(gemv.s0.i.thread + gemv.s0.i.thread.base) - gemv.min.0] = sum[0]
+     consume sum {
+      gemv[(((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base) - gemv.min.0] = sum[0]
+     }
     }
    }
   }
+  _halide_buffer_set_device_dirty((struct halide_buffer_t *)gemv.buffer, (uint1)1)
  }
 }
 
@@ -2161,21 +2764,30 @@ if (!((uint1)_halide_buffer_is_bounds_query((struct halide_buffer_t *)x.buffer) 
  assert(x.extent.0 == 2671, halide_error_constraint_violated("x.extent.0", x.extent.0, "2671", 2671))
  assert(uint64(gemv.extent.0) <= (uint64)2147483647, halide_error_buffer_allocation_too_large("gemv", uint64(gemv.extent.0), (uint64)2147483647))
  produce gemv {
-  dpu<UPMEM> (gemv.s0.i.block, 0, (gemv.extent.0 + 2047)/2048) {
+  let halide_copy_to_device_result = halide_copy_to_device((struct halide_buffer_t *)A.buffer, (struct halide_device_interface_t const *)halide_upmem_device_interface())
+  assert(halide_copy_to_device_result == 0, halide_copy_to_device_result)
+  let halide_copy_to_device_result$1 = halide_copy_to_device((struct halide_buffer_t *)gemv.buffer, (struct halide_device_interface_t const *)halide_upmem_device_interface())
+  assert(halide_copy_to_device_result$1 == 0, halide_copy_to_device_result$1)
+  let halide_copy_to_device_result$2 = halide_copy_to_device((struct halide_buffer_t *)x.buffer, (struct halide_device_interface_t const *)halide_upmem_device_interface())
+  assert(halide_copy_to_device_result$2 == 0, halide_copy_to_device_result$2)
+  pim_bank<UPMEM> (gemv.s0.i.block, 0, (gemv.extent.0 + 2047)/2048) {
    let gemv.s0.i.thread.base = min(likely_if_innermost((gemv.s0.i.block*2048) + gemv.min.0), (gemv.extent.0 + gemv.min.0) + -2048)
-   for (gemv.s0.i.thread, 0, 2048) {
-    allocate sum[int32 * 1]
-    produce sum {
-     sum[0] = 0
-     for (sum.s1.r$x, 0, 2671) {
-      sum[0] = sum[0] + (A[(sum.s1.r$x*8337) + (gemv.s0.i.thread + gemv.s0.i.thread.base)]*x[sum.s1.r$x])
+   pim_thread<UPMEM> (gemv.s0.i.thread.thread, 0, 16) {
+    for (gemv.s0.i.thread.inner_loop, 0, 128) {
+     allocate sum[int32 * 1]
+     produce sum {
+      sum[0] = 0
+      for (sum.s1.r$x, 0, 2671) {
+       sum[0] = sum[0] + (A[(sum.s1.r$x*8337) + (((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base)]*x[sum.s1.r$x])
+      }
      }
-    }
-    consume sum {
-     gemv[(gemv.s0.i.thread + gemv.s0.i.thread.base) - gemv.min.0] = sum[0]
+     consume sum {
+      gemv[(((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base) - gemv.min.0] = sum[0]
+     }
     }
    }
   }
+  _halide_buffer_set_device_dirty((struct halide_buffer_t *)gemv.buffer, (uint1)1)
  }
 }
 
@@ -2241,21 +2853,30 @@ if (!((uint1)_halide_buffer_is_bounds_query((struct halide_buffer_t *)x.buffer) 
  assert(x.extent.0 == 2671, halide_error_constraint_violated("x.extent.0", x.extent.0, "2671", 2671))
  assert(uint64(gemv.extent.0) <= (uint64)2147483647, halide_error_buffer_allocation_too_large("gemv", uint64(gemv.extent.0), (uint64)2147483647))
  produce gemv {
-  dpu<UPMEM> (gemv.s0.i.block, 0, (gemv.extent.0 + 2047)/2048) {
+  let halide_copy_to_device_result = halide_copy_to_device((struct halide_buffer_t *)A.buffer, (struct halide_device_interface_t const *)halide_upmem_device_interface())
+  assert(halide_copy_to_device_result == 0, halide_copy_to_device_result)
+  let halide_copy_to_device_result$1 = halide_copy_to_device((struct halide_buffer_t *)gemv.buffer, (struct halide_device_interface_t const *)halide_upmem_device_interface())
+  assert(halide_copy_to_device_result$1 == 0, halide_copy_to_device_result$1)
+  let halide_copy_to_device_result$2 = halide_copy_to_device((struct halide_buffer_t *)x.buffer, (struct halide_device_interface_t const *)halide_upmem_device_interface())
+  assert(halide_copy_to_device_result$2 == 0, halide_copy_to_device_result$2)
+  pim_bank<UPMEM> (gemv.s0.i.block, 0, (gemv.extent.0 + 2047)/2048) {
    let gemv.s0.i.thread.base = min(likely_if_innermost((gemv.s0.i.block*2048) + gemv.min.0), (gemv.extent.0 + gemv.min.0) + -2048)
-   for (gemv.s0.i.thread, 0, 2048) {
-    allocate sum[int32 * 1]
-    produce sum {
-     sum[0] = 0
-     for (sum.s1.r$x, 0, 2671) {
-      sum[0] = sum[0] + (A[(sum.s1.r$x*8337) + (gemv.s0.i.thread + gemv.s0.i.thread.base)]*x[sum.s1.r$x])
+   pim_thread<UPMEM> (gemv.s0.i.thread.thread, 0, 16) {
+    for (gemv.s0.i.thread.inner_loop, 0, 128) {
+     allocate sum[int32 * 1]
+     produce sum {
+      sum[0] = 0
+      for (sum.s1.r$x, 0, 2671) {
+       sum[0] = sum[0] + (A[(sum.s1.r$x*8337) + (((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base)]*x[sum.s1.r$x])
+      }
      }
-    }
-    consume sum {
-     gemv[(gemv.s0.i.thread + gemv.s0.i.thread.base) - gemv.min.0] = sum[0]
+     consume sum {
+      gemv[(((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base) - gemv.min.0] = sum[0]
+     }
     }
    }
   }
+  _halide_buffer_set_device_dirty((struct halide_buffer_t *)gemv.buffer, (uint1)1)
  }
 }
 
@@ -2321,21 +2942,30 @@ if (!((uint1)_halide_buffer_is_bounds_query((struct halide_buffer_t *)x.buffer) 
  assert(x.extent.0 == 2671, halide_error_constraint_violated("x.extent.0", x.extent.0, "2671", 2671))
  assert(uint64(gemv.extent.0) <= (uint64)2147483647, halide_error_buffer_allocation_too_large("gemv", uint64(gemv.extent.0), (uint64)2147483647))
  produce gemv {
-  dpu<UPMEM> (gemv.s0.i.block, 0, (gemv.extent.0 + 2047)/2048) {
+  let halide_copy_to_device_result = halide_copy_to_device((struct halide_buffer_t *)A.buffer, (struct halide_device_interface_t const *)halide_upmem_device_interface())
+  assert(halide_copy_to_device_result == 0, halide_copy_to_device_result)
+  let halide_copy_to_device_result$1 = halide_copy_to_device((struct halide_buffer_t *)gemv.buffer, (struct halide_device_interface_t const *)halide_upmem_device_interface())
+  assert(halide_copy_to_device_result$1 == 0, halide_copy_to_device_result$1)
+  let halide_copy_to_device_result$2 = halide_copy_to_device((struct halide_buffer_t *)x.buffer, (struct halide_device_interface_t const *)halide_upmem_device_interface())
+  assert(halide_copy_to_device_result$2 == 0, halide_copy_to_device_result$2)
+  pim_bank<UPMEM> (gemv.s0.i.block, 0, (gemv.extent.0 + 2047)/2048) {
    let gemv.s0.i.thread.base.s = min(gemv.s0.i.block*2048, gemv.extent.0 + -2048)
-   for (gemv.s0.i.thread, 0, 2048) {
-    allocate sum[int32 * 1]
-    produce sum {
-     sum[0] = 0
-     for (sum.s1.r$x, 0, 2671) {
-      sum[0] = sum[0] + (A[(sum.s1.r$x*8337) + ((gemv.min.0 + gemv.s0.i.thread.base.s) + gemv.s0.i.thread)]*x[sum.s1.r$x])
+   pim_thread<UPMEM> (gemv.s0.i.thread.thread, 0, 16) {
+    for (gemv.s0.i.thread.inner_loop, 0, 128) {
+     allocate sum[int32 * 1]
+     produce sum {
+      sum[0] = 0
+      for (sum.s1.r$x, 0, 2671) {
+       sum[0] = sum[0] + (A[(sum.s1.r$x*8337) + (((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + (gemv.min.0 + gemv.s0.i.thread.base.s))]*x[sum.s1.r$x])
+      }
      }
-    }
-    consume sum {
-     gemv[gemv.s0.i.thread + gemv.s0.i.thread.base.s] = sum[0]
+     consume sum {
+      gemv[((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base.s] = sum[0]
+     }
     }
    }
   }
+  _halide_buffer_set_device_dirty((struct halide_buffer_t *)gemv.buffer, (uint1)1)
  }
 }
 
@@ -2404,21 +3034,30 @@ if (!((uint1)_halide_buffer_is_bounds_query((struct halide_buffer_t *)x.buffer) 
  assert(x.extent.0 == 2671, halide_error_constraint_violated("x.extent.0", x.extent.0, "2671", 2671))
  assert(uint64(gemv.extent.0) <= (uint64)2147483647, halide_error_buffer_allocation_too_large("gemv", uint64(gemv.extent.0), (uint64)2147483647))
  produce gemv {
-  dpu<UPMEM> (gemv.s0.i.block, 0, (gemv.extent.0 + 2047)/2048) {
+  let halide_copy_to_device_result = halide_copy_to_device((struct halide_buffer_t *)A.buffer, (struct halide_device_interface_t const *)halide_upmem_device_interface())
+  assert(halide_copy_to_device_result == 0, halide_copy_to_device_result)
+  let halide_copy_to_device_result$1 = halide_copy_to_device((struct halide_buffer_t *)gemv.buffer, (struct halide_device_interface_t const *)halide_upmem_device_interface())
+  assert(halide_copy_to_device_result$1 == 0, halide_copy_to_device_result$1)
+  let halide_copy_to_device_result$2 = halide_copy_to_device((struct halide_buffer_t *)x.buffer, (struct halide_device_interface_t const *)halide_upmem_device_interface())
+  assert(halide_copy_to_device_result$2 == 0, halide_copy_to_device_result$2)
+  pim_bank<UPMEM> (gemv.s0.i.block, 0, (gemv.extent.0 + 2047)/2048) {
    let gemv.s0.i.thread.base.s = min(gemv.s0.i.block*2048, gemv.extent.0 + -2048)
-   for (gemv.s0.i.thread, 0, 2048) {
-    allocate sum[int32 * 1]
-    produce sum {
-     sum[0] = 0
-     for (sum.s1.r$x, 0, 2671) {
-      sum[0] = sum[0] + (A[(sum.s1.r$x*8337) + ((gemv.min.0 + gemv.s0.i.thread.base.s) + gemv.s0.i.thread)]*x[sum.s1.r$x])
+   pim_thread<UPMEM> (gemv.s0.i.thread.thread, 0, 16) {
+    for (gemv.s0.i.thread.inner_loop, 0, 128) {
+     allocate sum[int32 * 1]
+     produce sum {
+      sum[0] = 0
+      for (sum.s1.r$x, 0, 2671) {
+       sum[0] = sum[0] + (A[(sum.s1.r$x*8337) + (((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + (gemv.min.0 + gemv.s0.i.thread.base.s))]*x[sum.s1.r$x])
+      }
      }
-    }
-    consume sum {
-     gemv[gemv.s0.i.thread + gemv.s0.i.thread.base.s] = sum[0]
+     consume sum {
+      gemv[((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base.s] = sum[0]
+     }
     }
    }
   }
+  _halide_buffer_set_device_dirty((struct halide_buffer_t *)gemv.buffer, (uint1)1)
  }
 }
 
@@ -2484,21 +3123,30 @@ if (!((uint1)_halide_buffer_is_bounds_query((struct halide_buffer_t *)x.buffer) 
  assert(x.extent.0 == 2671, halide_error_constraint_violated("x.extent.0", x.extent.0, "2671", 2671))
  assert(uint64(gemv.extent.0) <= (uint64)2147483647, halide_error_buffer_allocation_too_large("gemv", uint64(gemv.extent.0), (uint64)2147483647))
  produce gemv {
-  dpu<UPMEM> (gemv.s0.i.block, 0, (gemv.extent.0 + 2047)/2048) {
+  let halide_copy_to_device_result = halide_copy_to_device((struct halide_buffer_t *)A.buffer, (struct halide_device_interface_t const *)halide_upmem_device_interface())
+  assert(halide_copy_to_device_result == 0, halide_copy_to_device_result)
+  let halide_copy_to_device_result$1 = halide_copy_to_device((struct halide_buffer_t *)gemv.buffer, (struct halide_device_interface_t const *)halide_upmem_device_interface())
+  assert(halide_copy_to_device_result$1 == 0, halide_copy_to_device_result$1)
+  let halide_copy_to_device_result$2 = halide_copy_to_device((struct halide_buffer_t *)x.buffer, (struct halide_device_interface_t const *)halide_upmem_device_interface())
+  assert(halide_copy_to_device_result$2 == 0, halide_copy_to_device_result$2)
+  pim_bank<UPMEM> (gemv.s0.i.block, 0, (gemv.extent.0 + 2047)/2048) {
    let gemv.s0.i.thread.base.s = min(gemv.s0.i.block*2048, gemv.extent.0 + -2048)
-   for (gemv.s0.i.thread, 0, 2048) {
-    allocate sum[int32 * 1]
-    produce sum {
-     sum[0] = 0
-     for (sum.s1.r$x, 0, 2671) {
-      sum[0] = sum[0] + (A[(sum.s1.r$x*8337) + ((gemv.min.0 + gemv.s0.i.thread.base.s) + gemv.s0.i.thread)]*x[sum.s1.r$x])
+   pim_thread<UPMEM> (gemv.s0.i.thread.thread, 0, 16) {
+    for (gemv.s0.i.thread.inner_loop, 0, 128) {
+     allocate sum[int32 * 1]
+     produce sum {
+      sum[0] = 0
+      for (sum.s1.r$x, 0, 2671) {
+       sum[0] = sum[0] + (A[(sum.s1.r$x*8337) + (((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + (gemv.min.0 + gemv.s0.i.thread.base.s))]*x[sum.s1.r$x])
+      }
      }
-    }
-    consume sum {
-     gemv[gemv.s0.i.thread + gemv.s0.i.thread.base.s] = sum[0]
+     consume sum {
+      gemv[((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base.s] = sum[0]
+     }
     }
    }
   }
+  _halide_buffer_set_device_dirty((struct halide_buffer_t *)gemv.buffer, (uint1)1)
  }
 }
 
@@ -2568,22 +3216,31 @@ if (!((uint1)_halide_buffer_is_bounds_query((struct halide_buffer_t *)x.buffer) 
  assert(x.extent.0 == 2671, halide_error_constraint_violated("x.extent.0", x.extent.0, "2671", 2671))
  assert(uint64(gemv.extent.0) <= (uint64)2147483647, halide_error_buffer_allocation_too_large("gemv", uint64(gemv.extent.0), (uint64)2147483647))
  produce gemv {
-  dpu<UPMEM> (gemv.s0.i.block, 0, (gemv.extent.0 + 2047)/2048) {
+  let halide_copy_to_device_result = halide_copy_to_device((struct halide_buffer_t *)A.buffer, (struct halide_device_interface_t const *)halide_upmem_device_interface())
+  assert(halide_copy_to_device_result == 0, halide_copy_to_device_result)
+  let halide_copy_to_device_result$1 = halide_copy_to_device((struct halide_buffer_t *)gemv.buffer, (struct halide_device_interface_t const *)halide_upmem_device_interface())
+  assert(halide_copy_to_device_result$1 == 0, halide_copy_to_device_result$1)
+  let halide_copy_to_device_result$2 = halide_copy_to_device((struct halide_buffer_t *)x.buffer, (struct halide_device_interface_t const *)halide_upmem_device_interface())
+  assert(halide_copy_to_device_result$2 == 0, halide_copy_to_device_result$2)
+  pim_bank<UPMEM> (gemv.s0.i.block, 0, (gemv.extent.0 + 2047)/2048) {
    let gemv.s0.i.thread.base.s = min(gemv.s0.i.block*2048, gemv.extent.0 + -2048)
-   for (gemv.s0.i.thread, 0, 2048) {
-    allocate sum[int32 * 1]
-    produce sum {
-     sum[0] = 0
-     for (sum.s1.r$x, 0, 2671) {
-      sum[0] = sum[0] + (A[(sum.s1.r$x*8337) + ((gemv.min.0 + gemv.s0.i.thread.base.s) + gemv.s0.i.thread)]*x[sum.s1.r$x])
+   pim_thread<UPMEM> (gemv.s0.i.thread.thread, 0, 16) {
+    for (gemv.s0.i.thread.inner_loop, 0, 128) {
+     allocate sum[int32 * 1]
+     produce sum {
+      sum[0] = 0
+      for (sum.s1.r$x, 0, 2671) {
+       sum[0] = sum[0] + (A[(sum.s1.r$x*8337) + (((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + (gemv.min.0 + gemv.s0.i.thread.base.s))]*x[sum.s1.r$x])
+      }
      }
+     consume sum {
+      gemv[((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base.s] = sum[0]
+     }
+     free sum
     }
-    consume sum {
-     gemv[gemv.s0.i.thread + gemv.s0.i.thread.base.s] = sum[0]
-    }
-    free sum
    }
   }
+  _halide_buffer_set_device_dirty((struct halide_buffer_t *)gemv.buffer, (uint1)1)
  }
 }
 
@@ -2649,22 +3306,31 @@ if (!((uint1)_halide_buffer_is_bounds_query((struct halide_buffer_t *)x.buffer) 
  assert(x.extent.0 == 2671, halide_error_constraint_violated("x.extent.0", x.extent.0, "2671", 2671))
  assert(uint64(gemv.extent.0) <= (uint64)2147483647, halide_error_buffer_allocation_too_large("gemv", uint64(gemv.extent.0), (uint64)2147483647))
  produce gemv {
-  dpu<UPMEM> (gemv.s0.i.block, 0, (gemv.extent.0 + 2047)/2048) {
+  let halide_copy_to_device_result = halide_copy_to_device((struct halide_buffer_t *)A.buffer, (struct halide_device_interface_t const *)halide_upmem_device_interface())
+  assert(halide_copy_to_device_result == 0, halide_copy_to_device_result)
+  let halide_copy_to_device_result$1 = halide_copy_to_device((struct halide_buffer_t *)gemv.buffer, (struct halide_device_interface_t const *)halide_upmem_device_interface())
+  assert(halide_copy_to_device_result$1 == 0, halide_copy_to_device_result$1)
+  let halide_copy_to_device_result$2 = halide_copy_to_device((struct halide_buffer_t *)x.buffer, (struct halide_device_interface_t const *)halide_upmem_device_interface())
+  assert(halide_copy_to_device_result$2 == 0, halide_copy_to_device_result$2)
+  pim_bank<UPMEM> (gemv.s0.i.block, 0, (gemv.extent.0 + 2047)/2048) {
    let gemv.s0.i.thread.base.s = min(gemv.s0.i.block*2048, gemv.extent.0 + -2048)
-   for (gemv.s0.i.thread, 0, 2048) {
-    allocate sum[int32 * 1]
-    produce sum {
-     sum[0] = 0
-     for (sum.s1.r$x, 0, 2671) {
-      sum[0] = sum[0] + (A[(sum.s1.r$x*8337) + ((gemv.min.0 + gemv.s0.i.thread.base.s) + gemv.s0.i.thread)]*x[sum.s1.r$x])
+   pim_thread<UPMEM> (gemv.s0.i.thread.thread, 0, 16) {
+    for (gemv.s0.i.thread.inner_loop, 0, 128) {
+     allocate sum[int32 * 1]
+     produce sum {
+      sum[0] = 0
+      for (sum.s1.r$x, 0, 2671) {
+       sum[0] = sum[0] + (A[(sum.s1.r$x*8337) + (((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + (gemv.min.0 + gemv.s0.i.thread.base.s))]*x[sum.s1.r$x])
+      }
      }
+     consume sum {
+      gemv[((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base.s] = sum[0]
+     }
+     free sum
     }
-    consume sum {
-     gemv[gemv.s0.i.thread + gemv.s0.i.thread.base.s] = sum[0]
-    }
-    free sum
    }
   }
+  _halide_buffer_set_device_dirty((struct halide_buffer_t *)gemv.buffer, (uint1)1)
  }
 }
 
@@ -2730,22 +3396,31 @@ if (!((uint1)_halide_buffer_is_bounds_query((struct halide_buffer_t *)x.buffer) 
  assert(x.extent.0 == 2671, halide_error_constraint_violated("x.extent.0", x.extent.0, "2671", 2671))
  assert(uint64(gemv.extent.0) <= (uint64)2147483647, halide_error_buffer_allocation_too_large("gemv", uint64(gemv.extent.0), (uint64)2147483647))
  produce gemv {
-  dpu<UPMEM> (gemv.s0.i.block, 0, (gemv.extent.0 + 2047)/2048) {
+  let halide_copy_to_device_result = halide_copy_to_device((struct halide_buffer_t *)A.buffer, (struct halide_device_interface_t const *)halide_upmem_device_interface())
+  assert(halide_copy_to_device_result == 0, halide_copy_to_device_result)
+  let halide_copy_to_device_result$1 = halide_copy_to_device((struct halide_buffer_t *)gemv.buffer, (struct halide_device_interface_t const *)halide_upmem_device_interface())
+  assert(halide_copy_to_device_result$1 == 0, halide_copy_to_device_result$1)
+  let halide_copy_to_device_result$2 = halide_copy_to_device((struct halide_buffer_t *)x.buffer, (struct halide_device_interface_t const *)halide_upmem_device_interface())
+  assert(halide_copy_to_device_result$2 == 0, halide_copy_to_device_result$2)
+  pim_bank<UPMEM> (gemv.s0.i.block, 0, (gemv.extent.0 + 2047)/2048) {
    let gemv.s0.i.thread.base.s = min(gemv.s0.i.block*2048, gemv.extent.0 + -2048)
-   for (gemv.s0.i.thread, 0, 2048) {
-    allocate sum[int32 * 1]
-    produce sum {
-     sum[0] = 0
-     for (sum.s1.r$x, 0, 2671) {
-      sum[0] = sum[0] + (A[(sum.s1.r$x*8337) + ((gemv.min.0 + gemv.s0.i.thread.base.s) + gemv.s0.i.thread)]*x[sum.s1.r$x])
+   pim_thread<UPMEM> (gemv.s0.i.thread.thread, 0, 16) {
+    for (gemv.s0.i.thread.inner_loop, 0, 128) {
+     allocate sum[int32 * 1]
+     produce sum {
+      sum[0] = 0
+      for (sum.s1.r$x, 0, 2671) {
+       sum[0] = sum[0] + (A[(sum.s1.r$x*8337) + (((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + (gemv.min.0 + gemv.s0.i.thread.base.s))]*x[sum.s1.r$x])
+      }
      }
+     consume sum {
+      gemv[((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base.s] = sum[0]
+     }
+     free sum
     }
-    consume sum {
-     gemv[gemv.s0.i.thread + gemv.s0.i.thread.base.s] = sum[0]
-    }
-    free sum
    }
   }
+  _halide_buffer_set_device_dirty((struct halide_buffer_t *)gemv.buffer, (uint1)1)
  }
 }
 
@@ -2812,22 +3487,31 @@ if (!((uint1)_halide_buffer_is_bounds_query((struct halide_buffer_t *)x.buffer) 
  assert(x.extent.0 == 2671, halide_error_constraint_violated("x.extent.0", x.extent.0, "2671", 2671))
  assert(uint64(gemv.extent.0) <= (uint64)2147483647, halide_error_buffer_allocation_too_large("gemv", uint64(gemv.extent.0), (uint64)2147483647))
  produce gemv {
-  dpu<UPMEM> (gemv.s0.i.block, 0, (gemv.extent.0 + 2047)/2048) {
+  let halide_copy_to_device_result = halide_copy_to_device((struct halide_buffer_t *)A.buffer, (struct halide_device_interface_t const *)halide_upmem_device_interface())
+  assert(halide_copy_to_device_result == 0, halide_copy_to_device_result)
+  let halide_copy_to_device_result$1 = halide_copy_to_device((struct halide_buffer_t *)gemv.buffer, (struct halide_device_interface_t const *)halide_upmem_device_interface())
+  assert(halide_copy_to_device_result$1 == 0, halide_copy_to_device_result$1)
+  let halide_copy_to_device_result$2 = halide_copy_to_device((struct halide_buffer_t *)x.buffer, (struct halide_device_interface_t const *)halide_upmem_device_interface())
+  assert(halide_copy_to_device_result$2 == 0, halide_copy_to_device_result$2)
+  pim_bank<UPMEM> (gemv.s0.i.block, 0, (gemv.extent.0 + 2047)/2048) {
    let gemv.s0.i.thread.base.s = min(gemv.s0.i.block*2048, gemv.extent.0 + -2048)
-   for (gemv.s0.i.thread, 0, 2048) {
-    allocate sum[int32 * 1]
-    produce sum {
-     sum[0] = 0
-     for (sum.s1.r$x, 0, 2671) {
-      sum[0] = sum[0] + (A[(sum.s1.r$x*8337) + ((gemv.min.0 + gemv.s0.i.thread.base.s) + gemv.s0.i.thread)]*x[sum.s1.r$x])
+   pim_thread<UPMEM> (gemv.s0.i.thread.thread, 0, 16) {
+    for (gemv.s0.i.thread.inner_loop, 0, 128) {
+     allocate sum[int32 * 1]
+     produce sum {
+      sum[0] = 0
+      for (sum.s1.r$x, 0, 2671) {
+       sum[0] = sum[0] + (A[(sum.s1.r$x*8337) + (((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + (gemv.min.0 + gemv.s0.i.thread.base.s))]*x[sum.s1.r$x])
+      }
      }
+     consume sum {
+      gemv[((gemv.s0.i.thread.thread*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base.s] = sum[0]
+     }
+     free sum
     }
-    consume sum {
-     gemv[gemv.s0.i.thread + gemv.s0.i.thread.base.s] = sum[0]
-    }
-    free sum
    }
   }
+  _halide_buffer_set_device_dirty((struct halide_buffer_t *)gemv.buffer, (uint1)1)
  }
 }
 
@@ -2896,25 +3580,37 @@ if (!((uint1)_halide_buffer_is_bounds_query((struct halide_buffer_t *)x.buffer) 
  assert(x.extent.0 == 2671, halide_error_constraint_violated("x.extent.0", x.extent.0, "2671", 2671))
  assert(uint64(gemv.extent.0) <= (uint64)2147483647, halide_error_buffer_allocation_too_large("gemv", uint64(gemv.extent.0), (uint64)2147483647))
  produce gemv {
+  let halide_copy_to_device_result = halide_copy_to_device((struct halide_buffer_t *)A.buffer, (struct halide_device_interface_t const *)halide_upmem_device_interface())
+  assert(halide_copy_to_device_result == 0, halide_copy_to_device_result)
+  let halide_copy_to_device_result$1 = halide_copy_to_device((struct halide_buffer_t *)gemv.buffer, (struct halide_device_interface_t const *)halide_upmem_device_interface())
+  assert(halide_copy_to_device_result$1 == 0, halide_copy_to_device_result$1)
+  let halide_copy_to_device_result$2 = halide_copy_to_device((struct halide_buffer_t *)x.buffer, (struct halide_device_interface_t const *)halide_upmem_device_interface())
+  assert(halide_copy_to_device_result$2 == 0, halide_copy_to_device_result$2)
   let t19 = (gemv.extent.0 + 2047)/2048
-  dpu<UPMEM> (gemv.s0.i.block, 0, t19) {
+  pim_bank<UPMEM> (gemv.s0.i.block, 0, t19) {
    let gemv.s0.i.thread.base.s = min(gemv.s0.i.block*2048, gemv.extent.0 + -2048)
    let t20 = gemv.min.0 + gemv.s0.i.thread.base.s
-   for (gemv.s0.i.thread, 0, 2048) {
-    allocate sum[int32 * 1]
-    produce sum {
-     sum[0] = 0
-     let t21 = gemv.s0.i.thread + t20
-     for (sum.s1.r$x, 0, 2671) {
-      sum[0] = sum[0] + (A[(sum.s1.r$x*8337) + t21]*x[sum.s1.r$x])
+   pim_thread<UPMEM> (gemv.s0.i.thread.thread, 0, 16) {
+    let t23 = gemv.s0.i.thread.thread*128
+    let t21 = t20 + t23
+    let t22 = gemv.s0.i.thread.base.s + t23
+    for (gemv.s0.i.thread.inner_loop, 0, 128) {
+     allocate sum[int32 * 1]
+     produce sum {
+      sum[0] = 0
+      let t24 = gemv.s0.i.thread.inner_loop + t21
+      for (sum.s1.r$x, 0, 2671) {
+       sum[0] = sum[0] + (A[(sum.s1.r$x*8337) + t24]*x[sum.s1.r$x])
+      }
      }
+     consume sum {
+      gemv[gemv.s0.i.thread.inner_loop + t22] = sum[0]
+     }
+     free sum
     }
-    consume sum {
-     gemv[gemv.s0.i.thread + gemv.s0.i.thread.base.s] = sum[0]
-    }
-    free sum
    }
   }
+  _halide_buffer_set_device_dirty((struct halide_buffer_t *)gemv.buffer, (uint1)1)
  }
 }
 
@@ -2965,7 +3661,7 @@ if (!((uint1)_halide_buffer_is_bounds_query((struct halide_buffer_t *)x.buffer) 
  assert(0 <= A.extent.0, halide_error_buffer_extents_negative("Input buffer A", 0, A.extent.0))
  assert((A.min.1 <= 0) && (2671 <= (A.extent.1 + A.min.1)), halide_error_access_out_of_bounds("Input buffer A", 1, 0, 2670, A.min.1, (A.extent.1 + A.min.1) + -1))
  assert(0 <= A.extent.1, halide_error_buffer_extents_negative("Input buffer A", 1, A.extent.1))
- assert(2048 <= gemv.extent.0, let t22 = (gemv.extent.0 + gemv.min.0) in halide_error_access_out_of_bounds("Output buffer gemv", 0, (min(gemv.extent.0, 2048) + gemv.min.0) + -2048, t22 + -1, gemv.min.0, t22 + -1))
+ assert(2048 <= gemv.extent.0, let t25 = (gemv.extent.0 + gemv.min.0) in halide_error_access_out_of_bounds("Output buffer gemv", 0, (min(gemv.extent.0, 2048) + gemv.min.0) + -2048, t25 + -1, gemv.min.0, t25 + -1))
  assert((x.min.0 <= 0) && (2671 <= (x.extent.0 + x.min.0)), halide_error_access_out_of_bounds("Input buffer x", 0, 0, 2670, x.min.0, (x.extent.0 + x.min.0) + -1))
  assert(0 <= x.extent.0, halide_error_buffer_extents_negative("Input buffer x", 0, x.extent.0))
  assert(A.stride.0 == 1, halide_error_constraint_violated("A.stride.0", A.stride.0, "1", 1))
@@ -2980,25 +3676,37 @@ if (!((uint1)_halide_buffer_is_bounds_query((struct halide_buffer_t *)x.buffer) 
  assert(x.extent.0 == 2671, halide_error_constraint_violated("x.extent.0", x.extent.0, "2671", 2671))
  assert(uint64(gemv.extent.0) <= (uint64)2147483647, halide_error_buffer_allocation_too_large("gemv", uint64(gemv.extent.0), (uint64)2147483647))
  produce gemv {
+  let halide_copy_to_device_result = halide_copy_to_device((struct halide_buffer_t *)A.buffer, (struct halide_device_interface_t const *)halide_upmem_device_interface())
+  assert(halide_copy_to_device_result == 0, halide_copy_to_device_result)
+  let halide_copy_to_device_result$1 = halide_copy_to_device((struct halide_buffer_t *)gemv.buffer, (struct halide_device_interface_t const *)halide_upmem_device_interface())
+  assert(halide_copy_to_device_result$1 == 0, halide_copy_to_device_result$1)
+  let halide_copy_to_device_result$2 = halide_copy_to_device((struct halide_buffer_t *)x.buffer, (struct halide_device_interface_t const *)halide_upmem_device_interface())
+  assert(halide_copy_to_device_result$2 == 0, halide_copy_to_device_result$2)
   let t19 = (gemv.extent.0 + 2047)/2048
-  dpu<UPMEM> (gemv.s0.i.block, 0, t19) {
+  pim_bank<UPMEM> (gemv.s0.i.block, 0, t19) {
    let gemv.s0.i.thread.base.s = min(gemv.s0.i.block*2048, gemv.extent.0 + -2048)
    let t20 = gemv.min.0 + gemv.s0.i.thread.base.s
-   for (gemv.s0.i.thread, 0, 2048) {
-    allocate sum[int32 * 1]
-    produce sum {
-     sum[0] = 0
-     let t21 = gemv.s0.i.thread + t20
-     for (sum.s1.r$x, 0, 2671) {
-      sum[0] = sum[0] + (A[(sum.s1.r$x*8337) + t21]*x[sum.s1.r$x])
+   pim_thread<UPMEM> (gemv.s0.i.thread.thread, 0, 16) {
+    let t23 = gemv.s0.i.thread.thread*128
+    let t21 = t20 + t23
+    let t22 = gemv.s0.i.thread.base.s + t23
+    for (gemv.s0.i.thread.inner_loop, 0, 128) {
+     allocate sum[int32 * 1]
+     produce sum {
+      sum[0] = 0
+      let t24 = gemv.s0.i.thread.inner_loop + t21
+      for (sum.s1.r$x, 0, 2671) {
+       sum[0] = sum[0] + (A[(sum.s1.r$x*8337) + t24]*x[sum.s1.r$x])
+      }
      }
+     consume sum {
+      gemv[gemv.s0.i.thread.inner_loop + t22] = sum[0]
+     }
+     free sum
     }
-    consume sum {
-     gemv[gemv.s0.i.thread + gemv.s0.i.thread.base.s] = sum[0]
-    }
-    free sum
    }
   }
+  _halide_buffer_set_device_dirty((struct halide_buffer_t *)gemv.buffer, (uint1)1)
  }
 }
 
@@ -3049,7 +3757,7 @@ if (!((uint1)_halide_buffer_is_bounds_query((struct halide_buffer_t *)x.buffer) 
  assert(0 <= A.extent.0, halide_error_buffer_extents_negative("Input buffer A", 0, A.extent.0))
  assert((A.min.1 <= 0) && (2671 <= (A.extent.1 + A.min.1)), halide_error_access_out_of_bounds("Input buffer A", 1, 0, 2670, A.min.1, (A.extent.1 + A.min.1) + -1))
  assert(0 <= A.extent.1, halide_error_buffer_extents_negative("Input buffer A", 1, A.extent.1))
- assert(2048 <= gemv.extent.0, let t22 = (gemv.extent.0 + gemv.min.0) in halide_error_access_out_of_bounds("Output buffer gemv", 0, (min(gemv.extent.0, 2048) + gemv.min.0) + -2048, t22 + -1, gemv.min.0, t22 + -1))
+ assert(2048 <= gemv.extent.0, let t25 = (gemv.extent.0 + gemv.min.0) in halide_error_access_out_of_bounds("Output buffer gemv", 0, (min(gemv.extent.0, 2048) + gemv.min.0) + -2048, t25 + -1, gemv.min.0, t25 + -1))
  assert((x.min.0 <= 0) && (2671 <= (x.extent.0 + x.min.0)), halide_error_access_out_of_bounds("Input buffer x", 0, 0, 2670, x.min.0, (x.extent.0 + x.min.0) + -1))
  assert(0 <= x.extent.0, halide_error_buffer_extents_negative("Input buffer x", 0, x.extent.0))
  assert(A.stride.0 == 1, halide_error_constraint_violated("A.stride.0", A.stride.0, "1", 1))
@@ -3064,25 +3772,37 @@ if (!((uint1)_halide_buffer_is_bounds_query((struct halide_buffer_t *)x.buffer) 
  assert(x.extent.0 == 2671, halide_error_constraint_violated("x.extent.0", x.extent.0, "2671", 2671))
  assert(uint64(gemv.extent.0) <= (uint64)2147483647, halide_error_buffer_allocation_too_large("gemv", uint64(gemv.extent.0), (uint64)2147483647))
  produce gemv {
+  let halide_copy_to_device_result = halide_copy_to_device((struct halide_buffer_t *)A.buffer, (struct halide_device_interface_t const *)halide_upmem_device_interface())
+  assert(halide_copy_to_device_result == 0, halide_copy_to_device_result)
+  let halide_copy_to_device_result$1 = halide_copy_to_device((struct halide_buffer_t *)gemv.buffer, (struct halide_device_interface_t const *)halide_upmem_device_interface())
+  assert(halide_copy_to_device_result$1 == 0, halide_copy_to_device_result$1)
+  let halide_copy_to_device_result$2 = halide_copy_to_device((struct halide_buffer_t *)x.buffer, (struct halide_device_interface_t const *)halide_upmem_device_interface())
+  assert(halide_copy_to_device_result$2 == 0, halide_copy_to_device_result$2)
   let t19 = (gemv.extent.0 + 2047)/2048
-  dpu<UPMEM> (gemv.s0.i.block, 0, t19) {
+  pim_bank<UPMEM> (gemv.s0.i.block, 0, t19) {
    let gemv.s0.i.thread.base.s = min(gemv.s0.i.block*2048, gemv.extent.0 + -2048)
    let t20 = gemv.min.0 + gemv.s0.i.thread.base.s
-   for (gemv.s0.i.thread, 0, 2048) {
-    allocate sum[int32 * 1]
-    produce sum {
-     sum[0] = 0
-     let t21 = gemv.s0.i.thread + t20
-     for (sum.s1.r$x, 0, 2671) {
-      sum[0] = sum[0] + (A[(sum.s1.r$x*8337) + t21]*x[sum.s1.r$x])
+   pim_thread<UPMEM> (gemv.s0.i.thread.thread, 0, 16) {
+    let t23 = gemv.s0.i.thread.thread*128
+    let t21 = t20 + t23
+    let t22 = gemv.s0.i.thread.base.s + t23
+    for (gemv.s0.i.thread.inner_loop, 0, 128) {
+     allocate sum[int32 * 1]
+     produce sum {
+      sum[0] = 0
+      let t24 = gemv.s0.i.thread.inner_loop + t21
+      for (sum.s1.r$x, 0, 2671) {
+       sum[0] = sum[0] + (A[(sum.s1.r$x*8337) + t24]*x[sum.s1.r$x])
+      }
      }
+     consume sum {
+      gemv[gemv.s0.i.thread.inner_loop + t22] = sum[0]
+     }
+     free sum
     }
-    consume sum {
-     gemv[gemv.s0.i.thread + gemv.s0.i.thread.base.s] = sum[0]
-    }
-    free sum
    }
   }
+  _halide_buffer_set_device_dirty((struct halide_buffer_t *)gemv.buffer, (uint1)1)
  }
 }
 
@@ -3132,7 +3852,7 @@ if (!((uint1)_halide_buffer_is_bounds_query((struct halide_buffer_t *)x.buffer) 
  assert(0 <= A.extent.0, halide_error_buffer_extents_negative("Input buffer A", 0, A.extent.0))
  assert((A.min.1 <= 0) && (2671 <= (A.extent.1 + A.min.1)), halide_error_access_out_of_bounds("Input buffer A", 1, 0, 2670, A.min.1, (A.extent.1 + A.min.1) + -1))
  assert(0 <= A.extent.1, halide_error_buffer_extents_negative("Input buffer A", 1, A.extent.1))
- assert(2048 <= gemv.extent.0, let t22 = (gemv.extent.0 + gemv.min.0) in halide_error_access_out_of_bounds("Output buffer gemv", 0, (min(gemv.extent.0, 2048) + gemv.min.0) + -2048, t22 + -1, gemv.min.0, t22 + -1))
+ assert(2048 <= gemv.extent.0, let t25 = (gemv.extent.0 + gemv.min.0) in halide_error_access_out_of_bounds("Output buffer gemv", 0, (min(gemv.extent.0, 2048) + gemv.min.0) + -2048, t25 + -1, gemv.min.0, t25 + -1))
  assert((x.min.0 <= 0) && (2671 <= (x.extent.0 + x.min.0)), halide_error_access_out_of_bounds("Input buffer x", 0, 0, 2670, x.min.0, (x.extent.0 + x.min.0) + -1))
  assert(0 <= x.extent.0, halide_error_buffer_extents_negative("Input buffer x", 0, x.extent.0))
  assert(A.stride.0 == 1, halide_error_constraint_violated("A.stride.0", A.stride.0, "1", 1))
@@ -3147,25 +3867,37 @@ if (!((uint1)_halide_buffer_is_bounds_query((struct halide_buffer_t *)x.buffer) 
  assert(x.extent.0 == 2671, halide_error_constraint_violated("x.extent.0", x.extent.0, "2671", 2671))
  assert(uint64(gemv.extent.0) <= (uint64)2147483647, halide_error_buffer_allocation_too_large("gemv", uint64(gemv.extent.0), (uint64)2147483647))
  produce gemv {
+  let halide_copy_to_device_result = halide_copy_to_device((struct halide_buffer_t *)A.buffer, (struct halide_device_interface_t const *)halide_upmem_device_interface())
+  assert(halide_copy_to_device_result == 0, halide_copy_to_device_result)
+  let halide_copy_to_device_result$1 = halide_copy_to_device((struct halide_buffer_t *)gemv.buffer, (struct halide_device_interface_t const *)halide_upmem_device_interface())
+  assert(halide_copy_to_device_result$1 == 0, halide_copy_to_device_result$1)
+  let halide_copy_to_device_result$2 = halide_copy_to_device((struct halide_buffer_t *)x.buffer, (struct halide_device_interface_t const *)halide_upmem_device_interface())
+  assert(halide_copy_to_device_result$2 == 0, halide_copy_to_device_result$2)
   let t19 = (gemv.extent.0 + 2047)/2048
-  dpu<UPMEM> (gemv.s0.i.block, 0, t19) {
+  pim_bank<UPMEM> (gemv.s0.i.block, 0, t19) {
    let gemv.s0.i.thread.base.s = min(gemv.s0.i.block*2048, gemv.extent.0 + -2048)
    let t20 = gemv.min.0 + gemv.s0.i.thread.base.s
-   for (gemv.s0.i.thread, 0, 2048) {
-    allocate sum[int32 * 1]
-    produce sum {
-     sum[0] = 0
-     let t21 = gemv.s0.i.thread + t20
-     for (sum.s1.r$x, 0, 2671) {
-      sum[0] = sum[0] + (A[(sum.s1.r$x*8337) + t21]*x[sum.s1.r$x])
+   pim_thread<UPMEM> (gemv.s0.i.thread.thread, 0, 16) {
+    let t23 = gemv.s0.i.thread.thread*128
+    let t21 = t20 + t23
+    let t22 = gemv.s0.i.thread.base.s + t23
+    for (gemv.s0.i.thread.inner_loop, 0, 128) {
+     allocate sum[int32 * 1]
+     produce sum {
+      sum[0] = 0
+      let t24 = gemv.s0.i.thread.inner_loop + t21
+      for (sum.s1.r$x, 0, 2671) {
+       sum[0] = sum[0] + (A[(sum.s1.r$x*8337) + t24]*x[sum.s1.r$x])
+      }
      }
+     consume sum {
+      gemv[gemv.s0.i.thread.inner_loop + t22] = sum[0]
+     }
+     free sum
     }
-    consume sum {
-     gemv[gemv.s0.i.thread + gemv.s0.i.thread.base.s] = sum[0]
-    }
-    free sum
    }
   }
+  _halide_buffer_set_device_dirty((struct halide_buffer_t *)gemv.buffer, (uint1)1)
  }
 }
 
@@ -3219,7 +3951,7 @@ if (!((uint1)_halide_buffer_is_bounds_query((struct halide_buffer_t *)x.buffer) 
  assert(0 <= A.extent.0, halide_error_buffer_extents_negative("Input buffer A", 0, A.extent.0))
  assert((A.min.1 <= 0) && (2671 <= (A.extent.1 + A.min.1)), halide_error_access_out_of_bounds("Input buffer A", 1, 0, 2670, A.min.1, (A.extent.1 + A.min.1) + -1))
  assert(0 <= A.extent.1, halide_error_buffer_extents_negative("Input buffer A", 1, A.extent.1))
- assert(2048 <= gemv.extent.0, let t22 = (gemv.extent.0 + gemv.min.0) in halide_error_access_out_of_bounds("Output buffer gemv", 0, (min(gemv.extent.0, 2048) + gemv.min.0) + -2048, t22 + -1, gemv.min.0, t22 + -1))
+ assert(2048 <= gemv.extent.0, let t25 = (gemv.extent.0 + gemv.min.0) in halide_error_access_out_of_bounds("Output buffer gemv", 0, (min(gemv.extent.0, 2048) + gemv.min.0) + -2048, t25 + -1, gemv.min.0, t25 + -1))
  assert((x.min.0 <= 0) && (2671 <= (x.extent.0 + x.min.0)), halide_error_access_out_of_bounds("Input buffer x", 0, 0, 2670, x.min.0, (x.extent.0 + x.min.0) + -1))
  assert(0 <= x.extent.0, halide_error_buffer_extents_negative("Input buffer x", 0, x.extent.0))
  assert(A.stride.0 == 1, halide_error_constraint_violated("A.stride.0", A.stride.0, "1", 1))
@@ -3234,25 +3966,37 @@ if (!((uint1)_halide_buffer_is_bounds_query((struct halide_buffer_t *)x.buffer) 
  assert(x.extent.0 == 2671, halide_error_constraint_violated("x.extent.0", x.extent.0, "2671", 2671))
  assert(uint64(gemv.extent.0) <= (uint64)2147483647, halide_error_buffer_allocation_too_large("gemv", uint64(gemv.extent.0), (uint64)2147483647))
  produce gemv {
+  let halide_copy_to_device_result = halide_copy_to_device((struct halide_buffer_t *)A.buffer, (struct halide_device_interface_t const *)halide_upmem_device_interface())
+  assert(halide_copy_to_device_result == 0, halide_copy_to_device_result)
+  let halide_copy_to_device_result$1 = halide_copy_to_device((struct halide_buffer_t *)gemv.buffer, (struct halide_device_interface_t const *)halide_upmem_device_interface())
+  assert(halide_copy_to_device_result$1 == 0, halide_copy_to_device_result$1)
+  let halide_copy_to_device_result$2 = halide_copy_to_device((struct halide_buffer_t *)x.buffer, (struct halide_device_interface_t const *)halide_upmem_device_interface())
+  assert(halide_copy_to_device_result$2 == 0, halide_copy_to_device_result$2)
   let t19 = (gemv.extent.0 + 2047)/2048
-  dpu<UPMEM> (gemv.s0.i.block, 0, t19) {
+  pim_bank<UPMEM> (gemv.s0.i.block, 0, t19) {
    let gemv.s0.i.thread.base.s = min(gemv.s0.i.block*2048, gemv.extent.0 + -2048)
    let t20 = gemv.min.0 + gemv.s0.i.thread.base.s
-   for (gemv.s0.i.thread, 0, 2048) {
-    allocate sum[int32 * 1]
-    produce sum {
-     sum[0] = 0
-     let t21 = gemv.s0.i.thread + t20
-     for (sum.s1.r$x, 0, 2671) {
-      sum[0] = sum[0] + (A[(sum.s1.r$x*8337) + t21]*x[sum.s1.r$x])
+   pim_thread<UPMEM> (gemv.s0.i.thread.thread, 0, 16) {
+    let t23 = gemv.s0.i.thread.thread*128
+    let t21 = t20 + t23
+    let t22 = gemv.s0.i.thread.base.s + t23
+    for (gemv.s0.i.thread.inner_loop, 0, 128) {
+     allocate sum[int32 * 1]
+     produce sum {
+      sum[0] = 0
+      let t24 = gemv.s0.i.thread.inner_loop + t21
+      for (sum.s1.r$x, 0, 2671) {
+       sum[0] = sum[0] + (A[(sum.s1.r$x*8337) + t24]*x[sum.s1.r$x])
+      }
      }
+     consume sum {
+      gemv[gemv.s0.i.thread.inner_loop + t22] = sum[0]
+     }
+     free sum
     }
-    consume sum {
-     gemv[gemv.s0.i.thread + gemv.s0.i.thread.base.s] = sum[0]
-    }
-    free sum
    }
   }
+  _halide_buffer_set_device_dirty((struct halide_buffer_t *)gemv.buffer, (uint1)1)
  }
 }
 
@@ -3263,3 +4007,4 @@ Generating llvm bitcode...
 Generating llvm bitcode prolog for function gemv...
 Generating llvm bitcode for function gemv...
 Internal Error at /root/dev/halide-pim/src/CodeGen_LLVM.cpp:3714 triggered by user code at : Unknown type of For node. Only Serial and Parallel For nodes should survive down to codegen.
+Aborted (core dumped)

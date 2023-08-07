@@ -210,6 +210,7 @@ void lower_impl(const vector<Function> &output_funcs,
 
     bool will_inject_host_copies =
         (t.has_gpu_feature() ||
+         t.has_feature(Target::UPMEM) ||
          t.has_feature(Target::OpenGLCompute) ||
          t.has_feature(Target::HexagonDma) ||
          (t.arch != Target::Hexagon && (t.has_feature(Target::HVX))));

@@ -26,6 +26,7 @@ enum class DeviceAPI {
     Vulkan,
     WebGPU,
     UPMEM,
+    Default_PIM
 };
 
 /** An array containing all the device apis. Useful for iterating
@@ -42,7 +43,8 @@ const DeviceAPI all_device_apis[] = {DeviceAPI::None,
                                      DeviceAPI::D3D12Compute,
                                      DeviceAPI::Vulkan,
                                      DeviceAPI::WebGPU,
-                                     DeviceAPI::UPMEM
+                                     DeviceAPI::UPMEM,
+                                     DeviceAPI::Default_PIM
                                      };
 
 }  // namespace Halide

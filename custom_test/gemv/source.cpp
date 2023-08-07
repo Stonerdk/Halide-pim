@@ -30,8 +30,10 @@ int main() {
     gemv(i) = sum(intermediate(i, r));
 
     gemv.split(i, block, thread, 2048);
+    gemv.split(thread, thread, inner_loop, 128);
 
     gemv.pim_bank(block);
+    gemv.pim_thread(thread);
 
     Target target = get_host_target().with_feature(Target::UPMEM);
     gemv.compile_jit(target);
