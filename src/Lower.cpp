@@ -255,7 +255,8 @@ void lower_impl(const vector<Function> &output_funcs,
     // storage flattening.
     if (t.has_gpu_feature() ||
         t.has_feature(Target::Vulkan) ||
-        t.has_feature(Target::OpenGLCompute)) {
+        t.has_feature(Target::OpenGLCompute) ||
+        t.has_feature(Target::UPMEM)) {
         debug(1) << "Canonicalizing GPU var names...\n";
         s = canonicalize_gpu_vars(s);
         log("Lowering after canonicalizing GPU var names:", s);
