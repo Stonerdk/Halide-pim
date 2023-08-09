@@ -11,6 +11,7 @@
 #include "HalideRuntimeQurt.h"
 #include "HalideRuntimeVulkan.h"
 #include "HalideRuntimeWebGPU.h"
+#include "HalideRuntimeUPMEM.h"
 #include "cpu_features.h"
 
 // This runtime module will contain extern declarations of the Halide
@@ -223,5 +224,13 @@ extern "C" __attribute__((used)) void *halide_runtime_api_functions[] = {
     (void *)&halide_webgpu_initialize_kernels,
     (void *)&halide_webgpu_finalize_kernels,
     (void *)&halide_webgpu_run,
+    (void *)&halide_upmem_device_interface,
+    (void *)&halide_upmem_dpu_copy_to,
+    (void *)&halide_upmem_dpu_copy_from,
+    (void *)&halide_upmem_dpu_xfer_to,
+    (void *)&halide_upmem_dpu_xfer_from,
+    (void *)&halide_upmem_initialize_kernels,
+    (void *)&halide_upmem_run,
+    (void *)&halide_upmem_finalize_kernels,
     (void *)&halide_unused_force_include_types,
 };
