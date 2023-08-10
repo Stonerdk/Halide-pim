@@ -35,10 +35,12 @@ set(HEADER_FILES
     CodeGen_Metal_Dev.h
     CodeGen_OpenCL_Dev.h
     CodeGen_OpenGLCompute_Dev.h
+    CodeGen_PIM_Dev.h
     CodeGen_Posix.h
     CodeGen_PTX_Dev.h
     CodeGen_PyTorch.h
     CodeGen_Targets.h
+    CodeGen_UPMEM_DPU.h
     CodeGen_Vulkan_Dev.h
     CodeGen_WebGPU_Dev.h
     CompilerLogger.h
@@ -112,6 +114,7 @@ set(HEADER_FILES
     Monotonic.h
     ObjectInstanceRegistry.h
     OffloadGPULoops.h
+    OffloadPIMLoops.cpp
     OptimizeShuffles.h
     OutputImageParam.h
     ParallelRVar.h
@@ -202,11 +205,13 @@ set(SOURCE_FILES
     CodeGen_Metal_Dev.cpp
     CodeGen_OpenCL_Dev.cpp
     CodeGen_OpenGLCompute_Dev.cpp
+    CodeGen_PIM_Dev.cpp
     CodeGen_Posix.cpp
     CodeGen_PowerPC.cpp
     CodeGen_PTX_Dev.cpp
     CodeGen_PyTorch.cpp
     CodeGen_RISCV.cpp
+    CodeGen_UPMEM_DPU.cpp
     CodeGen_Vulkan_Dev.cpp
     CodeGen_WebAssembly.cpp
     CodeGen_WebGPU_Dev.cpp
@@ -274,6 +279,7 @@ set(SOURCE_FILES
     Monotonic.cpp
     ObjectInstanceRegistry.cpp
     OffloadGPULoops.cpp
+    OffloadPIMLoops.cpp
     OptimizeShuffles.cpp
     OutputImageParam.cpp
     ParallelRVar.cpp

@@ -4,6 +4,17 @@
 #include "device_interface.h"
 #include "runtime_internal.h"
 
+namespace Halide {
+namespace Runtime {
+namespace Internal {
+namespace UPMEM {
+
+}
+}
+}
+}
+
+
 using namespace Halide::Runtime::Internal::UPMEM;
 
 

@@ -474,11 +474,13 @@ SOURCE_FILES = \
   CodeGen_C.cpp \
   CodeGen_D3D12Compute_Dev.cpp \
   CodeGen_GPU_Dev.cpp \
+  CodeGen_PIM_Dev.cpp \
   CodeGen_Hexagon.cpp \
   CodeGen_Internal.cpp \
   CodeGen_LLVM.cpp \
   CodeGen_Metal_Dev.cpp \
   CodeGen_OpenCL_Dev.cpp \
+  CodeGen_UPMEM_DPU.cpp \
   CodeGen_Vulkan_Dev.cpp \
   CodeGen_OpenGLCompute_Dev.cpp \
   CodeGen_Posix.cpp \
@@ -552,6 +554,7 @@ SOURCE_FILES = \
   Monotonic.cpp \
   ObjectInstanceRegistry.cpp \
   OffloadGPULoops.cpp \
+  OffloadPIMLoops.cpp \
   OptimizeShuffles.cpp \
   OutputImageParam.cpp \
   ParallelRVar.cpp \
@@ -669,6 +672,7 @@ HEADER_FILES = \
   CodeGen_LLVM.h \
   CodeGen_Metal_Dev.h \
   CodeGen_OpenCL_Dev.h \
+  CodeGen_UPMEM_DPU.h \
   CodeGen_Vulkan_Dev.h \
   CodeGen_OpenGLCompute_Dev.h \
   CodeGen_Posix.h \
@@ -748,6 +752,7 @@ HEADER_FILES = \
   Monotonic.h \
   ObjectInstanceRegistry.h \
   OffloadGPULoops.h \
+  OffloadPIMLoops.h \
   OptimizeShuffles.h \
   OutputImageParam.h \
   ParallelRVar.h \
@@ -851,6 +856,7 @@ RUNTIME_CPP_COMPONENTS = \
   msan \
   msan_stubs \
   opencl \
+  upmem \
   opengl_egl_context \
   opengl_glx_context \
   openglcompute \
@@ -931,6 +937,7 @@ RUNTIME_EXPORTED_INCLUDES = $(INCLUDE_DIR)/HalideRuntime.h \
                             $(INCLUDE_DIR)/HalideRuntimeOpenGLCompute.h \
                             $(INCLUDE_DIR)/HalideRuntimeMetal.h	\
                             $(INCLUDE_DIR)/HalideRuntimeQurt.h \
+							$(INCLUDE_DIR)/HalideRuntimeUPMEM.h \
                             $(INCLUDE_DIR)/HalideRuntimeVulkan.h \
                             $(INCLUDE_DIR)/HalideRuntimeWebGPU.h \
                             $(INCLUDE_DIR)/HalideBuffer.h \
