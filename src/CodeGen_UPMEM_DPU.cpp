@@ -13,16 +13,43 @@ using std::sort;
 using std::string;
 using std::vector;
 
-namespace {
 
+CodeGen_UPMEM_DPU_Dev::CodeGen_UPMEM_DPU_Dev(const Target &target): cgen(src_stream, target) {}
+
+void CodeGen_UPMEM_DPU_Dev::add_kernel(Stmt stmt, const std::string &name, const std::vector<DeviceArgument> &args) {
+    debug(2) << "CodeGen_UPMEM_DPU_Dev::compile" << name << "\n";
+
+    cgen.add_kernel(stmt, name, args);
+}
+
+void CodeGen_UPMEM_DPU_Dev::init_module() {
+    // TODO : add some 'initial code' in kernel code
+}
+
+void CodeGen_UPMEM_DPU_Dev::compile_to_src() {
+    // TODO: compile the src_stream into binary
+    string str = src_stream.str();
+    debug(1) << "UPMEM kernel:\n"
+             << str << "\n";
+}
+
+
+bool CodeGen_UPMEM_DPU_Dev::kernel_run_takes_types() const {
+    return true;
+}
+
+std::string CodeGen_UPMEM_DPU_Dev::api_unique_name() {
+    return "upmem";
+}
 
 void CodeGen_UPMEM_DPU_C::add_kernel(Stmt stmt,
                 const std::string &name,
                 const std::vector<DeviceArgument> &args) {
-    return "";
+    stream << "GENERATED CODE\nGENERATED \n";
+    return;
 }
 
-std::string CodeGen_UPMEM_DPU_C::print_type(Type type, AppendSpaceIfNeeded append_space = DoNotAppendSpace) {
+std::string CodeGen_UPMEM_DPU_C::print_type(Type type, AppendSpaceIfNeeded append_space) {
     return "";
 }
 
@@ -132,6 +159,10 @@ void CodeGen_UPMEM_DPU_C::visit(const Atomic *op) {
     CodeGen_C::visit(op);
 }
 
+void upmem_compile_to_binary(string path) {
+
 }
+
+
 }
 }

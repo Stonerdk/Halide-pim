@@ -1,5 +1,5 @@
-#ifndef HALIDE_OFFLOAD_GPU_LOOPS_H
-#define HALIDE_OFFLOAD_GPU_LOOPS_H
+#ifndef HALIDE_OFFLOAD_PIM_LOOPS_H
+#define HALIDE_OFFLOAD_PIM_LOOPS_H
 
 /** \file
  * Defines a lowering pass to pull loops marked with

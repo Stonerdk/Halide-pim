@@ -44,6 +44,7 @@
 #include "LowerWarpShuffles.h"
 #include "Memoization.h"
 #include "OffloadGPULoops.h"
+#include "OffloadPIMLoops.h"
 #include "PartitionLoops.h"
 #include "Prefetch.h"
 #include "Profiling.h"
@@ -450,6 +451,15 @@ void lower_impl(const vector<Function> &output_funcs,
                  << s << "\n\n";
     } else {
         debug(1) << "Skipping GPU offload...\n";
+    }
+
+    if (t.has_feature(Target::UPMEM)) {
+        debug(1) << "Offloading PIM loops...\n";
+        s = inject_pim_offload(s, t);
+        debug(2) << "Lowering after splitting off PIM loops:\n"
+                 << s << "\n\n";
+    } else {
+        debug(1) << "Skipping PIM offload...\n";
     }
 
     // TODO: This needs to happen before lowering parallel tasks, because global

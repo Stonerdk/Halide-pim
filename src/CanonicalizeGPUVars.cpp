@@ -176,7 +176,7 @@ class CanonicalizeGPUVars : public IRMutator {
             CountPIMBanksThreads counter;
             op->body.accept(&counter);
             internal_assert(counter.nbanks <= 4) << op->name << "can only have maximum of 4 bank dimensions\n";
-            internal_assert(counter.nthreads == 0) << op->name << "can only have maximum 1 thread dimensions\n";
+            internal_assert(counter.nthreads <= 1) << op->name << "can only have maximum 1 thread dimensions\n";
 
             if (op->for_type == ForType::PIMBank) {
                 name += "." + get_pim_bank_name(counter.nbanks);

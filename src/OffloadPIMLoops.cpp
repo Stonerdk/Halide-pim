@@ -2,20 +2,14 @@
 
 #include "Closure.h"
 #include "CodeGen_D3D12Compute_Dev.h"
-#include "CodeGen_GPU_Dev.h"
-#include "CodeGen_Metal_Dev.h"
-#include "CodeGen_OpenCL_Dev.h"
-#include "CodeGen_OpenGLCompute_Dev.h"
-#include "CodeGen_PTX_Dev.h"
-#include "CodeGen_Vulkan_Dev.h"
-#include "CodeGen_WebGPU_Dev.h"
+#include "CodeGen_PIM_Dev.h"
+#include "CodeGen_UPMEM_DPU.h"
 #include "ExprUsesVar.h"
 #include "IRMutator.h"
 #include "IROperator.h"
 #include "IRPrinter.h"
 #include "InjectHostDevBufferCopies.h"
 #include "OffloadPIMLoops.h"
-#include "CodeGen_UPMEM_DPU.h"
 #include "Util.h"
 
 namespace Halide {
@@ -25,6 +19,8 @@ using std::map;
 using std::string;
 using std::unique_ptr;
 using std::vector;
+using std::pair;
+using std::ostringstream;
 
 namespace {
 
@@ -33,14 +29,12 @@ namespace {
 // amount of shared memory to allocate.
 class ExtractBounds : public IRVisitor {
 public:
-    Expr num_threads[4];
-    Expr num_blocks[4];
-    Expr shared_mem_size;
+    Expr num_threads[1];
+    Expr num_banks[4];
 
-    ExtractBounds()
-        : shared_mem_size(0) {
+    ExtractBounds() {
         for (int i = 0; i < 4; i++) {
-            num_threads[i] = num_blocks[i] = 1;
+            num_threads[i] = num_banks[i] = 1;
         }
     }
 
@@ -50,54 +44,29 @@ private:
     using IRVisitor::visit;
 
     void visit(const For *op) override {
-        if (CodeGen_GPU_Dev::is_gpu_var(op->name)) {
+        if (CodeGen_PIM_Dev::is_pim_var(op->name)) {
             internal_assert(is_const_zero(op->min));
         }
 
-        if (ends_with(op->name, ".__thread_id_x")) {
+        if (ends_with(op->name, ".__tasklet_id_x")) {
             num_threads[0] = op->extent;
-        } else if (ends_with(op->name, ".__thread_id_y")) {
-            num_threads[1] = op->extent;
-        } else if (ends_with(op->name, ".__thread_id_z")) {
-            num_threads[2] = op->extent;
-        } else if (ends_with(op->name, ".__thread_id_w")) {
-            num_threads[3] = op->extent;
-        } else if (ends_with(op->name, ".__block_id_x")) {
-            num_blocks[0] = op->extent;
-        } else if (ends_with(op->name, ".__block_id_y")) {
-            num_blocks[1] = op->extent;
-        } else if (ends_with(op->name, ".__block_id_z")) {
-            num_blocks[2] = op->extent;
-        } else if (ends_with(op->name, ".__block_id_w")) {
-            num_blocks[3] = op->extent;
+        } else if (ends_with(op->name, ".__bank_id_x")) {
+            num_banks[0] = op->extent;
+        } else if (ends_with(op->name, ".__bank_id_y")) {
+            num_banks[1] = op->extent;
+        } else if (ends_with(op->name, ".__bank_id_z")) {
+            num_banks[2] = op->extent;
+        } else if (ends_with(op->name, ".__bank_id_w")) {
+            num_banks[3] = op->extent;
         }
 
         op->body.accept(this);
-    }
-
-    void visit(const LetStmt *op) override {
-        if (expr_uses_var(shared_mem_size, op->name)) {
-            shared_mem_size = Let::make(op->name, op->value, shared_mem_size);
-        }
-        op->body.accept(this);
-    }
-
-    void visit(const Allocate *allocate) override {
-        user_assert(!allocate->new_expr.defined()) << "Allocate node inside GPU kernel has custom new expression.\n"
-                                                   << "(Memoization is not supported inside GPU kernels at present.)\n";
-
-        if (allocate->memory_type == MemoryType::GPUShared) {
-            internal_assert(allocate->extents.size() == 1);
-            shared_mem_size += allocate->extents[0] * allocate->type.bytes();
-            found_shared = true;
-        }
-        allocate->body.accept(this);
     }
 };
 
 class InjectGpuOffload : public IRMutator {
     /** Child code generator for device kernels. */
-    map<DeviceAPI, unique_ptr<CodeGen_GPU_Dev>> cgdev;
+    map<DeviceAPI, unique_ptr<CodeGen_PIM_Dev>> cgdev;
 
     map<string, bool> state_needed;
 
@@ -129,7 +98,7 @@ class InjectGpuOffload : public IRMutator {
     using IRMutator::visit;
 
     Stmt visit(const For *loop) override {
-        if (!CodeGen_GPU_Dev::is_gpu_var(loop->name)) {
+        if (!CodeGen_PIM_Dev::is_pim_var(loop->name)) {
             return IRMutator::visit(loop);
         }
 
@@ -142,56 +111,33 @@ class InjectGpuOffload : public IRMutator {
         ExtractBounds bounds;
         loop->accept(&bounds);
         debug(2) << "Kernel bounds: ("
-                 << bounds.num_threads[0] << ", "
-                 << bounds.num_threads[1] << ", "
-                 << bounds.num_threads[2] << ", "
-                 << bounds.num_threads[3] << ") threads, ("
-                 << bounds.num_blocks[0] << ", "
-                 << bounds.num_blocks[1] << ", "
-                 << bounds.num_blocks[2] << ", "
-                 << bounds.num_blocks[3] << ") blocks\n";
+                 << bounds.num_threads[0] << ") threads, ("
+                 << bounds.num_banks[0] << ", "
+                 << bounds.num_banks[1] << ", "
+                 << bounds.num_banks[2] << ", "
+                 << bounds.num_banks[3] << ") banks\n";
 
-        // compute a closure over the state passed into the kernel
         HostClosure c;
         c.include(loop->body, loop->name);
-
-        // Determine the arguments that must be passed into the halide function
         vector<DeviceArgument> closure_args = c.arguments();
 
-        // Sort the args by the size of the underlying type. This is
-        // helpful for avoiding struct-packing ambiguities in metal,
-        // which passes the scalar args as a struct.
         sort(closure_args.begin(), closure_args.end(),
              [](const DeviceArgument &a, const DeviceArgument &b) {
                  if (a.is_buffer == b.is_buffer) {
                      return a.type.bits() > b.type.bits();
-                 } else {
-                     // Ensure that buffer arguments come first:
-                     // for many OpenGL/Compute systems, the
-                     // legal indices for buffer args are much
-                     // more restrictive than for scalar args,
-                     // and scalar args can be 'grown' by
-                     // LICM. Putting buffers first makes it much
-                     // more likely we won't fail on some
-                     // hardware.
-                     return a.is_buffer > b.is_buffer;
-                 }
+                 } return a.is_buffer > b.is_buffer;
              });
 
         // compile the kernel
         string kernel_name = c_print_name(unique_name("kernel_" + loop->name));
 
-        CodeGen_GPU_Dev *gpu_codegen = cgdev[loop->device_api].get();
-        user_assert(gpu_codegen != nullptr)
+        CodeGen_PIM_Dev *pim_codegen = cgdev[loop->device_api].get();
+        user_assert(pim_codegen != nullptr)
             << "Loop is scheduled on device " << loop->device_api
             << " which does not appear in target " << target.to_string() << "\n";
-        gpu_codegen->add_kernel(loop, kernel_name, closure_args);
+        pim_codegen->add_kernel(loop, kernel_name, closure_args);
 
-        // get the actual name of the generated kernel for this loop
-        kernel_name = gpu_codegen->get_current_kernel_name();
-        debug(2) << "Compiled launch to kernel \"" << kernel_name << "\"\n";
-
-        bool runtime_run_takes_types = gpu_codegen->kernel_run_takes_types();
+        bool runtime_run_takes_types = pim_codegen->kernel_run_takes_types();
         Type target_size_t_type = target.bits == 32 ? Int(32) : Int(64);
 
         vector<Expr> args, arg_types_or_sizes, arg_is_buffer;
@@ -226,26 +172,21 @@ class InjectGpuOffload : public IRMutator {
 
         // TODO: only three dimensions can be passed to
         // cuLaunchKernel. How should we handle blkid[3]?
-        internal_assert(is_const_one(bounds.num_threads[3]) && is_const_one(bounds.num_blocks[3]))
-            << bounds.num_threads[3] << ", " << bounds.num_blocks[3] << "\n";
-        debug(3) << "bounds.num_blocks[0] = " << bounds.num_blocks[0] << "\n";
-        debug(3) << "bounds.num_blocks[1] = " << bounds.num_blocks[1] << "\n";
-        debug(3) << "bounds.num_blocks[2] = " << bounds.num_blocks[2] << "\n";
+        internal_assert(is_const_one(bounds.num_banks[3])) << bounds.num_banks[3] << "\n";
+        debug(3) << "bounds.num_blocks[0] = " << bounds.num_banks[0] << "\n";
+        debug(3) << "bounds.num_blocks[1] = " << bounds.num_banks[1] << "\n";
+        debug(3) << "bounds.num_blocks[2] = " << bounds.num_banks[2] << "\n";
         debug(3) << "bounds.num_threads[0] = " << bounds.num_threads[0] << "\n";
-        debug(3) << "bounds.num_threads[1] = " << bounds.num_threads[1] << "\n";
-        debug(3) << "bounds.num_threads[2] = " << bounds.num_threads[2] << "\n";
 
-        string api_unique_name = gpu_codegen->api_unique_name();
+        string api_unique_name = pim_codegen->api_unique_name();
         vector<Expr> run_args = {
             get_state_var(api_unique_name),
             kernel_name,
-            Expr(bounds.num_blocks[0]),
-            Expr(bounds.num_blocks[1]),
-            Expr(bounds.num_blocks[2]),
+            Expr(bounds.num_banks[0]),
+            Expr(bounds.num_banks[1]),
+            Expr(bounds.num_banks[2]),
             Expr(bounds.num_threads[0]),
-            Expr(bounds.num_threads[1]),
-            Expr(bounds.num_threads[2]),
-            Expr(bounds.shared_mem_size),
+            Expr(0),
             Call::make(Handle(), Call::make_struct, arg_types_or_sizes, Call::Intrinsic),
             Call::make(Handle(), Call::make_struct, args, Call::Intrinsic),
             Call::make(Handle(), Call::make_struct, arg_is_buffer, Call::Intrinsic),
@@ -256,52 +197,24 @@ class InjectGpuOffload : public IRMutator {
 public:
     InjectGpuOffload(const Target &target)
         : target(target) {
-        Target device_target = target;
-        // For the GPU target we just want to pass the flags, to avoid the
-        // generated kernel code unintentionally having any dependence on the
-        // host arch or os.
-        device_target.os = Target::OSUnknown;
-        device_target.arch = Target::ArchUnknown;
         if (target.has_feature(Target::UPMEM)) {
-            cgdev[DeviceAPI::UPMEM] = new_CodeGen_OpenCL_Dev(device_target);
+             cgdev[DeviceAPI::UPMEM] = std::make_unique<CodeGen_UPMEM_DPU_Dev>(target);
         }
         internal_assert(!cgdev.empty()) << "Requested unknown GPU target: " << target.to_string() << "\n";
     }
 
     Stmt inject(const Stmt &s) {
-        // Create a new module for all of the kernels we find in this function.
         for (auto &i : cgdev) {
             i.second->init_module();
         }
 
         Stmt result = mutate(s);
 
-        for (auto &i : cgdev) {
-            string api_unique_name = i.second->api_unique_name();
-
-            // If the module state for this API/function did not get created, there were
-            // no kernels using this API.
-            if (!state_needed[api_unique_name]) {
-                continue;
-            }
-            Expr state_ptr = make_state_var(api_unique_name);
-            Expr state_ptr_var = Variable::make(type_of<void *>(), api_unique_name);
-
-            debug(2) << "Generating init_kernels for " << api_unique_name << "\n";
-            vector<char> kernel_src = i.second->compile_to_src();
-            Expr kernel_src_buf = make_buffer_ptr(kernel_src, api_unique_name + "_gpu_source_kernels");
-
-            string init_kernels_name = "halide_" + api_unique_name + "_initialize_kernels";
-            vector<Expr> init_args = {state_ptr_var, kernel_src_buf, Expr((int)kernel_src.size())};
-            Stmt init_kernels = call_extern_and_assert(init_kernels_name, init_args);
-
-            string destructor_name = "halide_" + api_unique_name + "_finalize_kernels";
-            vector<Expr> finalize_args = {Expr(destructor_name), get_state_var(api_unique_name)};
-            Stmt register_destructor = Evaluate::make(
-                Call::make(Handle(), Call::register_destructor, finalize_args, Call::Intrinsic));
-
-            result = LetStmt::make(api_unique_name, state_ptr, Block::make({init_kernels, register_destructor, result}));
+        if (target.has_feature(Target::UPMEM)) {
+            cgdev[DeviceAPI::UPMEM].get()->compile_to_src();
+            // no need initialize_kernel & destructor. do this behavior right before/after loops
         }
+
         return result;
     }
 };

@@ -137,6 +137,7 @@ set(RUNTIME_HEADER_FILES
     HalideRuntimeOpenCL.h
     HalideRuntimeOpenGLCompute.h
     HalideRuntimeQurt.h
+    HalideRuntimeUPMEM.h
     HalideRuntimeVulkan.h
     HalideRuntimeWebGPU.h
     )
