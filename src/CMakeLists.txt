@@ -114,13 +114,14 @@ set(HEADER_FILES
     Monotonic.h
     ObjectInstanceRegistry.h
     OffloadGPULoops.h
-    OffloadPIMLoops.cpp
+    OffloadPIMLoops.h
     OptimizeShuffles.h
     OutputImageParam.h
     ParallelRVar.h
     Param.h
     Parameter.h
     PartitionLoops.h
+    PIMLayoutTransform.h
     Pipeline.h
     Prefetch.h
     Profiling.h
@@ -285,6 +286,7 @@ set(SOURCE_FILES
     ParallelRVar.cpp
     Parameter.cpp
     PartitionLoops.cpp
+    PIMLayoutTransform.cpp
     Pipeline.cpp
     Prefetch.cpp
     PrintLoopNest.cpp

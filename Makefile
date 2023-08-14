@@ -560,6 +560,7 @@ SOURCE_FILES = \
   ParallelRVar.cpp \
   Parameter.cpp \
   PartitionLoops.cpp \
+  PIMLayoutTransform.cpp \
   Pipeline.cpp \
   Prefetch.cpp \
   PrintLoopNest.cpp \
@@ -760,6 +761,7 @@ HEADER_FILES = \
   Parameter.h \
   PartitionLoops.h \
   Pipeline.h \
+  PIMLayoutTransform.h \
   Prefetch.h \
   Profiling.h \
   PurifyIndexMath.h \

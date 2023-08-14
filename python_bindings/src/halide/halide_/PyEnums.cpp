@@ -28,7 +28,7 @@ void define_enums(py::module &m) {
         .value("OpenGLCompute", DeviceAPI::OpenGLCompute)
         .value("Metal", DeviceAPI::Metal)
         .value("UPMEM", DeviceAPI::UPMEM)
-        .value("Default_PIM", DeviceAPI::Defulat_PIM)
+        .value("Default_PIM", DeviceAPI::Default_PIM)
         .value("Hexagon", DeviceAPI::Hexagon);
         // PIM_TODO: add Hynix PIM, Samsung PIM
 

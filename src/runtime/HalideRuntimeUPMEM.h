@@ -37,6 +37,10 @@ extern int halide_upmem_dpu_xfer_to(void *user_context, size_t dpu_idx, struct h
 
 extern int halide_upmem_dpu_xfer_from(void *user_context, size_t dpu_idx, struct halide_buffer_t *buf, uint64_t host_offset[], uint64_t dpu_offset, uint64_t size, void *args[]);
 
+extern int halide_upmem_alloc_load(void *user_context, size_t nr_dpus, const char* kernel_name);
+
+extern int halide_upmem_free(void *user_context, const char* kernel_name);
+
 #ifdef __cplusplus
 }
 #endif
