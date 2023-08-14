@@ -229,6 +229,8 @@ extern "C" __attribute__((used)) void *halide_runtime_api_functions[] = {
     (void *)&halide_upmem_dpu_copy_from,
     (void *)&halide_upmem_dpu_xfer_to,
     (void *)&halide_upmem_dpu_xfer_from,
+    (void *)&halide_upmem_alloc_load,
+    (void *)&halide_upmem_free,
     (void *)&halide_upmem_initialize_kernels,
     (void *)&halide_upmem_run,
     (void *)&halide_upmem_finalize_kernels,

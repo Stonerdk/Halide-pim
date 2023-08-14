@@ -105,6 +105,13 @@ WEAK int halide_upmem_dpu_xfer_from(void *user_context,
     return halide_error_code_unimplemented;
 }
 
+WEAK int halide_upmem_alloc_load(void *user_context, size_t nr_dpus, const char* kernel_name) {
+    return halide_error_code_unimplemented;
+}
+
+WEAK int halide_upmem_free(void *user_context, const char* kernel_name) {
+    return halide_error_code_unimplemented;
+}
 
 
 WEAK int halide_upmem_device_release_crop(void *user_context,
