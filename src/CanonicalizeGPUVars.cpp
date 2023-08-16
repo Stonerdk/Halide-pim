@@ -38,7 +38,7 @@ string get_pim_bank_name(int index) {
 
 string get_pim_thread_name(int index) {
     internal_assert(index == 0);
-    return pim_bank_names[index];
+    return pim_thread_names[index];
 }
 
 class CountGPUBlocksThreads : public IRVisitor {

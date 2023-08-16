@@ -46,6 +46,7 @@
 #include "OffloadGPULoops.h"
 #include "OffloadPIMLoops.h"
 #include "PartitionLoops.h"
+#include "PIMLayoutTransform.h"
 #include "Prefetch.h"
 #include "Profiling.h"
 #include "PurifyIndexMath.h"
@@ -422,6 +423,13 @@ void lower_impl(const vector<Function> &output_funcs,
     debug(1) << "Hoisting prefetches...\n";
     s = hoist_prefetches(s);
     log("Lowering after hoisting prefetches:", s);
+
+    if (t.has_feature(Target::UPMEM)) {
+        debug(1) << "Transforming data layout for UPMEM PIM...";
+        s = pim_layout_transform(s);
+        log("lowering after transforming layout:", s);
+    }
+
 
     debug(1) << "Lowering after final simplification:\n"
              << s << "\n\n";
