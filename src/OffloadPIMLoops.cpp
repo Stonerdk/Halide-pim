@@ -33,8 +33,9 @@ public:
     Expr num_banks[4];
 
     ExtractBounds() {
+        num_threads[0] = 1;
         for (int i = 0; i < 4; i++) {
-            num_threads[i] = num_banks[i] = 1;
+            num_banks[i] = 1;
         }
     }
 
