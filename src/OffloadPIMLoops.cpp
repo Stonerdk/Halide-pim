@@ -99,7 +99,7 @@ class InjectGpuOffload : public IRMutator {
     using IRMutator::visit;
 
     Stmt visit(const For *loop) override {
-        if (!CodeGen_PIM_Dev::is_pim_var(loop->name)) {
+        if (!CodeGen_PIM_Dev::is_pim_var(loop->name) || (loop->device_api != DeviceAPI::UPMEM && loop->device_api != DeviceAPI::Default_PIM)) {
             return IRMutator::visit(loop);
         }
 

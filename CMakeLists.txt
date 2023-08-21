@@ -109,6 +109,8 @@ option(WITH_TESTS "Build tests" "${PROJECT_IS_TOP_LEVEL}")
 option(WITH_TUTORIALS "Build tutorials" "${PROJECT_IS_TOP_LEVEL}")
 option(WITH_DOCS "Build documentation" OFF)
 option(WITH_UTILS "Build utils" "${PROJECT_IS_TOP_LEVEL}")
+
+option(Halide_ENABLE_EXCEPTIONS "Enable exception support" OFF)
 cmake_dependent_option(
     WITH_PYTHON_BINDINGS "Build Python bindings" "${PROJECT_IS_TOP_LEVEL}"
     "Halide_ENABLE_RTTI AND Halide_ENABLE_EXCEPTIONS" OFF
