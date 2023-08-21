@@ -269,6 +269,13 @@ void lower_impl(const vector<Function> &output_funcs,
     s = bound_small_allocations(s);
     log("Lowering after bounding small realizations:", s);
 
+    if (t.has_feature(Target::UPMEM)) {
+        debug(1) << "Transforming data layout for UPMEM PIM...\n";
+        s = pim_layout_transform(s);
+        log("lowering after transforming layout:", s);
+    }
+
+
     debug(1) << "Performing storage flattening...\n";
     s = storage_flattening(s, outputs, env, t);
     log("Lowering after storage flattening:", s);
@@ -406,12 +413,6 @@ void lower_impl(const vector<Function> &output_funcs,
     debug(1) << "Flattening nested ramps...\n";
     s = flatten_nested_ramps(s);
     log("Lowering after flattening nested ramps:", s);
-
-    if (t.has_feature(Target::UPMEM)) {
-        debug(1) << "Transforming data layout for UPMEM PIM...\n";
-        s = pim_layout_transform(s);
-        log("lowering after transforming layout:", s);
-    }
 
     debug(1) << "Removing dead allocations and moving loop invariant code...\n";
     s = remove_dead_allocations(s);

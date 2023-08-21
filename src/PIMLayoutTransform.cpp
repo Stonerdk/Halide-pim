@@ -11,6 +11,7 @@
 #include "Scope.h"
 #include "InjectHostDevBufferCopies.h"
 #include "Simplify.h"
+#include "Bounds.h"
 #include "DeviceArgument.h"
 #include "Scope.h"
 
@@ -29,171 +30,6 @@ using std::set;
 using std::pair;
 using std::reverse;
 
-// This is superset of ExtractBounds
-class ResourceAllocationBuilder : public IRVisitor {
-using IRVisitor::visit;
-public:
-    class ExtractContiguousVariable : public IRVisitor {
-    public:
-        vector<string> contiguous_variables;
-        vector<string> all_variables;
-        bool bypass = false;
-
-        using IRVisitor::visit;
-
-        void visit(const Variable* op) override {
-            if (!bypass) {
-                contiguous_variables.push_back(op->name);
-            }
-            all_variables.push_back(op->name);
-        }
-
-        void visit(const Mul* op) override {
-            bypass = true;
-            IRVisitor::visit(op);
-            bypass = false;
-        }
-    };
-
-    class BaseContiguousVariable : public IRMutator {
-        public: 
-        string contiguous_variable;
-        bool bypass = false;
-
-        BaseContiguousVariable(string contiguous_variable) {
-            this->contiguous_variable = contiguous_variable;
-        }
-        using IRMutator::visit;
-
-        Expr visit(const Variable* op) override {
-            if (!bypass && op->name == contiguous_variable) {
-                return 0;
-            }
-            return IRMutator::visit(op);
-        }
-
-        Expr visit(const Mul* op) override {
-            bypass = true;
-            Expr ret = IRMutator::visit(op);
-            bypass = false;
-            return ret;
-        }
-    };
-
-    set<string> shared_memory_buffers;
-
-    Stmt optimized_loop;
-
-    vector<Stmt> stmt_stack;
-    vector<pair<Expr, Interval>> bound_stack;
-    ResourceAllocationBuilder() { }
-
-    Stmt get_push_stmt(const string &name, const Expr &value, const Expr& size) {
-        Expr buffer = Variable::make(type_of<struct halide_buffer_t *>(), name + ".buffer");
-        Stmt push_stmt = Evaluate::make(Call::make(Int(32), "halide_upmem_dpu_copy_to", { Variable::make(UInt(32), "dpu_idx"), buffer, value, size }, Call::Extern));
-        return push_stmt;
-    }
-
-    void visit(const ProducerConsumer* op) override {
-        shared_memory_buffers.insert(op->name);
-        IRVisitor::visit(op);
-    }
-
-    void visit(const Allocate* op) override {
-        shared_memory_buffers.insert(op->name);
-        IRVisitor::visit(op);
-    }
-
-    void add_new_loop(string name, Expr index) {
-
-        ExtractContiguousVariable extractor;
-        index.accept(&extractor);
-        auto& candidates = extractor.contiguous_variables;
-        auto& all_variables = extractor.all_variables;
-
-        ostringstream o;
-        o << "add_new_loop: " << name << " ";
-        for (auto& c : candidates) {
-            o << c << " ";
-        }
-        debug(2) << o.str() << "\n";
-
-        const For* obsolete_block;
-        Expr obsolete_extent = 1;
-        for (const auto& block: candidates) {
-            for (const auto& stmt: stmt_stack) {
-                if (stmt.as<For>() && (stmt.as<For>())->name == block) {
-                    obsolete_block = stmt.as<For>();
-                    BaseContiguousVariable mutator(obsolete_block->name);
-                    index = simplify(Add::make(mutator.mutate(index), obsolete_block->min));
-                    obsolete_extent = obsolete_block->extent;
-                    break;
-                }
-            }
-            if (obsolete_block) break;
-        }
-
-        Stmt push_stmt = get_push_stmt(name, index, obsolete_extent);
-
-        for (vector<Stmt>::reverse_iterator it = stmt_stack.rbegin(); it != stmt_stack.rend(); ++it) {
-            if ((*it).as<For>()) {
-                const For* f = (*it).as<For>();
-                if (f == obsolete_block) continue;
-                if (std::find(all_variables.begin(), all_variables.end(), f->name) == all_variables.end()) continue;
-                push_stmt = For::make(f->name, f->min, f->extent, f->for_type, f->device_api, push_stmt);
-            } else if ((*it).as<IfThenElse>()) {
-                const IfThenElse* f = (*it).as<IfThenElse>();
-                push_stmt = IfThenElse::make(f->condition, push_stmt, f->else_case); // TODO ; else_case
-            } else if ((*it).as<LetStmt>()) {
-                const LetStmt* f = (*it).as<LetStmt>();
-                push_stmt = LetStmt::make(f->name, f->value, push_stmt);
-            } else {
-                break;
-            }
-        }
-
-        if (!optimized_loop.defined())
-            optimized_loop = push_stmt;
-        else
-            optimized_loop = Block::make({ optimized_loop, push_stmt});
-    }
-
-    void visit(const Load* op) override {
-        if (shared_memory_buffers.find(op->name) == shared_memory_buffers.end())
-            add_new_loop(op->name, op->index);
-    }
-
-    void visit(const Store* op) override {
-        if (shared_memory_buffers.find(op->name) == shared_memory_buffers.end())
-            add_new_loop(op->name, op->index);
-        IRVisitor::visit(op);
-    }
-
-    void visit(const LetStmt* op) override {
-        stmt_stack.push_back(op);
-        IRVisitor::visit(op);
-        // TODO: cond
-        stmt_stack.pop_back();
-    }
-
-    void visit(const For* op) override {
-        stmt_stack.push_back(op);
-        IRVisitor::visit(op);
-        stmt_stack.pop_back();
-    }
-
-    void visit(const IfThenElse* op) override {
-        stmt_stack.push_back(op);
-        // TODO: cond
-        IRVisitor::visit(op);
-        stmt_stack.pop_back();
-    }
-
-    Stmt get_stmt() {
-        return this->optimized_loop;
-    }
-};
-
 class PIMLayoutTransform : public IRMutator {
 public:
     PIMLayoutTransform() {}
@@ -206,7 +42,7 @@ public:
         using IRMutator::visit;
         Stmt visit(const For *op) override {
             if (op->for_type == ForType::PIMThread) {
-                return For::make(op->name, op->min, op->extent, ForType::Serial, DeviceAPI::None, stmt);
+                return stmt;
             } else if (op->for_type == ForType::PIMBank) {
                 return For::make(op->name, op->min, op->extent, ForType::Serial, DeviceAPI::None, mutate(op->body));
             } else {
@@ -227,6 +63,8 @@ public:
         Expr bank = 0;
         Stmt thread_loop;
 
+        set<string> shared_memory_buffer;
+
         InspectResourceAllocation() {
             for (int i = 0; i < 4; i++) {
                 num_banks[i] = 1;
@@ -244,20 +82,25 @@ public:
             } else if (ends_with(op->name, ".__bank_id_x")) {
                 num_banks[0] = op->extent;
                 name_banks[0] = op->name;
-                bank = Variable::make(UInt(32), op->name);
+                bank = Variable::make(Int(32), op->name);
             } else if (ends_with(op->name, ".__bank_id_y")) {
                 num_banks[1] = op->extent;
                 name_banks[1] = op->name;
-                bank = Add::make(Mul::make(bank, Expr(op->extent)), Variable::make(UInt(32), op->name));
+                bank = Add::make(Mul::make(bank, Expr(op->extent)), Variable::make(Int(32), op->name));
             } else if (ends_with(op->name, ".__bank_id_z")) {
                 num_banks[2] = op->extent;
                 name_banks[2] = op->name;
-                bank = Add::make(Mul::make(bank, Expr(op->extent)), Variable::make(UInt(32), op->name));
+                bank = Add::make(Mul::make(bank, Expr(op->extent)), Variable::make(Int(32), op->name));
             } else if (ends_with(op->name, ".__bank_id_w")) {
                 num_banks[3] = op->extent;
                 name_banks[3] = op->name;
-                bank = Add::make(Mul::make(bank, Expr(op->extent)), Variable::make(UInt(32), op->name));
+                bank = Add::make(Mul::make(bank, Expr(op->extent)), Variable::make(Int(32), op->name));
             }
+            op->body.accept(this);
+        }
+
+        void visit(const ProducerConsumer* op) override {
+            shared_memory_buffer.insert(op->name);
             op->body.accept(this);
         }
 
@@ -284,11 +127,26 @@ private:
 
         Stmt stmt_alloc_load = call_extern_and_assert("halide_upmem_alloc_load", { inspect.get_all_banks(), kernel_name });
 
+        vector<Stmt> stmt_copies;
+        auto bounds = boxes_touched(inspect.thread_loop);
+        for (auto it = bounds.begin(); it != bounds.end(); it++) {
+            auto box = it->second;
+            vector<Expr> offset, sizes;
+            for (Interval b: box.bounds) {
+                offset.push_back(b.min);
+                sizes.push_back(b.max - b.min + 1);
+            }
+            vector<Expr> args = { Variable::make(Int(32), "dpu_idx"), Variable::make(type_of<struct halide_buffer_t *>(), it->first + ".buffer") };
+            args.insert(args.end(), offset.begin(), offset.end());
+            args.insert(args.end(), sizes.begin(), sizes.end());
+            if (inspect.shared_memory_buffer.find(it->first) == inspect.shared_memory_buffer.end())
+                stmt_copies.push_back(Evaluate::make(Call::make(Int(32), "halide_upmem_dpu_copy_to", args, Call::Extern)));
+        }
+        ThreadLoopMutator mutator(LetStmt::make("dpu_idx", inspect.bank, Block::make(stmt_copies)));
+        Stmt stmt_copy_to = mutator.mutate(loop);
+
         Stmt stmt_free = call_extern_and_assert("halide_upmem_free", { kernel_name });
 
-        ResourceAllocationBuilder builder;
-        inspect.thread_loop.accept(&builder);
-        auto stmt_copy_to = For::make(loop->name+".__allocation", loop->min, loop->extent, ForType::Serial, DeviceAPI::None, LetStmt::make("dpu_idx", inspect.bank, builder.get_stmt()));
         // Stmt for_copy_reduction = For::make(loop->name + ".__reduction", Expr(loop->min), Expr(loop->extent), loop->for_type, DeviceAPI::None, for_copy_allocation);
 
         

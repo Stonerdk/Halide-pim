@@ -114,6 +114,9 @@ class FindBufferUsage : public IRVisitor {
         internal_assert(op->device_api != DeviceAPI::Default_GPU)
             << "A GPU API should have been selected by this stage in lowering\n";
         DeviceAPI old = current_device_api;
+        if (op->device_api == DeviceAPI::UPMEM || op->device_api == DeviceAPI::Default_PIM) {
+            return;
+        }
         if (op->device_api != DeviceAPI::None) {
             current_device_api = op->device_api;
         }
