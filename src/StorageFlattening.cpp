@@ -42,6 +42,7 @@ private:
     const Target &target;
     Scope<> realizations;
     bool in_gpu = false;
+    bool in_pim = false;
 
     Expr make_shape_var(string name, const string &field, size_t dim,
                         const Buffer<> &buf, const Parameter &param) {
@@ -52,13 +53,14 @@ private:
 
     Expr flatten_args(const string &name, vector<Expr> args,
                       const Buffer<> &buf, const Parameter &param) {
-        bool internal = realizations.contains(name);
+        bool internal = realizations.contains(name) || in_pim;
         Expr idx = target.has_large_buffers() ? make_zero(Int(64)) : 0;
         vector<Expr> mins(args.size()), strides(args.size());
 
         for (size_t i = 0; i < args.size(); i++) {
-            strides[i] = make_shape_var(name, "stride", i, buf, param);
-            mins[i] = make_shape_var(name, "min", i, buf, param);
+            string suffix = in_pim ? ".pim" : "";
+            strides[i] = make_shape_var(name, "stride" + suffix, i, buf, param);
+            mins[i] = make_shape_var(name, "min" + suffix, i, buf, param);
             if (target.has_large_buffers()) {
                 strides[i] = cast<int64_t>(strides[i]);
             }
@@ -401,12 +403,18 @@ private:
 
     Stmt visit(const For *op) override {
         bool old_in_gpu = in_gpu;
+        bool old_in_pim = in_pim;
         if (op->for_type == ForType::GPUBlock ||
             op->for_type == ForType::GPUThread) {
             in_gpu = true;
         }
+        if (op->for_type == ForType::PIMBank ||
+            op->for_type == ForType::PIMThread) {
+            in_pim = true;
+        }
         Stmt stmt = IRMutator::visit(op);
         in_gpu = old_in_gpu;
+        in_pim = old_in_pim;
         return stmt;
     }
 };
