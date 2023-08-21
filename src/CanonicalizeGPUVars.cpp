@@ -185,6 +185,15 @@ class CanonicalizeGPUVars : public IRMutator {
                 name += "." + get_pim_thread_name(counter.nthreads);
                 debug(5) << "Replacing " << op->name << " with PIM thread name " << name << "\n";
             }
+
+            if (name != op->name) {
+                // Canonicalize the GPU for loop name
+                gpu_vars.emplace(op->name, name);
+                Expr new_var = Variable::make(Int(32), name);
+                min = substitute(op->name, new_var, min);
+                extent = substitute(op->name, new_var, extent);
+                body = substitute(op->name, new_var, body);
+            }
         }
 
         if ((name == op->name) &&

@@ -4,8 +4,8 @@ using namespace Halide;
 
 int main() {
 
-    const int M = 8337;
-    const int N = 2671;
+    const int M = 8192;
+    const int N = 4096;
 
     Var i("i"), j("j"), block("block"), inner_loop("inner_loop"), thread("thread");
 
