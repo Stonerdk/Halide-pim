@@ -2039,7 +2039,7 @@ if (!((((uint1)0 || (uint1)_halide_buffer_is_bounds_query((struct halide_buffer_
  let gemv.s0.i.thread.inner_loop.loop_min = 0
  let gemv.s0.i.block.loop_min.orig = 0
  produce gemv {
-  let halide_upmem_alloc_load_result = halide_upmem_alloc_load(((((gemv.extent.0 + 2047)/2048)*1)*1)*1, "kernel_0")
+  let halide_upmem_alloc_load_result = halide_upmem_alloc_load(((((gemv.extent.0 + 2047)/2048)*1)*1)*1, "kernel_1")
   assert(halide_upmem_alloc_load_result == 0, halide_upmem_alloc_load_result)
   for (gemv.s0.i.block.__bank_id_x, 0, (gemv.extent.0 + 2047)/2048) {
    let gemv.s0.i.thread.base = min(likely_if_innermost((gemv.s0.i.block.__bank_id_x*2048) + gemv.min.0), (gemv.extent.0 + gemv.min.0) + -2048)
@@ -2052,6 +2052,21 @@ if (!((((uint1)0 || (uint1)_halide_buffer_is_bounds_query((struct halide_buffer_
   pim_bank<Default_PIM> (gemv.s0.i.block.__bank_id_x, 0, (gemv.extent.0 + 2047)/2048) {
    let gemv.s0.i.thread.base = min(likely_if_innermost((gemv.s0.i.block.__bank_id_x*2048) + gemv.min.0), (gemv.extent.0 + gemv.min.0) + -2048)
    let gemv.s0.i.thread.thread.loop_min.orig = 0
+   let b0.min.pim.0 = ((0*128) + 0) + gemv.s0.i.thread.base
+   let b0.extent.pim.0 = ((((((16 + 0) - 1)*128) + ((128 + 0) - 1)) + gemv.s0.i.thread.base) - (((0*128) + 0) + gemv.s0.i.thread.base)) + 1
+   let b0.stride.pim.0 = 1
+   let b0.min.pim.1 = 0
+   let b0.extent.pim.1 = (4095 - 0) + 1
+   let b0.stride.pim.1 = 1*(((((((16 + 0) - 1)*128) + ((128 + 0) - 1)) + gemv.s0.i.thread.base) - (((0*128) + 0) + gemv.s0.i.thread.base)) + 1)
+   let b1.min.pim.0 = 0
+   let b1.extent.pim.0 = (4095 - 0) + 1
+   let b1.stride.pim.0 = 1
+   let gemv.min.pim.0 = ((0*128) + 0) + gemv.s0.i.thread.base
+   let gemv.extent.pim.0 = ((((((16 + 0) - 1)*128) + ((128 + 0) - 1)) + gemv.s0.i.thread.base) - (((0*128) + 0) + gemv.s0.i.thread.base)) + 1
+   let gemv.stride.pim.0 = 1
+   let sum.min.pim.0 = sum.min.0
+   let sum.extent.pim.0 = sum.extent.0
+   let sum.stride.pim.0 = sum.stride.0
    pim_thread<Default_PIM> (gemv.s0.i.thread.thread.__thread_id_x, 0, 16) {
     let gemv.s0.i.thread.inner_loop.base = gemv.s0.i.thread.thread.__thread_id_x*128
     let gemv.s0.i.thread.inner_loop.loop_min.orig = 0
@@ -2097,7 +2112,13 @@ if (!((((uint1)0 || (uint1)_halide_buffer_is_bounds_query((struct halide_buffer_
     }
    }
   }
-  let halide_upmem_free_result = halide_upmem_free("kernel_0")
+  for (gemv.s0.i.block.__bank_id_x, 0, (gemv.extent.0 + 2047)/2048) {
+   let gemv.s0.i.thread.base = min(likely_if_innermost((gemv.s0.i.block.__bank_id_x*2048) + gemv.min.0), (gemv.extent.0 + gemv.min.0) + -2048)
+   let gemv.s0.i.thread.thread.loop_min.orig = 0
+   let dpu_idx = gemv.s0.i.block.__bank_id_x
+   halide_upmem_dpu_copy_from(dpu_idx, (struct halide_buffer_t *)gemv.buffer, ((0*128) + 0) + gemv.s0.i.thread.base, ((((((16 + 0) - 1)*128) + ((128 + 0) - 1)) + gemv.s0.i.thread.base) - (((0*128) + 0) + gemv.s0.i.thread.base)) + 1)
+  }
+  let halide_upmem_free_result = halide_upmem_free("kernel_1")
   assert(halide_upmem_free_result == 0, halide_upmem_free_result)
  }
 }
@@ -2214,7 +2235,7 @@ if (!((((uint1)0 || (uint1)_halide_buffer_is_bounds_query((struct halide_buffer_
  let gemv.s0.i.thread.inner_loop.loop_min = 0
  let gemv.s0.i.block.loop_min.orig = 0
  produce gemv {
-  let halide_upmem_alloc_load_result = halide_upmem_alloc_load(((((gemv.extent.0 + 2047)/2048)*1)*1)*1, "kernel_0")
+  let halide_upmem_alloc_load_result = halide_upmem_alloc_load(((((gemv.extent.0 + 2047)/2048)*1)*1)*1, "kernel_1")
   assert(halide_upmem_alloc_load_result == 0, halide_upmem_alloc_load_result)
   for (gemv.s0.i.block.__bank_id_x, 0, (gemv.extent.0 + 2047)/2048) {
    let gemv.s0.i.thread.base = min(likely_if_innermost((gemv.s0.i.block.__bank_id_x*2048) + gemv.min.0), (gemv.extent.0 + gemv.min.0) + -2048)
@@ -2227,6 +2248,21 @@ if (!((((uint1)0 || (uint1)_halide_buffer_is_bounds_query((struct halide_buffer_
   pim_bank<Default_PIM> (gemv.s0.i.block.__bank_id_x, 0, (gemv.extent.0 + 2047)/2048) {
    let gemv.s0.i.thread.base = min(likely_if_innermost((gemv.s0.i.block.__bank_id_x*2048) + gemv.min.0), (gemv.extent.0 + gemv.min.0) + -2048)
    let gemv.s0.i.thread.thread.loop_min.orig = 0
+   let b0.min.pim.0 = ((0*128) + 0) + gemv.s0.i.thread.base
+   let b0.extent.pim.0 = ((((((16 + 0) - 1)*128) + ((128 + 0) - 1)) + gemv.s0.i.thread.base) - (((0*128) + 0) + gemv.s0.i.thread.base)) + 1
+   let b0.stride.pim.0 = 1
+   let b0.min.pim.1 = 0
+   let b0.extent.pim.1 = (4095 - 0) + 1
+   let b0.stride.pim.1 = 1*(((((((16 + 0) - 1)*128) + ((128 + 0) - 1)) + gemv.s0.i.thread.base) - (((0*128) + 0) + gemv.s0.i.thread.base)) + 1)
+   let b1.min.pim.0 = 0
+   let b1.extent.pim.0 = (4095 - 0) + 1
+   let b1.stride.pim.0 = 1
+   let gemv.min.pim.0 = ((0*128) + 0) + gemv.s0.i.thread.base
+   let gemv.extent.pim.0 = ((((((16 + 0) - 1)*128) + ((128 + 0) - 1)) + gemv.s0.i.thread.base) - (((0*128) + 0) + gemv.s0.i.thread.base)) + 1
+   let gemv.stride.pim.0 = 1
+   let sum.min.pim.0 = sum.min.0
+   let sum.extent.pim.0 = sum.extent.0
+   let sum.stride.pim.0 = sum.stride.0
    pim_thread<Default_PIM> (gemv.s0.i.thread.thread.__thread_id_x, 0, 16) {
     let gemv.s0.i.thread.inner_loop.base = gemv.s0.i.thread.thread.__thread_id_x*128
     let gemv.s0.i.thread.inner_loop.loop_min.orig = 0
@@ -2261,21 +2297,27 @@ if (!((((uint1)0 || (uint1)_halide_buffer_is_bounds_query((struct halide_buffer_
      let t2 = ((gemv.s0.i.thread.thread.__thread_id_x*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base
      let t1 = ((gemv.s0.i.thread.thread.__thread_id_x*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base
      produce sum {
-      sum[0 + (((((gemv.s0.i.thread.thread.__thread_id_x*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base) - sum.min.0)*sum.stride.0)] = 0
+      sum[0 + (((((gemv.s0.i.thread.thread.__thread_id_x*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base) - sum.min.pim.0)*sum.stride.pim.0)] = 0
       let sum.s1.r4$x.loop_min.orig = 0
       for (sum.s1.r4$x, 0, 4096) {
        let sum.s1.r4$x.max_2 = sum.s1.r4$x
        let sum.s1.r4$x.min_2 = sum.s1.r4$x
-       sum[0 + (((((gemv.s0.i.thread.thread.__thread_id_x*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base) - sum.min.0)*sum.stride.0)] = sum[0 + (((((gemv.s0.i.thread.thread.__thread_id_x*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base) - sum.min.0)*sum.stride.0)] + ((int32)b0[((0 + ((((gemv.s0.i.thread.thread.__thread_id_x*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base)*b0.stride.0)) + (sum.s1.r4$x*b0.stride.1)) - ((0 + (b0.min.0*b0.stride.0)) + (b0.min.1*b0.stride.1))]*(int32)b1[(0 + (sum.s1.r4$x*b1.stride.0)) - (0 + (b1.min.0*b1.stride.0))])
+       sum[0 + (((((gemv.s0.i.thread.thread.__thread_id_x*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base) - sum.min.pim.0)*sum.stride.pim.0)] = sum[0 + (((((gemv.s0.i.thread.thread.__thread_id_x*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base) - sum.min.pim.0)*sum.stride.pim.0)] + ((int32)b0[(0 + (((((gemv.s0.i.thread.thread.__thread_id_x*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base) - b0.min.pim.0)*b0.stride.pim.0)) + ((sum.s1.r4$x - b0.min.pim.1)*b0.stride.pim.1)]*(int32)b1[0 + ((sum.s1.r4$x - b1.min.pim.0)*b1.stride.pim.0)])
       }
      }
      consume sum {
-      gemv[(0 + ((((gemv.s0.i.thread.thread.__thread_id_x*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base)*gemv.stride.0)) - (0 + (gemv.min.0*gemv.stride.0))] = sum[0 + (((((gemv.s0.i.thread.thread.__thread_id_x*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base) - sum.min.0)*sum.stride.0)]
+      gemv[0 + (((((gemv.s0.i.thread.thread.__thread_id_x*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base) - gemv.min.pim.0)*gemv.stride.pim.0)] = sum[0 + (((((gemv.s0.i.thread.thread.__thread_id_x*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base) - sum.min.pim.0)*sum.stride.pim.0)]
      }
     }
    }
   }
-  let halide_upmem_free_result = halide_upmem_free("kernel_0")
+  for (gemv.s0.i.block.__bank_id_x, 0, (gemv.extent.0 + 2047)/2048) {
+   let gemv.s0.i.thread.base = min(likely_if_innermost((gemv.s0.i.block.__bank_id_x*2048) + gemv.min.0), (gemv.extent.0 + gemv.min.0) + -2048)
+   let gemv.s0.i.thread.thread.loop_min.orig = 0
+   let dpu_idx = gemv.s0.i.block.__bank_id_x
+   halide_upmem_dpu_copy_from(dpu_idx, (struct halide_buffer_t *)gemv.buffer, ((0*128) + 0) + gemv.s0.i.thread.base, ((((((16 + 0) - 1)*128) + ((128 + 0) - 1)) + gemv.s0.i.thread.base) - (((0*128) + 0) + gemv.s0.i.thread.base)) + 1)
+  }
+  let halide_upmem_free_result = halide_upmem_free("kernel_1")
   assert(halide_upmem_free_result == 0, halide_upmem_free_result)
  }
 }
@@ -2415,7 +2457,7 @@ if (!((((uint1)0 || (uint1)_halide_buffer_is_bounds_query((struct halide_buffer_
  let gemv.s0.i.thread.inner_loop.loop_min = 0
  let gemv.s0.i.block.loop_min.orig = 0
  produce gemv {
-  let halide_upmem_alloc_load_result = halide_upmem_alloc_load(((((gemv.extent.0 + 2047)/2048)*1)*1)*1, "kernel_0")
+  let halide_upmem_alloc_load_result = halide_upmem_alloc_load(((((gemv.extent.0 + 2047)/2048)*1)*1)*1, "kernel_1")
   assert(halide_upmem_alloc_load_result == 0, halide_upmem_alloc_load_result)
   for (gemv.s0.i.block.__bank_id_x, 0, (gemv.extent.0 + 2047)/2048) {
    let gemv.s0.i.thread.base = min(likely_if_innermost((gemv.s0.i.block.__bank_id_x*2048) + gemv.min.0), (gemv.extent.0 + gemv.min.0) + -2048)
@@ -2428,6 +2470,21 @@ if (!((((uint1)0 || (uint1)_halide_buffer_is_bounds_query((struct halide_buffer_
   pim_bank<Default_PIM> (gemv.s0.i.block.__bank_id_x, 0, (gemv.extent.0 + 2047)/2048) {
    let gemv.s0.i.thread.base = min(likely_if_innermost((gemv.s0.i.block.__bank_id_x*2048) + gemv.min.0), (gemv.extent.0 + gemv.min.0) + -2048)
    let gemv.s0.i.thread.thread.loop_min.orig = 0
+   let b0.min.pim.0 = ((0*128) + 0) + gemv.s0.i.thread.base
+   let b0.extent.pim.0 = ((((((16 + 0) - 1)*128) + ((128 + 0) - 1)) + gemv.s0.i.thread.base) - (((0*128) + 0) + gemv.s0.i.thread.base)) + 1
+   let b0.stride.pim.0 = 1
+   let b0.min.pim.1 = 0
+   let b0.extent.pim.1 = (4095 - 0) + 1
+   let b0.stride.pim.1 = 1*(((((((16 + 0) - 1)*128) + ((128 + 0) - 1)) + gemv.s0.i.thread.base) - (((0*128) + 0) + gemv.s0.i.thread.base)) + 1)
+   let b1.min.pim.0 = 0
+   let b1.extent.pim.0 = (4095 - 0) + 1
+   let b1.stride.pim.0 = 1
+   let gemv.min.pim.0 = ((0*128) + 0) + gemv.s0.i.thread.base
+   let gemv.extent.pim.0 = ((((((16 + 0) - 1)*128) + ((128 + 0) - 1)) + gemv.s0.i.thread.base) - (((0*128) + 0) + gemv.s0.i.thread.base)) + 1
+   let gemv.stride.pim.0 = 1
+   let sum.min.pim.0 = sum.min.0
+   let sum.extent.pim.0 = sum.extent.0
+   let sum.stride.pim.0 = sum.stride.0
    pim_thread<Default_PIM> (gemv.s0.i.thread.thread.__thread_id_x, 0, 16) {
     let gemv.s0.i.thread.inner_loop.base = gemv.s0.i.thread.thread.__thread_id_x*128
     let gemv.s0.i.thread.inner_loop.loop_min.orig = 0
@@ -2462,21 +2519,27 @@ if (!((((uint1)0 || (uint1)_halide_buffer_is_bounds_query((struct halide_buffer_
      let t2 = ((gemv.s0.i.thread.thread.__thread_id_x*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base
      let t1 = ((gemv.s0.i.thread.thread.__thread_id_x*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base
      produce sum {
-      sum[0 + (((((gemv.s0.i.thread.thread.__thread_id_x*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base) - sum.min.0)*sum.stride.0)] = 0
+      sum[0 + (((((gemv.s0.i.thread.thread.__thread_id_x*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base) - sum.min.pim.0)*sum.stride.pim.0)] = 0
       let sum.s1.r4$x.loop_min.orig = 0
       for (sum.s1.r4$x, 0, 4096) {
        let sum.s1.r4$x.max_2 = sum.s1.r4$x
        let sum.s1.r4$x.min_2 = sum.s1.r4$x
-       sum[0 + (((((gemv.s0.i.thread.thread.__thread_id_x*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base) - sum.min.0)*sum.stride.0)] = sum[0 + (((((gemv.s0.i.thread.thread.__thread_id_x*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base) - sum.min.0)*sum.stride.0)] + (b0[((0 + ((((gemv.s0.i.thread.thread.__thread_id_x*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base)*b0.stride.0)) + (sum.s1.r4$x*b0.stride.1)) - ((0 + (b0.min.0*b0.stride.0)) + (b0.min.1*b0.stride.1))]*b1[(0 + (sum.s1.r4$x*b1.stride.0)) - (0 + (b1.min.0*b1.stride.0))])
+       sum[0 + (((((gemv.s0.i.thread.thread.__thread_id_x*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base) - sum.min.pim.0)*sum.stride.pim.0)] = sum[0 + (((((gemv.s0.i.thread.thread.__thread_id_x*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base) - sum.min.pim.0)*sum.stride.pim.0)] + (b0[(0 + (((((gemv.s0.i.thread.thread.__thread_id_x*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base) - b0.min.pim.0)*b0.stride.pim.0)) + ((sum.s1.r4$x - b0.min.pim.1)*b0.stride.pim.1)]*b1[0 + ((sum.s1.r4$x - b1.min.pim.0)*b1.stride.pim.0)])
       }
      }
      consume sum {
-      gemv[(0 + ((((gemv.s0.i.thread.thread.__thread_id_x*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base)*gemv.stride.0)) - (0 + (gemv.min.0*gemv.stride.0))] = sum[0 + (((((gemv.s0.i.thread.thread.__thread_id_x*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base) - sum.min.0)*sum.stride.0)]
+      gemv[0 + (((((gemv.s0.i.thread.thread.__thread_id_x*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base) - gemv.min.pim.0)*gemv.stride.pim.0)] = sum[0 + (((((gemv.s0.i.thread.thread.__thread_id_x*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base) - sum.min.pim.0)*sum.stride.pim.0)]
      }
     }
    }
   }
-  let halide_upmem_free_result = halide_upmem_free("kernel_0")
+  for (gemv.s0.i.block.__bank_id_x, 0, (gemv.extent.0 + 2047)/2048) {
+   let gemv.s0.i.thread.base = min(likely_if_innermost((gemv.s0.i.block.__bank_id_x*2048) + gemv.min.0), (gemv.extent.0 + gemv.min.0) + -2048)
+   let gemv.s0.i.thread.thread.loop_min.orig = 0
+   let dpu_idx = gemv.s0.i.block.__bank_id_x
+   halide_upmem_dpu_copy_from(dpu_idx, (struct halide_buffer_t *)gemv.buffer, ((0*128) + 0) + gemv.s0.i.thread.base, ((((((16 + 0) - 1)*128) + ((128 + 0) - 1)) + gemv.s0.i.thread.base) - (((0*128) + 0) + gemv.s0.i.thread.base)) + 1)
+  }
+  let halide_upmem_free_result = halide_upmem_free("kernel_1")
   assert(halide_upmem_free_result == 0, halide_upmem_free_result)
  }
 }
@@ -2614,7 +2677,7 @@ if (!((((uint1)0 || (uint1)_halide_buffer_is_bounds_query((struct halide_buffer_
  let gemv.s0.i.thread.inner_loop.loop_min = 0
  let gemv.s0.i.block.loop_min.orig = 0
  produce gemv {
-  let halide_upmem_alloc_load_result = halide_upmem_alloc_load(((((gemv.extent.0 + 2047)/2048)*1)*1)*1, "kernel_0")
+  let halide_upmem_alloc_load_result = halide_upmem_alloc_load(((((gemv.extent.0 + 2047)/2048)*1)*1)*1, "kernel_1")
   assert(halide_upmem_alloc_load_result == 0, halide_upmem_alloc_load_result)
   for (gemv.s0.i.block.__bank_id_x, 0, (gemv.extent.0 + 2047)/2048) {
    let gemv.s0.i.thread.base = min(likely_if_innermost((gemv.s0.i.block.__bank_id_x*2048) + gemv.min.0), (gemv.extent.0 + gemv.min.0) + -2048)
@@ -2627,6 +2690,21 @@ if (!((((uint1)0 || (uint1)_halide_buffer_is_bounds_query((struct halide_buffer_
   pim_bank<UPMEM> (gemv.s0.i.block.__bank_id_x, 0, (gemv.extent.0 + 2047)/2048) {
    let gemv.s0.i.thread.base = min(likely_if_innermost((gemv.s0.i.block.__bank_id_x*2048) + gemv.min.0), (gemv.extent.0 + gemv.min.0) + -2048)
    let gemv.s0.i.thread.thread.loop_min.orig = 0
+   let b0.min.pim.0 = ((0*128) + 0) + gemv.s0.i.thread.base
+   let b0.extent.pim.0 = ((((((16 + 0) - 1)*128) + ((128 + 0) - 1)) + gemv.s0.i.thread.base) - (((0*128) + 0) + gemv.s0.i.thread.base)) + 1
+   let b0.stride.pim.0 = 1
+   let b0.min.pim.1 = 0
+   let b0.extent.pim.1 = (4095 - 0) + 1
+   let b0.stride.pim.1 = 1*(((((((16 + 0) - 1)*128) + ((128 + 0) - 1)) + gemv.s0.i.thread.base) - (((0*128) + 0) + gemv.s0.i.thread.base)) + 1)
+   let b1.min.pim.0 = 0
+   let b1.extent.pim.0 = (4095 - 0) + 1
+   let b1.stride.pim.0 = 1
+   let gemv.min.pim.0 = ((0*128) + 0) + gemv.s0.i.thread.base
+   let gemv.extent.pim.0 = ((((((16 + 0) - 1)*128) + ((128 + 0) - 1)) + gemv.s0.i.thread.base) - (((0*128) + 0) + gemv.s0.i.thread.base)) + 1
+   let gemv.stride.pim.0 = 1
+   let sum.min.pim.0 = sum.min.0
+   let sum.extent.pim.0 = sum.extent.0
+   let sum.stride.pim.0 = sum.stride.0
    pim_thread<UPMEM> (gemv.s0.i.thread.thread.__thread_id_x, 0, 16) {
     let gemv.s0.i.thread.inner_loop.base = gemv.s0.i.thread.thread.__thread_id_x*128
     let gemv.s0.i.thread.inner_loop.loop_min.orig = 0
@@ -2661,21 +2739,27 @@ if (!((((uint1)0 || (uint1)_halide_buffer_is_bounds_query((struct halide_buffer_
      let t2 = ((gemv.s0.i.thread.thread.__thread_id_x*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base
      let t1 = ((gemv.s0.i.thread.thread.__thread_id_x*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base
      produce sum {
-      sum[0 + (((((gemv.s0.i.thread.thread.__thread_id_x*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base) - sum.min.0)*sum.stride.0)] = 0
+      sum[0 + (((((gemv.s0.i.thread.thread.__thread_id_x*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base) - sum.min.pim.0)*sum.stride.pim.0)] = 0
       let sum.s1.r4$x.loop_min.orig = 0
       for (sum.s1.r4$x, 0, 4096) {
        let sum.s1.r4$x.max_2 = sum.s1.r4$x
        let sum.s1.r4$x.min_2 = sum.s1.r4$x
-       sum[0 + (((((gemv.s0.i.thread.thread.__thread_id_x*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base) - sum.min.0)*sum.stride.0)] = sum[0 + (((((gemv.s0.i.thread.thread.__thread_id_x*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base) - sum.min.0)*sum.stride.0)] + (b0[((0 + ((((gemv.s0.i.thread.thread.__thread_id_x*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base)*b0.stride.0)) + (sum.s1.r4$x*b0.stride.1)) - ((0 + (b0.min.0*b0.stride.0)) + (b0.min.1*b0.stride.1))]*b1[(0 + (sum.s1.r4$x*b1.stride.0)) - (0 + (b1.min.0*b1.stride.0))])
+       sum[0 + (((((gemv.s0.i.thread.thread.__thread_id_x*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base) - sum.min.pim.0)*sum.stride.pim.0)] = sum[0 + (((((gemv.s0.i.thread.thread.__thread_id_x*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base) - sum.min.pim.0)*sum.stride.pim.0)] + (b0[(0 + (((((gemv.s0.i.thread.thread.__thread_id_x*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base) - b0.min.pim.0)*b0.stride.pim.0)) + ((sum.s1.r4$x - b0.min.pim.1)*b0.stride.pim.1)]*b1[0 + ((sum.s1.r4$x - b1.min.pim.0)*b1.stride.pim.0)])
       }
      }
      consume sum {
-      gemv[(0 + ((((gemv.s0.i.thread.thread.__thread_id_x*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base)*gemv.stride.0)) - (0 + (gemv.min.0*gemv.stride.0))] = sum[0 + (((((gemv.s0.i.thread.thread.__thread_id_x*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base) - sum.min.0)*sum.stride.0)]
+      gemv[0 + (((((gemv.s0.i.thread.thread.__thread_id_x*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base) - gemv.min.pim.0)*gemv.stride.pim.0)] = sum[0 + (((((gemv.s0.i.thread.thread.__thread_id_x*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base) - sum.min.pim.0)*sum.stride.pim.0)]
      }
     }
    }
   }
-  let halide_upmem_free_result = halide_upmem_free("kernel_0")
+  for (gemv.s0.i.block.__bank_id_x, 0, (gemv.extent.0 + 2047)/2048) {
+   let gemv.s0.i.thread.base = min(likely_if_innermost((gemv.s0.i.block.__bank_id_x*2048) + gemv.min.0), (gemv.extent.0 + gemv.min.0) + -2048)
+   let gemv.s0.i.thread.thread.loop_min.orig = 0
+   let dpu_idx = gemv.s0.i.block.__bank_id_x
+   halide_upmem_dpu_copy_from(dpu_idx, (struct halide_buffer_t *)gemv.buffer, ((0*128) + 0) + gemv.s0.i.thread.base, ((((((16 + 0) - 1)*128) + ((128 + 0) - 1)) + gemv.s0.i.thread.base) - (((0*128) + 0) + gemv.s0.i.thread.base)) + 1)
+  }
+  let halide_upmem_free_result = halide_upmem_free("kernel_1")
   assert(halide_upmem_free_result == 0, halide_upmem_free_result)
  }
 }
@@ -2752,7 +2836,7 @@ if (!((uint1)_halide_buffer_is_bounds_query((struct halide_buffer_t *)gemv.buffe
  assert(gemv.stride.0 == 1, halide_error_constraint_violated("gemv.stride.0", gemv.stride.0, "1", 1))
  assert(uint64(int64(gemv.extent.0)) <= (uint64)2147483647, halide_error_buffer_allocation_too_large("gemv", uint64(int64(gemv.extent.0)), (uint64)2147483647))
  produce gemv {
-  let halide_upmem_alloc_load_result = halide_upmem_alloc_load((gemv.extent.0 + 2047)/2048, "kernel_0")
+  let halide_upmem_alloc_load_result = halide_upmem_alloc_load((gemv.extent.0 + 2047)/2048, "kernel_1")
   assert(halide_upmem_alloc_load_result == 0, halide_upmem_alloc_load_result)
   for (gemv.s0.i.block.__bank_id_x, 0, (gemv.extent.0 + 2047)/2048) {
    let gemv.s0.i.thread.base = min(likely_if_innermost((gemv.s0.i.block.__bank_id_x*2048) + gemv.min.0), (gemv.extent.0 + gemv.min.0) + -2048)
@@ -2761,23 +2845,26 @@ if (!((uint1)_halide_buffer_is_bounds_query((struct halide_buffer_t *)gemv.buffe
    halide_upmem_dpu_copy_to(gemv.s0.i.block.__bank_id_x, (struct halide_buffer_t *)gemv.buffer, gemv.s0.i.thread.base, 2048)
   }
   pim_bank<UPMEM> (gemv.s0.i.block.__bank_id_x, 0, (gemv.extent.0 + 2047)/2048) {
-   let gemv.s0.i.thread.base = min(likely_if_innermost((gemv.s0.i.block.__bank_id_x*2048) + gemv.min.0), (gemv.extent.0 + gemv.min.0) + -2048)
    pim_thread<UPMEM> (gemv.s0.i.thread.thread.__thread_id_x, 0, 16) {
     for (gemv.s0.i.thread.inner_loop, 0, 128) {
      allocate sum[int32 * 1]
      produce sum {
       sum[0] = 0
       for (sum.s1.r4$x, 0, 4096) {
-       sum[0] = sum[0] + (b0[(sum.s1.r4$x*8192) + (((gemv.s0.i.thread.thread.__thread_id_x*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base)]*b1[sum.s1.r4$x])
+       sum[0] = sum[0] + (b0[(sum.s1.r4$x*2048) + ((gemv.s0.i.thread.thread.__thread_id_x*128) + gemv.s0.i.thread.inner_loop)]*b1[sum.s1.r4$x])
       }
      }
      consume sum {
-      gemv[(((gemv.s0.i.thread.thread.__thread_id_x*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base) - gemv.min.0] = sum[0]
+      gemv[(gemv.s0.i.thread.thread.__thread_id_x*128) + gemv.s0.i.thread.inner_loop] = sum[0]
      }
     }
    }
   }
-  let halide_upmem_free_result = halide_upmem_free("kernel_0")
+  for (gemv.s0.i.block.__bank_id_x, 0, (gemv.extent.0 + 2047)/2048) {
+   let gemv.s0.i.thread.base = min(likely_if_innermost((gemv.s0.i.block.__bank_id_x*2048) + gemv.min.0), (gemv.extent.0 + gemv.min.0) + -2048)
+   halide_upmem_dpu_copy_from(gemv.s0.i.block.__bank_id_x, (struct halide_buffer_t *)gemv.buffer, gemv.s0.i.thread.base, 2048)
+  }
+  let halide_upmem_free_result = halide_upmem_free("kernel_1")
   assert(halide_upmem_free_result == 0, halide_upmem_free_result)
  }
 }
@@ -2851,7 +2938,7 @@ if (!((uint1)_halide_buffer_is_bounds_query((struct halide_buffer_t *)gemv.buffe
  assert(gemv.stride.0 == 1, halide_error_constraint_violated("gemv.stride.0", gemv.stride.0, "1", 1))
  assert(uint64(int64(gemv.extent.0)) <= (uint64)2147483647, halide_error_buffer_allocation_too_large("gemv", uint64(int64(gemv.extent.0)), (uint64)2147483647))
  produce gemv {
-  let halide_upmem_alloc_load_result = halide_upmem_alloc_load((gemv.extent.0 + 2047)/2048, "kernel_0")
+  let halide_upmem_alloc_load_result = halide_upmem_alloc_load((gemv.extent.0 + 2047)/2048, "kernel_1")
   assert(halide_upmem_alloc_load_result == 0, halide_upmem_alloc_load_result)
   for (gemv.s0.i.block.__bank_id_x, 0, (gemv.extent.0 + 2047)/2048) {
    let gemv.s0.i.thread.base = min(likely_if_innermost((gemv.s0.i.block.__bank_id_x*2048) + gemv.min.0), (gemv.extent.0 + gemv.min.0) + -2048)
@@ -2860,23 +2947,26 @@ if (!((uint1)_halide_buffer_is_bounds_query((struct halide_buffer_t *)gemv.buffe
    halide_upmem_dpu_copy_to(gemv.s0.i.block.__bank_id_x, (struct halide_buffer_t *)gemv.buffer, gemv.s0.i.thread.base, 2048)
   }
   pim_bank<UPMEM> (gemv.s0.i.block.__bank_id_x, 0, (gemv.extent.0 + 2047)/2048) {
-   let gemv.s0.i.thread.base = min(likely_if_innermost((gemv.s0.i.block.__bank_id_x*2048) + gemv.min.0), (gemv.extent.0 + gemv.min.0) + -2048)
    pim_thread<UPMEM> (gemv.s0.i.thread.thread.__thread_id_x, 0, 16) {
     for (gemv.s0.i.thread.inner_loop, 0, 128) {
      allocate sum[int32 * 1]
      produce sum {
       sum[0] = 0
       for (sum.s1.r4$x, 0, 4096) {
-       sum[0] = sum[0] + (b0[(sum.s1.r4$x*8192) + (((gemv.s0.i.thread.thread.__thread_id_x*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base)]*b1[sum.s1.r4$x])
+       sum[0] = sum[0] + (b0[(sum.s1.r4$x*2048) + ((gemv.s0.i.thread.thread.__thread_id_x*128) + gemv.s0.i.thread.inner_loop)]*b1[sum.s1.r4$x])
       }
      }
      consume sum {
-      gemv[(((gemv.s0.i.thread.thread.__thread_id_x*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base) - gemv.min.0] = sum[0]
+      gemv[(gemv.s0.i.thread.thread.__thread_id_x*128) + gemv.s0.i.thread.inner_loop] = sum[0]
      }
     }
    }
   }
-  let halide_upmem_free_result = halide_upmem_free("kernel_0")
+  for (gemv.s0.i.block.__bank_id_x, 0, (gemv.extent.0 + 2047)/2048) {
+   let gemv.s0.i.thread.base = min(likely_if_innermost((gemv.s0.i.block.__bank_id_x*2048) + gemv.min.0), (gemv.extent.0 + gemv.min.0) + -2048)
+   halide_upmem_dpu_copy_from(gemv.s0.i.block.__bank_id_x, (struct halide_buffer_t *)gemv.buffer, gemv.s0.i.thread.base, 2048)
+  }
+  let halide_upmem_free_result = halide_upmem_free("kernel_1")
   assert(halide_upmem_free_result == 0, halide_upmem_free_result)
  }
 }
@@ -2946,7 +3036,7 @@ if (!((uint1)_halide_buffer_is_bounds_query((struct halide_buffer_t *)gemv.buffe
  assert(gemv.stride.0 == 1, halide_error_constraint_violated("gemv.stride.0", gemv.stride.0, "1", 1))
  assert(uint64(gemv.extent.0) <= (uint64)2147483647, halide_error_buffer_allocation_too_large("gemv", uint64(gemv.extent.0), (uint64)2147483647))
  produce gemv {
-  let halide_upmem_alloc_load_result = halide_upmem_alloc_load((gemv.extent.0 + 2047)/2048, "kernel_0")
+  let halide_upmem_alloc_load_result = halide_upmem_alloc_load((gemv.extent.0 + 2047)/2048, "kernel_1")
   assert(halide_upmem_alloc_load_result == 0, halide_upmem_alloc_load_result)
   for (gemv.s0.i.block.__bank_id_x, 0, (gemv.extent.0 + 2047)/2048) {
    let gemv.s0.i.thread.base = min(likely_if_innermost((gemv.s0.i.block.__bank_id_x*2048) + gemv.min.0), (gemv.extent.0 + gemv.min.0) + -2048)
@@ -2955,23 +3045,26 @@ if (!((uint1)_halide_buffer_is_bounds_query((struct halide_buffer_t *)gemv.buffe
    halide_upmem_dpu_copy_to(gemv.s0.i.block.__bank_id_x, (struct halide_buffer_t *)gemv.buffer, gemv.s0.i.thread.base, 2048)
   }
   pim_bank<UPMEM> (gemv.s0.i.block.__bank_id_x, 0, (gemv.extent.0 + 2047)/2048) {
-   let gemv.s0.i.thread.base = min(likely_if_innermost((gemv.s0.i.block.__bank_id_x*2048) + gemv.min.0), (gemv.extent.0 + gemv.min.0) + -2048)
    pim_thread<UPMEM> (gemv.s0.i.thread.thread.__thread_id_x, 0, 16) {
     for (gemv.s0.i.thread.inner_loop, 0, 128) {
      allocate sum[int32 * 1]
      produce sum {
       sum[0] = 0
       for (sum.s1.r4$x, 0, 4096) {
-       sum[0] = sum[0] + (b0[(sum.s1.r4$x*8192) + (((gemv.s0.i.thread.thread.__thread_id_x*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base)]*b1[sum.s1.r4$x])
+       sum[0] = sum[0] + (b0[(sum.s1.r4$x*2048) + ((gemv.s0.i.thread.thread.__thread_id_x*128) + gemv.s0.i.thread.inner_loop)]*b1[sum.s1.r4$x])
       }
      }
      consume sum {
-      gemv[(((gemv.s0.i.thread.thread.__thread_id_x*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base) - gemv.min.0] = sum[0]
+      gemv[(gemv.s0.i.thread.thread.__thread_id_x*128) + gemv.s0.i.thread.inner_loop] = sum[0]
      }
     }
    }
   }
-  let halide_upmem_free_result = halide_upmem_free("kernel_0")
+  for (gemv.s0.i.block.__bank_id_x, 0, (gemv.extent.0 + 2047)/2048) {
+   let gemv.s0.i.thread.base = min(likely_if_innermost((gemv.s0.i.block.__bank_id_x*2048) + gemv.min.0), (gemv.extent.0 + gemv.min.0) + -2048)
+   halide_upmem_dpu_copy_from(gemv.s0.i.block.__bank_id_x, (struct halide_buffer_t *)gemv.buffer, gemv.s0.i.thread.base, 2048)
+  }
+  let halide_upmem_free_result = halide_upmem_free("kernel_1")
   assert(halide_upmem_free_result == 0, halide_upmem_free_result)
  }
 }
@@ -3038,7 +3131,7 @@ if (!((uint1)_halide_buffer_is_bounds_query((struct halide_buffer_t *)gemv.buffe
  assert(gemv.stride.0 == 1, halide_error_constraint_violated("gemv.stride.0", gemv.stride.0, "1", 1))
  assert(uint64(gemv.extent.0) <= (uint64)2147483647, halide_error_buffer_allocation_too_large("gemv", uint64(gemv.extent.0), (uint64)2147483647))
  produce gemv {
-  let halide_upmem_alloc_load_result = halide_upmem_alloc_load((gemv.extent.0 + 2047)/2048, "kernel_0")
+  let halide_upmem_alloc_load_result = halide_upmem_alloc_load((gemv.extent.0 + 2047)/2048, "kernel_1")
   assert(halide_upmem_alloc_load_result == 0, halide_upmem_alloc_load_result)
   for (gemv.s0.i.block.__bank_id_x, 0, (gemv.extent.0 + 2047)/2048) {
    let gemv.s0.i.thread.base = min(likely_if_innermost((gemv.s0.i.block.__bank_id_x*2048) + gemv.min.0), (gemv.extent.0 + gemv.min.0) + -2048)
@@ -3047,23 +3140,26 @@ if (!((uint1)_halide_buffer_is_bounds_query((struct halide_buffer_t *)gemv.buffe
    halide_upmem_dpu_copy_to(gemv.s0.i.block.__bank_id_x, (struct halide_buffer_t *)gemv.buffer, gemv.s0.i.thread.base, 2048)
   }
   pim_bank<UPMEM> (gemv.s0.i.block.__bank_id_x, 0, (gemv.extent.0 + 2047)/2048) {
-   let gemv.s0.i.thread.base = min(likely_if_innermost((gemv.s0.i.block.__bank_id_x*2048) + gemv.min.0), (gemv.extent.0 + gemv.min.0) + -2048)
    pim_thread<UPMEM> (gemv.s0.i.thread.thread.__thread_id_x, 0, 16) {
     for (gemv.s0.i.thread.inner_loop, 0, 128) {
      allocate sum[int32 * 1]
      produce sum {
       sum[0] = 0
       for (sum.s1.r4$x, 0, 4096) {
-       sum[0] = sum[0] + (b0[(sum.s1.r4$x*8192) + (((gemv.s0.i.thread.thread.__thread_id_x*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base)]*b1[sum.s1.r4$x])
+       sum[0] = sum[0] + (b0[(sum.s1.r4$x*2048) + ((gemv.s0.i.thread.thread.__thread_id_x*128) + gemv.s0.i.thread.inner_loop)]*b1[sum.s1.r4$x])
       }
      }
      consume sum {
-      gemv[(((gemv.s0.i.thread.thread.__thread_id_x*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base) - gemv.min.0] = sum[0]
+      gemv[(gemv.s0.i.thread.thread.__thread_id_x*128) + gemv.s0.i.thread.inner_loop] = sum[0]
      }
     }
    }
   }
-  let halide_upmem_free_result = halide_upmem_free("kernel_0")
+  for (gemv.s0.i.block.__bank_id_x, 0, (gemv.extent.0 + 2047)/2048) {
+   let gemv.s0.i.thread.base = min(likely_if_innermost((gemv.s0.i.block.__bank_id_x*2048) + gemv.min.0), (gemv.extent.0 + gemv.min.0) + -2048)
+   halide_upmem_dpu_copy_from(gemv.s0.i.block.__bank_id_x, (struct halide_buffer_t *)gemv.buffer, gemv.s0.i.thread.base, 2048)
+  }
+  let halide_upmem_free_result = halide_upmem_free("kernel_1")
   assert(halide_upmem_free_result == 0, halide_upmem_free_result)
  }
 }
@@ -3130,7 +3226,7 @@ if (!((uint1)_halide_buffer_is_bounds_query((struct halide_buffer_t *)gemv.buffe
  assert(gemv.stride.0 == 1, halide_error_constraint_violated("gemv.stride.0", gemv.stride.0, "1", 1))
  assert(uint64(gemv.extent.0) <= (uint64)2147483647, halide_error_buffer_allocation_too_large("gemv", uint64(gemv.extent.0), (uint64)2147483647))
  produce gemv {
-  let halide_upmem_alloc_load_result = halide_upmem_alloc_load((gemv.extent.0 + 2047)/2048, "kernel_0")
+  let halide_upmem_alloc_load_result = halide_upmem_alloc_load((gemv.extent.0 + 2047)/2048, "kernel_1")
   assert(halide_upmem_alloc_load_result == 0, halide_upmem_alloc_load_result)
   for (gemv.s0.i.block.__bank_id_x, 0, gemv.extent.0/2048) {
    halide_upmem_dpu_copy_to(gemv.s0.i.block.__bank_id_x, (struct halide_buffer_t *)b0.buffer, (gemv.s0.i.block.__bank_id_x*2048) + gemv.min.0, 0, 2048, 4096)
@@ -3143,23 +3239,28 @@ if (!((uint1)_halide_buffer_is_bounds_query((struct halide_buffer_t *)gemv.buffe
    halide_upmem_dpu_copy_to(gemv.extent.0/2048, (struct halide_buffer_t *)gemv.buffer, (gemv.extent.0 + gemv.min.0) + -2048, 2048)
   }
   pim_bank<UPMEM> (gemv.s0.i.block.__bank_id_x, 0, (gemv.extent.0 + 2047)/2048) {
-   let gemv.s0.i.thread.base.s = min(gemv.s0.i.block.__bank_id_x*2048, gemv.extent.0 + -2048)
    pim_thread<UPMEM> (gemv.s0.i.thread.thread.__thread_id_x, 0, 16) {
     for (gemv.s0.i.thread.inner_loop, 0, 128) {
      allocate sum[int32 * 1]
      produce sum {
       sum[0] = 0
       for (sum.s1.r4$x, 0, 4096) {
-       sum[0] = sum[0] + (b0[(sum.s1.r4$x*8192) + (((gemv.s0.i.thread.thread.__thread_id_x*128) + gemv.s0.i.thread.inner_loop) + (gemv.min.0 + gemv.s0.i.thread.base.s))]*b1[sum.s1.r4$x])
+       sum[0] = sum[0] + (b0[(sum.s1.r4$x*2048) + ((gemv.s0.i.thread.thread.__thread_id_x*128) + gemv.s0.i.thread.inner_loop)]*b1[sum.s1.r4$x])
       }
      }
      consume sum {
-      gemv[((gemv.s0.i.thread.thread.__thread_id_x*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base.s] = sum[0]
+      gemv[(gemv.s0.i.thread.thread.__thread_id_x*128) + gemv.s0.i.thread.inner_loop] = sum[0]
      }
     }
    }
   }
-  let halide_upmem_free_result = halide_upmem_free("kernel_0")
+  for (gemv.s0.i.block.__bank_id_x, 0, gemv.extent.0/2048) {
+   halide_upmem_dpu_copy_from(gemv.s0.i.block.__bank_id_x, (struct halide_buffer_t *)gemv.buffer, (gemv.s0.i.block.__bank_id_x*2048) + gemv.min.0, 2048)
+  }
+  if ((gemv.extent.0 % 2048) != 0) {
+   halide_upmem_dpu_copy_from(gemv.extent.0/2048, (struct halide_buffer_t *)gemv.buffer, (gemv.extent.0 + gemv.min.0) + -2048, 2048)
+  }
+  let halide_upmem_free_result = halide_upmem_free("kernel_1")
   assert(halide_upmem_free_result == 0, halide_upmem_free_result)
  }
 }
@@ -3229,7 +3330,7 @@ if (!((uint1)_halide_buffer_is_bounds_query((struct halide_buffer_t *)gemv.buffe
  assert(gemv.stride.0 == 1, halide_error_constraint_violated("gemv.stride.0", gemv.stride.0, "1", 1))
  assert(uint64(gemv.extent.0) <= (uint64)2147483647, halide_error_buffer_allocation_too_large("gemv", uint64(gemv.extent.0), (uint64)2147483647))
  produce gemv {
-  let halide_upmem_alloc_load_result = halide_upmem_alloc_load((gemv.extent.0 + 2047)/2048, "kernel_0")
+  let halide_upmem_alloc_load_result = halide_upmem_alloc_load((gemv.extent.0 + 2047)/2048, "kernel_1")
   assert(halide_upmem_alloc_load_result == 0, halide_upmem_alloc_load_result)
   for (gemv.s0.i.block.__bank_id_x, 0, gemv.extent.0/2048) {
    halide_upmem_dpu_copy_to(gemv.s0.i.block.__bank_id_x, (struct halide_buffer_t *)b0.buffer, (gemv.s0.i.block.__bank_id_x*2048) + gemv.min.0, 0, 2048, 4096)
@@ -3242,23 +3343,28 @@ if (!((uint1)_halide_buffer_is_bounds_query((struct halide_buffer_t *)gemv.buffe
    halide_upmem_dpu_copy_to(gemv.extent.0/2048, (struct halide_buffer_t *)gemv.buffer, (gemv.extent.0 + gemv.min.0) + -2048, 2048)
   }
   pim_bank<UPMEM> (gemv.s0.i.block.__bank_id_x, 0, (gemv.extent.0 + 2047)/2048) {
-   let gemv.s0.i.thread.base.s = min(gemv.s0.i.block.__bank_id_x*2048, gemv.extent.0 + -2048)
    pim_thread<UPMEM> (gemv.s0.i.thread.thread.__thread_id_x, 0, 16) {
     for (gemv.s0.i.thread.inner_loop, 0, 128) {
      allocate sum[int32 * 1]
      produce sum {
       sum[0] = 0
       for (sum.s1.r4$x, 0, 4096) {
-       sum[0] = sum[0] + (b0[(sum.s1.r4$x*8192) + (((gemv.s0.i.thread.thread.__thread_id_x*128) + gemv.s0.i.thread.inner_loop) + (gemv.min.0 + gemv.s0.i.thread.base.s))]*b1[sum.s1.r4$x])
+       sum[0] = sum[0] + (b0[(sum.s1.r4$x*2048) + ((gemv.s0.i.thread.thread.__thread_id_x*128) + gemv.s0.i.thread.inner_loop)]*b1[sum.s1.r4$x])
       }
      }
      consume sum {
-      gemv[((gemv.s0.i.thread.thread.__thread_id_x*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base.s] = sum[0]
+      gemv[(gemv.s0.i.thread.thread.__thread_id_x*128) + gemv.s0.i.thread.inner_loop] = sum[0]
      }
     }
    }
   }
-  let halide_upmem_free_result = halide_upmem_free("kernel_0")
+  for (gemv.s0.i.block.__bank_id_x, 0, gemv.extent.0/2048) {
+   halide_upmem_dpu_copy_from(gemv.s0.i.block.__bank_id_x, (struct halide_buffer_t *)gemv.buffer, (gemv.s0.i.block.__bank_id_x*2048) + gemv.min.0, 2048)
+  }
+  if ((gemv.extent.0 % 2048) != 0) {
+   halide_upmem_dpu_copy_from(gemv.extent.0/2048, (struct halide_buffer_t *)gemv.buffer, (gemv.extent.0 + gemv.min.0) + -2048, 2048)
+  }
+  let halide_upmem_free_result = halide_upmem_free("kernel_1")
   assert(halide_upmem_free_result == 0, halide_upmem_free_result)
  }
 }
@@ -3325,7 +3431,7 @@ if (!((uint1)_halide_buffer_is_bounds_query((struct halide_buffer_t *)gemv.buffe
  assert(gemv.stride.0 == 1, halide_error_constraint_violated("gemv.stride.0", gemv.stride.0, "1", 1))
  assert(uint64(gemv.extent.0) <= (uint64)2147483647, halide_error_buffer_allocation_too_large("gemv", uint64(gemv.extent.0), (uint64)2147483647))
  produce gemv {
-  let halide_upmem_alloc_load_result = halide_upmem_alloc_load((gemv.extent.0 + 2047)/2048, "kernel_0")
+  let halide_upmem_alloc_load_result = halide_upmem_alloc_load((gemv.extent.0 + 2047)/2048, "kernel_1")
   assert(halide_upmem_alloc_load_result == 0, halide_upmem_alloc_load_result)
   for (gemv.s0.i.block.__bank_id_x, 0, gemv.extent.0/2048) {
    halide_upmem_dpu_copy_to(gemv.s0.i.block.__bank_id_x, (struct halide_buffer_t *)b0.buffer, (gemv.s0.i.block.__bank_id_x*2048) + gemv.min.0, 0, 2048, 4096)
@@ -3338,23 +3444,28 @@ if (!((uint1)_halide_buffer_is_bounds_query((struct halide_buffer_t *)gemv.buffe
    halide_upmem_dpu_copy_to(gemv.extent.0/2048, (struct halide_buffer_t *)gemv.buffer, (gemv.extent.0 + gemv.min.0) + -2048, 2048)
   }
   pim_bank<UPMEM> (gemv.s0.i.block.__bank_id_x, 0, (gemv.extent.0 + 2047)/2048) {
-   let gemv.s0.i.thread.base.s = min(gemv.s0.i.block.__bank_id_x*2048, gemv.extent.0 + -2048)
    pim_thread<UPMEM> (gemv.s0.i.thread.thread.__thread_id_x, 0, 16) {
     for (gemv.s0.i.thread.inner_loop, 0, 128) {
      allocate sum[int32 * 1]
      produce sum {
       sum[0] = 0
       for (sum.s1.r4$x, 0, 4096) {
-       sum[0] = sum[0] + (b0[(sum.s1.r4$x*8192) + (((gemv.s0.i.thread.thread.__thread_id_x*128) + gemv.s0.i.thread.inner_loop) + (gemv.min.0 + gemv.s0.i.thread.base.s))]*b1[sum.s1.r4$x])
+       sum[0] = sum[0] + (b0[(sum.s1.r4$x*2048) + ((gemv.s0.i.thread.thread.__thread_id_x*128) + gemv.s0.i.thread.inner_loop)]*b1[sum.s1.r4$x])
       }
      }
      consume sum {
-      gemv[((gemv.s0.i.thread.thread.__thread_id_x*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base.s] = sum[0]
+      gemv[(gemv.s0.i.thread.thread.__thread_id_x*128) + gemv.s0.i.thread.inner_loop] = sum[0]
      }
     }
    }
   }
-  let halide_upmem_free_result = halide_upmem_free("kernel_0")
+  for (gemv.s0.i.block.__bank_id_x, 0, gemv.extent.0/2048) {
+   halide_upmem_dpu_copy_from(gemv.s0.i.block.__bank_id_x, (struct halide_buffer_t *)gemv.buffer, (gemv.s0.i.block.__bank_id_x*2048) + gemv.min.0, 2048)
+  }
+  if ((gemv.extent.0 % 2048) != 0) {
+   halide_upmem_dpu_copy_from(gemv.extent.0/2048, (struct halide_buffer_t *)gemv.buffer, (gemv.extent.0 + gemv.min.0) + -2048, 2048)
+  }
+  let halide_upmem_free_result = halide_upmem_free("kernel_1")
   assert(halide_upmem_free_result == 0, halide_upmem_free_result)
  }
 }
@@ -3425,7 +3536,7 @@ if (!((uint1)_halide_buffer_is_bounds_query((struct halide_buffer_t *)gemv.buffe
  assert(gemv.stride.0 == 1, halide_error_constraint_violated("gemv.stride.0", gemv.stride.0, "1", 1))
  assert(uint64(gemv.extent.0) <= (uint64)2147483647, halide_error_buffer_allocation_too_large("gemv", uint64(gemv.extent.0), (uint64)2147483647))
  produce gemv {
-  let halide_upmem_alloc_load_result = halide_upmem_alloc_load((gemv.extent.0 + 2047)/2048, "kernel_0")
+  let halide_upmem_alloc_load_result = halide_upmem_alloc_load((gemv.extent.0 + 2047)/2048, "kernel_1")
   assert(halide_upmem_alloc_load_result == 0, halide_upmem_alloc_load_result)
   for (gemv.s0.i.block.__bank_id_x, 0, gemv.extent.0/2048) {
    halide_upmem_dpu_copy_to(gemv.s0.i.block.__bank_id_x, (struct halide_buffer_t *)b0.buffer, (gemv.s0.i.block.__bank_id_x*2048) + gemv.min.0, 0, 2048, 4096)
@@ -3438,24 +3549,29 @@ if (!((uint1)_halide_buffer_is_bounds_query((struct halide_buffer_t *)gemv.buffe
    halide_upmem_dpu_copy_to(gemv.extent.0/2048, (struct halide_buffer_t *)gemv.buffer, (gemv.extent.0 + gemv.min.0) + -2048, 2048)
   }
   pim_bank<UPMEM> (gemv.s0.i.block.__bank_id_x, 0, (gemv.extent.0 + 2047)/2048) {
-   let gemv.s0.i.thread.base.s = min(gemv.s0.i.block.__bank_id_x*2048, gemv.extent.0 + -2048)
    pim_thread<UPMEM> (gemv.s0.i.thread.thread.__thread_id_x, 0, 16) {
     for (gemv.s0.i.thread.inner_loop, 0, 128) {
      allocate sum[int32 * 1]
      produce sum {
       sum[0] = 0
       for (sum.s1.r4$x, 0, 4096) {
-       sum[0] = sum[0] + (b0[(sum.s1.r4$x*8192) + (((gemv.s0.i.thread.thread.__thread_id_x*128) + gemv.s0.i.thread.inner_loop) + (gemv.min.0 + gemv.s0.i.thread.base.s))]*b1[sum.s1.r4$x])
+       sum[0] = sum[0] + (b0[(sum.s1.r4$x*2048) + ((gemv.s0.i.thread.thread.__thread_id_x*128) + gemv.s0.i.thread.inner_loop)]*b1[sum.s1.r4$x])
       }
      }
      consume sum {
-      gemv[((gemv.s0.i.thread.thread.__thread_id_x*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base.s] = sum[0]
+      gemv[(gemv.s0.i.thread.thread.__thread_id_x*128) + gemv.s0.i.thread.inner_loop] = sum[0]
      }
      free sum
     }
    }
   }
-  let halide_upmem_free_result = halide_upmem_free("kernel_0")
+  for (gemv.s0.i.block.__bank_id_x, 0, gemv.extent.0/2048) {
+   halide_upmem_dpu_copy_from(gemv.s0.i.block.__bank_id_x, (struct halide_buffer_t *)gemv.buffer, (gemv.s0.i.block.__bank_id_x*2048) + gemv.min.0, 2048)
+  }
+  if ((gemv.extent.0 % 2048) != 0) {
+   halide_upmem_dpu_copy_from(gemv.extent.0/2048, (struct halide_buffer_t *)gemv.buffer, (gemv.extent.0 + gemv.min.0) + -2048, 2048)
+  }
+  let halide_upmem_free_result = halide_upmem_free("kernel_1")
   assert(halide_upmem_free_result == 0, halide_upmem_free_result)
  }
 }
@@ -3522,7 +3638,7 @@ if (!((uint1)_halide_buffer_is_bounds_query((struct halide_buffer_t *)gemv.buffe
  assert(gemv.stride.0 == 1, halide_error_constraint_violated("gemv.stride.0", gemv.stride.0, "1", 1))
  assert(uint64(gemv.extent.0) <= (uint64)2147483647, halide_error_buffer_allocation_too_large("gemv", uint64(gemv.extent.0), (uint64)2147483647))
  produce gemv {
-  let halide_upmem_alloc_load_result = halide_upmem_alloc_load((gemv.extent.0 + 2047)/2048, "kernel_0")
+  let halide_upmem_alloc_load_result = halide_upmem_alloc_load((gemv.extent.0 + 2047)/2048, "kernel_1")
   assert(halide_upmem_alloc_load_result == 0, halide_upmem_alloc_load_result)
   for (gemv.s0.i.block.__bank_id_x, 0, gemv.extent.0/2048) {
    halide_upmem_dpu_copy_to(gemv.s0.i.block.__bank_id_x, (struct halide_buffer_t *)b0.buffer, (gemv.s0.i.block.__bank_id_x*2048) + gemv.min.0, 0, 2048, 4096)
@@ -3535,24 +3651,29 @@ if (!((uint1)_halide_buffer_is_bounds_query((struct halide_buffer_t *)gemv.buffe
    halide_upmem_dpu_copy_to(gemv.extent.0/2048, (struct halide_buffer_t *)gemv.buffer, (gemv.extent.0 + gemv.min.0) + -2048, 2048)
   }
   pim_bank<UPMEM> (gemv.s0.i.block.__bank_id_x, 0, (gemv.extent.0 + 2047)/2048) {
-   let gemv.s0.i.thread.base.s = min(gemv.s0.i.block.__bank_id_x*2048, gemv.extent.0 + -2048)
    pim_thread<UPMEM> (gemv.s0.i.thread.thread.__thread_id_x, 0, 16) {
     for (gemv.s0.i.thread.inner_loop, 0, 128) {
      allocate sum[int32 * 1]
      produce sum {
       sum[0] = 0
       for (sum.s1.r4$x, 0, 4096) {
-       sum[0] = sum[0] + (b0[(sum.s1.r4$x*8192) + (((gemv.s0.i.thread.thread.__thread_id_x*128) + gemv.s0.i.thread.inner_loop) + (gemv.min.0 + gemv.s0.i.thread.base.s))]*b1[sum.s1.r4$x])
+       sum[0] = sum[0] + (b0[(sum.s1.r4$x*2048) + ((gemv.s0.i.thread.thread.__thread_id_x*128) + gemv.s0.i.thread.inner_loop)]*b1[sum.s1.r4$x])
       }
      }
      consume sum {
-      gemv[((gemv.s0.i.thread.thread.__thread_id_x*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base.s] = sum[0]
+      gemv[(gemv.s0.i.thread.thread.__thread_id_x*128) + gemv.s0.i.thread.inner_loop] = sum[0]
      }
      free sum
     }
    }
   }
-  let halide_upmem_free_result = halide_upmem_free("kernel_0")
+  for (gemv.s0.i.block.__bank_id_x, 0, gemv.extent.0/2048) {
+   halide_upmem_dpu_copy_from(gemv.s0.i.block.__bank_id_x, (struct halide_buffer_t *)gemv.buffer, (gemv.s0.i.block.__bank_id_x*2048) + gemv.min.0, 2048)
+  }
+  if ((gemv.extent.0 % 2048) != 0) {
+   halide_upmem_dpu_copy_from(gemv.extent.0/2048, (struct halide_buffer_t *)gemv.buffer, (gemv.extent.0 + gemv.min.0) + -2048, 2048)
+  }
+  let halide_upmem_free_result = halide_upmem_free("kernel_1")
   assert(halide_upmem_free_result == 0, halide_upmem_free_result)
  }
 }
@@ -3619,7 +3740,7 @@ if (!((uint1)_halide_buffer_is_bounds_query((struct halide_buffer_t *)gemv.buffe
  assert(gemv.stride.0 == 1, halide_error_constraint_violated("gemv.stride.0", gemv.stride.0, "1", 1))
  assert(uint64(gemv.extent.0) <= (uint64)2147483647, halide_error_buffer_allocation_too_large("gemv", uint64(gemv.extent.0), (uint64)2147483647))
  produce gemv {
-  let halide_upmem_alloc_load_result = halide_upmem_alloc_load((gemv.extent.0 + 2047)/2048, "kernel_0")
+  let halide_upmem_alloc_load_result = halide_upmem_alloc_load((gemv.extent.0 + 2047)/2048, "kernel_1")
   assert(halide_upmem_alloc_load_result == 0, halide_upmem_alloc_load_result)
   for (gemv.s0.i.block.__bank_id_x, 0, gemv.extent.0/2048) {
    halide_upmem_dpu_copy_to(gemv.s0.i.block.__bank_id_x, (struct halide_buffer_t *)b0.buffer, (gemv.s0.i.block.__bank_id_x*2048) + gemv.min.0, 0, 2048, 4096)
@@ -3632,24 +3753,29 @@ if (!((uint1)_halide_buffer_is_bounds_query((struct halide_buffer_t *)gemv.buffe
    halide_upmem_dpu_copy_to(gemv.extent.0/2048, (struct halide_buffer_t *)gemv.buffer, (gemv.extent.0 + gemv.min.0) + -2048, 2048)
   }
   pim_bank<UPMEM> (gemv.s0.i.block.__bank_id_x, 0, (gemv.extent.0 + 2047)/2048) {
-   let gemv.s0.i.thread.base.s = min(gemv.s0.i.block.__bank_id_x*2048, gemv.extent.0 + -2048)
    pim_thread<UPMEM> (gemv.s0.i.thread.thread.__thread_id_x, 0, 16) {
     for (gemv.s0.i.thread.inner_loop, 0, 128) {
      allocate sum[int32 * 1]
      produce sum {
       sum[0] = 0
       for (sum.s1.r4$x, 0, 4096) {
-       sum[0] = sum[0] + (b0[(sum.s1.r4$x*8192) + (((gemv.s0.i.thread.thread.__thread_id_x*128) + gemv.s0.i.thread.inner_loop) + (gemv.min.0 + gemv.s0.i.thread.base.s))]*b1[sum.s1.r4$x])
+       sum[0] = sum[0] + (b0[(sum.s1.r4$x*2048) + ((gemv.s0.i.thread.thread.__thread_id_x*128) + gemv.s0.i.thread.inner_loop)]*b1[sum.s1.r4$x])
       }
      }
      consume sum {
-      gemv[((gemv.s0.i.thread.thread.__thread_id_x*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base.s] = sum[0]
+      gemv[(gemv.s0.i.thread.thread.__thread_id_x*128) + gemv.s0.i.thread.inner_loop] = sum[0]
      }
      free sum
     }
    }
   }
-  let halide_upmem_free_result = halide_upmem_free("kernel_0")
+  for (gemv.s0.i.block.__bank_id_x, 0, gemv.extent.0/2048) {
+   halide_upmem_dpu_copy_from(gemv.s0.i.block.__bank_id_x, (struct halide_buffer_t *)gemv.buffer, (gemv.s0.i.block.__bank_id_x*2048) + gemv.min.0, 2048)
+  }
+  if ((gemv.extent.0 % 2048) != 0) {
+   halide_upmem_dpu_copy_from(gemv.extent.0/2048, (struct halide_buffer_t *)gemv.buffer, (gemv.extent.0 + gemv.min.0) + -2048, 2048)
+  }
+  let halide_upmem_free_result = halide_upmem_free("kernel_1")
   assert(halide_upmem_free_result == 0, halide_upmem_free_result)
  }
 }
@@ -3717,7 +3843,7 @@ if (!((uint1)_halide_buffer_is_bounds_query((struct halide_buffer_t *)gemv.buffe
  assert(gemv.stride.0 == 1, halide_error_constraint_violated("gemv.stride.0", gemv.stride.0, "1", 1))
  assert(uint64(gemv.extent.0) <= (uint64)2147483647, halide_error_buffer_allocation_too_large("gemv", uint64(gemv.extent.0), (uint64)2147483647))
  produce gemv {
-  let halide_upmem_alloc_load_result = halide_upmem_alloc_load((gemv.extent.0 + 2047)/2048, "kernel_0")
+  let halide_upmem_alloc_load_result = halide_upmem_alloc_load((gemv.extent.0 + 2047)/2048, "kernel_1")
   assert(halide_upmem_alloc_load_result == 0, halide_upmem_alloc_load_result)
   for (gemv.s0.i.block.__bank_id_x, 0, gemv.extent.0/2048) {
    halide_upmem_dpu_copy_to(gemv.s0.i.block.__bank_id_x, (struct halide_buffer_t *)b0.buffer, (gemv.s0.i.block.__bank_id_x*2048) + gemv.min.0, 0, 2048, 4096)
@@ -3730,24 +3856,29 @@ if (!((uint1)_halide_buffer_is_bounds_query((struct halide_buffer_t *)gemv.buffe
    halide_upmem_dpu_copy_to(gemv.extent.0/2048, (struct halide_buffer_t *)gemv.buffer, (gemv.extent.0 + gemv.min.0) + -2048, 2048)
   }
   pim_bank<UPMEM> (gemv.s0.i.block.__bank_id_x, 0, (gemv.extent.0 + 2047)/2048) {
-   let gemv.s0.i.thread.base.s = min(gemv.s0.i.block.__bank_id_x*2048, gemv.extent.0 + -2048)
    pim_thread<UPMEM> (gemv.s0.i.thread.thread.__thread_id_x, 0, 16) {
     for (gemv.s0.i.thread.inner_loop, 0, 128) {
      allocate sum[int32 * 1]
      produce sum {
       sum[0] = 0
       for (sum.s1.r4$x, 0, 4096) {
-       sum[0] = sum[0] + (b0[(sum.s1.r4$x*8192) + (((gemv.s0.i.thread.thread.__thread_id_x*128) + gemv.s0.i.thread.inner_loop) + (gemv.min.0 + gemv.s0.i.thread.base.s))]*b1[sum.s1.r4$x])
+       sum[0] = sum[0] + (b0[(sum.s1.r4$x*2048) + ((gemv.s0.i.thread.thread.__thread_id_x*128) + gemv.s0.i.thread.inner_loop)]*b1[sum.s1.r4$x])
       }
      }
      consume sum {
-      gemv[((gemv.s0.i.thread.thread.__thread_id_x*128) + gemv.s0.i.thread.inner_loop) + gemv.s0.i.thread.base.s] = sum[0]
+      gemv[(gemv.s0.i.thread.thread.__thread_id_x*128) + gemv.s0.i.thread.inner_loop] = sum[0]
      }
      free sum
     }
    }
   }
-  let halide_upmem_free_result = halide_upmem_free("kernel_0")
+  for (gemv.s0.i.block.__bank_id_x, 0, gemv.extent.0/2048) {
+   halide_upmem_dpu_copy_from(gemv.s0.i.block.__bank_id_x, (struct halide_buffer_t *)gemv.buffer, (gemv.s0.i.block.__bank_id_x*2048) + gemv.min.0, 2048)
+  }
+  if ((gemv.extent.0 % 2048) != 0) {
+   halide_upmem_dpu_copy_from(gemv.extent.0/2048, (struct halide_buffer_t *)gemv.buffer, (gemv.extent.0 + gemv.min.0) + -2048, 2048)
+  }
+  let halide_upmem_free_result = halide_upmem_free("kernel_1")
   assert(halide_upmem_free_result == 0, halide_upmem_free_result)
  }
 }
@@ -3817,7 +3948,7 @@ if (!((uint1)_halide_buffer_is_bounds_query((struct halide_buffer_t *)gemv.buffe
  assert(gemv.stride.0 == 1, halide_error_constraint_violated("gemv.stride.0", gemv.stride.0, "1", 1))
  assert(uint64(gemv.extent.0) <= (uint64)2147483647, halide_error_buffer_allocation_too_large("gemv", uint64(gemv.extent.0), (uint64)2147483647))
  produce gemv {
-  let halide_upmem_alloc_load_result = halide_upmem_alloc_load((gemv.extent.0 + 2047)/2048, "kernel_0")
+  let halide_upmem_alloc_load_result = halide_upmem_alloc_load((gemv.extent.0 + 2047)/2048, "kernel_1")
   assert(halide_upmem_alloc_load_result == 0, halide_upmem_alloc_load_result)
   let t19 = gemv.extent.0/2048
   for (gemv.s0.i.block.__bank_id_x, 0, t19) {
@@ -3832,29 +3963,32 @@ if (!((uint1)_halide_buffer_is_bounds_query((struct halide_buffer_t *)gemv.buffe
   }
   let t20 = (gemv.extent.0 + 2047)/2048
   pim_bank<UPMEM> (gemv.s0.i.block.__bank_id_x, 0, t20) {
-   let gemv.s0.i.thread.base.s = min(gemv.s0.i.block.__bank_id_x*2048, gemv.extent.0 + -2048)
-   let t21 = gemv.min.0 + gemv.s0.i.thread.base.s
    pim_thread<UPMEM> (gemv.s0.i.thread.thread.__thread_id_x, 0, 16) {
-    let t24 = gemv.s0.i.thread.thread.__thread_id_x*128
-    let t22 = t21 + t24
-    let t23 = gemv.s0.i.thread.base.s + t24
+    let t21 = gemv.s0.i.thread.thread.__thread_id_x*128
     for (gemv.s0.i.thread.inner_loop, 0, 128) {
      allocate sum[int32 * 1]
      produce sum {
       sum[0] = 0
-      let t25 = gemv.s0.i.thread.inner_loop + t22
+      let t22 = gemv.s0.i.thread.inner_loop + t21
       for (sum.s1.r4$x, 0, 4096) {
-       sum[0] = sum[0] + (b0[(sum.s1.r4$x*8192) + t25]*b1[sum.s1.r4$x])
+       sum[0] = sum[0] + (b0[(sum.s1.r4$x*2048) + t22]*b1[sum.s1.r4$x])
       }
      }
      consume sum {
-      gemv[gemv.s0.i.thread.inner_loop + t23] = sum[0]
+      gemv[gemv.s0.i.thread.inner_loop + t21] = sum[0]
      }
      free sum
     }
    }
   }
-  let halide_upmem_free_result = halide_upmem_free("kernel_0")
+  let t23 = gemv.extent.0/2048
+  for (gemv.s0.i.block.__bank_id_x, 0, t23) {
+   halide_upmem_dpu_copy_from(gemv.s0.i.block.__bank_id_x, (struct halide_buffer_t *)gemv.buffer, (gemv.s0.i.block.__bank_id_x*2048) + gemv.min.0, 2048)
+  }
+  if ((gemv.extent.0 % 2048) != 0) {
+   halide_upmem_dpu_copy_from(gemv.extent.0/2048, (struct halide_buffer_t *)gemv.buffer, (gemv.extent.0 + gemv.min.0) + -2048, 2048)
+  }
+  let halide_upmem_free_result = halide_upmem_free("kernel_1")
   assert(halide_upmem_free_result == 0, halide_upmem_free_result)
  }
 }
@@ -3908,7 +4042,7 @@ if (!((uint1)_halide_buffer_is_bounds_query((struct halide_buffer_t *)gemv.buffe
  assert(0 <= b0.extent.1, halide_error_buffer_extents_negative("Input buffer b0", 1, b0.extent.1))
  assert((b1.min.0 <= 0) && (4096 <= (b1.extent.0 + b1.min.0)), halide_error_access_out_of_bounds("Input buffer b1", 0, 0, 4095, b1.min.0, (b1.extent.0 + b1.min.0) + -1))
  assert(0 <= b1.extent.0, halide_error_buffer_extents_negative("Input buffer b1", 0, b1.extent.0))
- assert(2048 <= gemv.extent.0, let t26 = (gemv.extent.0 + gemv.min.0) in halide_error_access_out_of_bounds("Output buffer gemv", 0, (min(gemv.extent.0, 2048) + gemv.min.0) + -2048, t26 + -1, gemv.min.0, t26 + -1))
+ assert(2048 <= gemv.extent.0, let t24 = (gemv.extent.0 + gemv.min.0) in halide_error_access_out_of_bounds("Output buffer gemv", 0, (min(gemv.extent.0, 2048) + gemv.min.0) + -2048, t24 + -1, gemv.min.0, t24 + -1))
  assert(b0.stride.0 == 1, halide_error_constraint_violated("b0.stride.0", b0.stride.0, "1", 1))
  assert(b0.min.0 == 0, halide_error_constraint_violated("b0.min.0", b0.min.0, "0", 0))
  assert(b0.extent.0 == 8192, halide_error_constraint_violated("b0.extent.0", b0.extent.0, "8192", 8192))
@@ -3921,7 +4055,7 @@ if (!((uint1)_halide_buffer_is_bounds_query((struct halide_buffer_t *)gemv.buffe
  assert(gemv.stride.0 == 1, halide_error_constraint_violated("gemv.stride.0", gemv.stride.0, "1", 1))
  assert(uint64(gemv.extent.0) <= (uint64)2147483647, halide_error_buffer_allocation_too_large("gemv", uint64(gemv.extent.0), (uint64)2147483647))
  produce gemv {
-  let halide_upmem_alloc_load_result = halide_upmem_alloc_load((gemv.extent.0 + 2047)/2048, "kernel_0")
+  let halide_upmem_alloc_load_result = halide_upmem_alloc_load((gemv.extent.0 + 2047)/2048, "kernel_1")
   assert(halide_upmem_alloc_load_result == 0, halide_upmem_alloc_load_result)
   let t19 = gemv.extent.0/2048
   for (gemv.s0.i.block.__bank_id_x, 0, t19) {
@@ -3936,29 +4070,32 @@ if (!((uint1)_halide_buffer_is_bounds_query((struct halide_buffer_t *)gemv.buffe
   }
   let t20 = (gemv.extent.0 + 2047)/2048
   pim_bank<UPMEM> (gemv.s0.i.block.__bank_id_x, 0, t20) {
-   let gemv.s0.i.thread.base.s = min(gemv.s0.i.block.__bank_id_x*2048, gemv.extent.0 + -2048)
-   let t21 = gemv.min.0 + gemv.s0.i.thread.base.s
    pim_thread<UPMEM> (gemv.s0.i.thread.thread.__thread_id_x, 0, 16) {
-    let t24 = gemv.s0.i.thread.thread.__thread_id_x*128
-    let t22 = t21 + t24
-    let t23 = gemv.s0.i.thread.base.s + t24
+    let t21 = gemv.s0.i.thread.thread.__thread_id_x*128
     for (gemv.s0.i.thread.inner_loop, 0, 128) {
      allocate sum[int32 * 1]
      produce sum {
       sum[0] = 0
-      let t25 = gemv.s0.i.thread.inner_loop + t22
+      let t22 = gemv.s0.i.thread.inner_loop + t21
       for (sum.s1.r4$x, 0, 4096) {
-       sum[0] = sum[0] + (b0[(sum.s1.r4$x*8192) + t25]*b1[sum.s1.r4$x])
+       sum[0] = sum[0] + (b0[(sum.s1.r4$x*2048) + t22]*b1[sum.s1.r4$x])
       }
      }
      consume sum {
-      gemv[gemv.s0.i.thread.inner_loop + t23] = sum[0]
+      gemv[gemv.s0.i.thread.inner_loop + t21] = sum[0]
      }
      free sum
     }
    }
   }
-  let halide_upmem_free_result = halide_upmem_free("kernel_0")
+  let t23 = gemv.extent.0/2048
+  for (gemv.s0.i.block.__bank_id_x, 0, t23) {
+   halide_upmem_dpu_copy_from(gemv.s0.i.block.__bank_id_x, (struct halide_buffer_t *)gemv.buffer, (gemv.s0.i.block.__bank_id_x*2048) + gemv.min.0, 2048)
+  }
+  if ((gemv.extent.0 % 2048) != 0) {
+   halide_upmem_dpu_copy_from(gemv.extent.0/2048, (struct halide_buffer_t *)gemv.buffer, (gemv.extent.0 + gemv.min.0) + -2048, 2048)
+  }
+  let halide_upmem_free_result = halide_upmem_free("kernel_1")
   assert(halide_upmem_free_result == 0, halide_upmem_free_result)
  }
 }
@@ -4012,7 +4149,7 @@ if (!((uint1)_halide_buffer_is_bounds_query((struct halide_buffer_t *)gemv.buffe
  assert(0 <= b0.extent.1, halide_error_buffer_extents_negative("Input buffer b0", 1, b0.extent.1))
  assert((b1.min.0 <= 0) && (4096 <= (b1.extent.0 + b1.min.0)), halide_error_access_out_of_bounds("Input buffer b1", 0, 0, 4095, b1.min.0, (b1.extent.0 + b1.min.0) + -1))
  assert(0 <= b1.extent.0, halide_error_buffer_extents_negative("Input buffer b1", 0, b1.extent.0))
- assert(2048 <= gemv.extent.0, let t26 = (gemv.extent.0 + gemv.min.0) in halide_error_access_out_of_bounds("Output buffer gemv", 0, (min(gemv.extent.0, 2048) + gemv.min.0) + -2048, t26 + -1, gemv.min.0, t26 + -1))
+ assert(2048 <= gemv.extent.0, let t24 = (gemv.extent.0 + gemv.min.0) in halide_error_access_out_of_bounds("Output buffer gemv", 0, (min(gemv.extent.0, 2048) + gemv.min.0) + -2048, t24 + -1, gemv.min.0, t24 + -1))
  assert(b0.stride.0 == 1, halide_error_constraint_violated("b0.stride.0", b0.stride.0, "1", 1))
  assert(b0.min.0 == 0, halide_error_constraint_violated("b0.min.0", b0.min.0, "0", 0))
  assert(b0.extent.0 == 8192, halide_error_constraint_violated("b0.extent.0", b0.extent.0, "8192", 8192))
@@ -4025,7 +4162,7 @@ if (!((uint1)_halide_buffer_is_bounds_query((struct halide_buffer_t *)gemv.buffe
  assert(gemv.stride.0 == 1, halide_error_constraint_violated("gemv.stride.0", gemv.stride.0, "1", 1))
  assert(uint64(gemv.extent.0) <= (uint64)2147483647, halide_error_buffer_allocation_too_large("gemv", uint64(gemv.extent.0), (uint64)2147483647))
  produce gemv {
-  let halide_upmem_alloc_load_result = halide_upmem_alloc_load((gemv.extent.0 + 2047)/2048, "kernel_0")
+  let halide_upmem_alloc_load_result = halide_upmem_alloc_load((gemv.extent.0 + 2047)/2048, "kernel_1")
   assert(halide_upmem_alloc_load_result == 0, halide_upmem_alloc_load_result)
   let t19 = gemv.extent.0/2048
   for (gemv.s0.i.block.__bank_id_x, 0, t19) {
@@ -4040,29 +4177,32 @@ if (!((uint1)_halide_buffer_is_bounds_query((struct halide_buffer_t *)gemv.buffe
   }
   let t20 = (gemv.extent.0 + 2047)/2048
   pim_bank<UPMEM> (gemv.s0.i.block.__bank_id_x, 0, t20) {
-   let gemv.s0.i.thread.base.s = min(gemv.s0.i.block.__bank_id_x*2048, gemv.extent.0 + -2048)
-   let t21 = gemv.min.0 + gemv.s0.i.thread.base.s
    pim_thread<UPMEM> (gemv.s0.i.thread.thread.__thread_id_x, 0, 16) {
-    let t24 = gemv.s0.i.thread.thread.__thread_id_x*128
-    let t22 = t21 + t24
-    let t23 = gemv.s0.i.thread.base.s + t24
+    let t21 = gemv.s0.i.thread.thread.__thread_id_x*128
     for (gemv.s0.i.thread.inner_loop, 0, 128) {
      allocate sum[int32 * 1]
      produce sum {
       sum[0] = 0
-      let t25 = gemv.s0.i.thread.inner_loop + t22
+      let t22 = gemv.s0.i.thread.inner_loop + t21
       for (sum.s1.r4$x, 0, 4096) {
-       sum[0] = sum[0] + (b0[(sum.s1.r4$x*8192) + t25]*b1[sum.s1.r4$x])
+       sum[0] = sum[0] + (b0[(sum.s1.r4$x*2048) + t22]*b1[sum.s1.r4$x])
       }
      }
      consume sum {
-      gemv[gemv.s0.i.thread.inner_loop + t23] = sum[0]
+      gemv[gemv.s0.i.thread.inner_loop + t21] = sum[0]
      }
      free sum
     }
    }
   }
-  let halide_upmem_free_result = halide_upmem_free("kernel_0")
+  let t23 = gemv.extent.0/2048
+  for (gemv.s0.i.block.__bank_id_x, 0, t23) {
+   halide_upmem_dpu_copy_from(gemv.s0.i.block.__bank_id_x, (struct halide_buffer_t *)gemv.buffer, (gemv.s0.i.block.__bank_id_x*2048) + gemv.min.0, 2048)
+  }
+  if ((gemv.extent.0 % 2048) != 0) {
+   halide_upmem_dpu_copy_from(gemv.extent.0/2048, (struct halide_buffer_t *)gemv.buffer, (gemv.extent.0 + gemv.min.0) + -2048, 2048)
+  }
+  let halide_upmem_free_result = halide_upmem_free("kernel_1")
   assert(halide_upmem_free_result == 0, halide_upmem_free_result)
  }
 }
@@ -4115,7 +4255,7 @@ if (!((uint1)_halide_buffer_is_bounds_query((struct halide_buffer_t *)gemv.buffe
  assert(0 <= b0.extent.1, halide_error_buffer_extents_negative("Input buffer b0", 1, b0.extent.1))
  assert((b1.min.0 <= 0) && (4096 <= (b1.extent.0 + b1.min.0)), halide_error_access_out_of_bounds("Input buffer b1", 0, 0, 4095, b1.min.0, (b1.extent.0 + b1.min.0) + -1))
  assert(0 <= b1.extent.0, halide_error_buffer_extents_negative("Input buffer b1", 0, b1.extent.0))
- assert(2048 <= gemv.extent.0, let t26 = (gemv.extent.0 + gemv.min.0) in halide_error_access_out_of_bounds("Output buffer gemv", 0, (min(gemv.extent.0, 2048) + gemv.min.0) + -2048, t26 + -1, gemv.min.0, t26 + -1))
+ assert(2048 <= gemv.extent.0, let t24 = (gemv.extent.0 + gemv.min.0) in halide_error_access_out_of_bounds("Output buffer gemv", 0, (min(gemv.extent.0, 2048) + gemv.min.0) + -2048, t24 + -1, gemv.min.0, t24 + -1))
  assert(b0.stride.0 == 1, halide_error_constraint_violated("b0.stride.0", b0.stride.0, "1", 1))
  assert(b0.min.0 == 0, halide_error_constraint_violated("b0.min.0", b0.min.0, "0", 0))
  assert(b0.extent.0 == 8192, halide_error_constraint_violated("b0.extent.0", b0.extent.0, "8192", 8192))
@@ -4128,7 +4268,7 @@ if (!((uint1)_halide_buffer_is_bounds_query((struct halide_buffer_t *)gemv.buffe
  assert(gemv.stride.0 == 1, halide_error_constraint_violated("gemv.stride.0", gemv.stride.0, "1", 1))
  assert(uint64(gemv.extent.0) <= (uint64)2147483647, halide_error_buffer_allocation_too_large("gemv", uint64(gemv.extent.0), (uint64)2147483647))
  produce gemv {
-  let halide_upmem_alloc_load_result = halide_upmem_alloc_load((gemv.extent.0 + 2047)/2048, "kernel_0")
+  let halide_upmem_alloc_load_result = halide_upmem_alloc_load((gemv.extent.0 + 2047)/2048, "kernel_1")
   assert(halide_upmem_alloc_load_result == 0, halide_upmem_alloc_load_result)
   let t19 = gemv.extent.0/2048
   for (gemv.s0.i.block.__bank_id_x, 0, t19) {
@@ -4143,29 +4283,32 @@ if (!((uint1)_halide_buffer_is_bounds_query((struct halide_buffer_t *)gemv.buffe
   }
   let t20 = (gemv.extent.0 + 2047)/2048
   pim_bank<UPMEM> (gemv.s0.i.block.__bank_id_x, 0, t20) {
-   let gemv.s0.i.thread.base.s = min(gemv.s0.i.block.__bank_id_x*2048, gemv.extent.0 + -2048)
-   let t21 = gemv.min.0 + gemv.s0.i.thread.base.s
    pim_thread<UPMEM> (gemv.s0.i.thread.thread.__thread_id_x, 0, 16) {
-    let t24 = gemv.s0.i.thread.thread.__thread_id_x*128
-    let t22 = t21 + t24
-    let t23 = gemv.s0.i.thread.base.s + t24
+    let t21 = gemv.s0.i.thread.thread.__thread_id_x*128
     for (gemv.s0.i.thread.inner_loop, 0, 128) {
      allocate sum[int32 * 1]
      produce sum {
       sum[0] = 0
-      let t25 = gemv.s0.i.thread.inner_loop + t22
+      let t22 = gemv.s0.i.thread.inner_loop + t21
       for (sum.s1.r4$x, 0, 4096) {
-       sum[0] = sum[0] + (b0[(sum.s1.r4$x*8192) + t25]*b1[sum.s1.r4$x])
+       sum[0] = sum[0] + (b0[(sum.s1.r4$x*2048) + t22]*b1[sum.s1.r4$x])
       }
      }
      consume sum {
-      gemv[gemv.s0.i.thread.inner_loop + t23] = sum[0]
+      gemv[gemv.s0.i.thread.inner_loop + t21] = sum[0]
      }
      free sum
     }
    }
   }
-  let halide_upmem_free_result = halide_upmem_free("kernel_0")
+  let t23 = gemv.extent.0/2048
+  for (gemv.s0.i.block.__bank_id_x, 0, t23) {
+   halide_upmem_dpu_copy_from(gemv.s0.i.block.__bank_id_x, (struct halide_buffer_t *)gemv.buffer, (gemv.s0.i.block.__bank_id_x*2048) + gemv.min.0, 2048)
+  }
+  if ((gemv.extent.0 % 2048) != 0) {
+   halide_upmem_dpu_copy_from(gemv.extent.0/2048, (struct halide_buffer_t *)gemv.buffer, (gemv.extent.0 + gemv.min.0) + -2048, 2048)
+  }
+  let halide_upmem_free_result = halide_upmem_free("kernel_1")
   assert(halide_upmem_free_result == 0, halide_upmem_free_result)
  }
 }
@@ -4176,8 +4319,6 @@ Skipping GPU offload...
 Offloading PIM loops...
 Kernel launch: gemv.s0.i.block.__bank_id_x
 Kernel bounds: (1) threads, (t20, 1, 1, 1) banks
-var: gemv.extent.0
-var: gemv.min.0
 buffer: b0 134217728 (read) dims=2
 buffer: b1 16384 (read) dims=1
 buffer: gemv 0 (write) dims=0
@@ -6910,7 +7051,7 @@ if (!((uint1)_halide_buffer_is_bounds_query((struct halide_buffer_t *)gemv.buffe
  assert(0 <= b0.extent.1, halide_error_buffer_extents_negative("Input buffer b0", 1, b0.extent.1))
  assert((b1.min.0 <= 0) && (4096 <= (b1.extent.0 + b1.min.0)), halide_error_access_out_of_bounds("Input buffer b1", 0, 0, 4095, b1.min.0, (b1.extent.0 + b1.min.0) + -1))
  assert(0 <= b1.extent.0, halide_error_buffer_extents_negative("Input buffer b1", 0, b1.extent.0))
- assert(2048 <= gemv.extent.0, let t26 = (gemv.extent.0 + gemv.min.0) in halide_error_access_out_of_bounds("Output buffer gemv", 0, (min(gemv.extent.0, 2048) + gemv.min.0) + -2048, t26 + -1, gemv.min.0, t26 + -1))
+ assert(2048 <= gemv.extent.0, let t24 = (gemv.extent.0 + gemv.min.0) in halide_error_access_out_of_bounds("Output buffer gemv", 0, (min(gemv.extent.0, 2048) + gemv.min.0) + -2048, t24 + -1, gemv.min.0, t24 + -1))
  assert(b0.stride.0 == 1, halide_error_constraint_violated("b0.stride.0", b0.stride.0, "1", 1))
  assert(b0.min.0 == 0, halide_error_constraint_violated("b0.min.0", b0.min.0, "0", 0))
  assert(b0.extent.0 == 8192, halide_error_constraint_violated("b0.extent.0", b0.extent.0, "8192", 8192))
@@ -6923,7 +7064,7 @@ if (!((uint1)_halide_buffer_is_bounds_query((struct halide_buffer_t *)gemv.buffe
  assert(gemv.stride.0 == 1, halide_error_constraint_violated("gemv.stride.0", gemv.stride.0, "1", 1))
  assert(uint64(gemv.extent.0) <= (uint64)2147483647, halide_error_buffer_allocation_too_large("gemv", uint64(gemv.extent.0), (uint64)2147483647))
  produce gemv {
-  let halide_upmem_alloc_load_result = halide_upmem_alloc_load((gemv.extent.0 + 2047)/2048, "kernel_0")
+  let halide_upmem_alloc_load_result = halide_upmem_alloc_load((gemv.extent.0 + 2047)/2048, "kernel_1")
   assert(halide_upmem_alloc_load_result == 0, halide_upmem_alloc_load_result)
   let t19 = gemv.extent.0/2048
   for (gemv.s0.i.block.__bank_id_x, 0, t19) {
@@ -6937,9 +7078,16 @@ if (!((uint1)_halide_buffer_is_bounds_query((struct halide_buffer_t *)gemv.buffe
    halide_upmem_dpu_copy_to(gemv.extent.0/2048, (struct halide_buffer_t *)gemv.buffer, (gemv.extent.0 + gemv.min.0) + -2048, 2048)
   }
   let t20 = (gemv.extent.0 + 2047)/2048
-  let halide_upmem_run_result = halide_upmem_run(((void *))upmem[0], "_kernel_gemv_s0_i_block___bank_id_x", t20, 1, 1, 1, 0, (void *)make_struct((uint32)73728, (uint32)73728, (uint32)73728, (uint32)73728, (uint32)73728, (uint32)0), (void *)make_struct((void *)b0.buffer, (void *)b1.buffer, (void *)gemv.buffer, (void *)make_struct(gemv.extent.0), (void *)make_struct(gemv.min.0), reinterpret<(void *)>((uint64)0)), (void *)make_struct((uint8)1, (uint8)1, (uint8)1, (uint8)0, (uint8)0, (uint8)0))
+  let halide_upmem_run_result = halide_upmem_run(((void *))upmem[0], "_kernel_gemv_s0_i_block___bank_id_x", t20, 1, 1, 1, 0, (void *)make_struct((uint32)73728, (uint32)73728, (uint32)73728, (uint32)0), (void *)make_struct((void *)b0.buffer, (void *)b1.buffer, (void *)gemv.buffer, reinterpret<(void *)>((uint64)0)), (void *)make_struct((uint8)1, (uint8)1, (uint8)1, (uint8)0))
   assert(halide_upmem_run_result == 0, halide_upmem_run_result)
-  let halide_upmem_free_result = halide_upmem_free("kernel_0")
+  let t23 = gemv.extent.0/2048
+  for (gemv.s0.i.block.__bank_id_x, 0, t23) {
+   halide_upmem_dpu_copy_from(gemv.s0.i.block.__bank_id_x, (struct halide_buffer_t *)gemv.buffer, (gemv.s0.i.block.__bank_id_x*2048) + gemv.min.0, 2048)
+  }
+  if ((gemv.extent.0 % 2048) != 0) {
+   halide_upmem_dpu_copy_from(gemv.extent.0/2048, (struct halide_buffer_t *)gemv.buffer, (gemv.extent.0 + gemv.min.0) + -2048, 2048)
+  }
+  let halide_upmem_free_result = halide_upmem_free("kernel_1")
   assert(halide_upmem_free_result == 0, halide_upmem_free_result)
  }
 }
@@ -6994,7 +7142,7 @@ if (!((uint1)_halide_buffer_is_bounds_query((struct halide_buffer_t *)gemv.buffe
  assert(0 <= b0.extent.1, halide_error_buffer_extents_negative("Input buffer b0", 1, b0.extent.1))
  assert((b1.min.0 <= 0) && (4096 <= (b1.extent.0 + b1.min.0)), halide_error_access_out_of_bounds("Input buffer b1", 0, 0, 4095, b1.min.0, (b1.extent.0 + b1.min.0) + -1))
  assert(0 <= b1.extent.0, halide_error_buffer_extents_negative("Input buffer b1", 0, b1.extent.0))
- assert(2048 <= gemv.extent.0, let t26 = (gemv.extent.0 + gemv.min.0) in halide_error_access_out_of_bounds("Output buffer gemv", 0, (min(gemv.extent.0, 2048) + gemv.min.0) + -2048, t26 + -1, gemv.min.0, t26 + -1))
+ assert(2048 <= gemv.extent.0, let t24 = (gemv.extent.0 + gemv.min.0) in halide_error_access_out_of_bounds("Output buffer gemv", 0, (min(gemv.extent.0, 2048) + gemv.min.0) + -2048, t24 + -1, gemv.min.0, t24 + -1))
  assert(b0.stride.0 == 1, halide_error_constraint_violated("b0.stride.0", b0.stride.0, "1", 1))
  assert(b0.min.0 == 0, halide_error_constraint_violated("b0.min.0", b0.min.0, "0", 0))
  assert(b0.extent.0 == 8192, halide_error_constraint_violated("b0.extent.0", b0.extent.0, "8192", 8192))
@@ -7007,7 +7155,7 @@ if (!((uint1)_halide_buffer_is_bounds_query((struct halide_buffer_t *)gemv.buffe
  assert(gemv.stride.0 == 1, halide_error_constraint_violated("gemv.stride.0", gemv.stride.0, "1", 1))
  assert(uint64(gemv.extent.0) <= (uint64)2147483647, halide_error_buffer_allocation_too_large("gemv", uint64(gemv.extent.0), (uint64)2147483647))
  produce gemv {
-  let halide_upmem_alloc_load_result = halide_upmem_alloc_load((gemv.extent.0 + 2047)/2048, "kernel_0")
+  let halide_upmem_alloc_load_result = halide_upmem_alloc_load((gemv.extent.0 + 2047)/2048, "kernel_1")
   assert(halide_upmem_alloc_load_result == 0, halide_upmem_alloc_load_result)
   let t19 = gemv.extent.0/2048
   for (gemv.s0.i.block.__bank_id_x, 0, t19) {
@@ -7021,9 +7169,16 @@ if (!((uint1)_halide_buffer_is_bounds_query((struct halide_buffer_t *)gemv.buffe
    halide_upmem_dpu_copy_to(gemv.extent.0/2048, (struct halide_buffer_t *)gemv.buffer, (gemv.extent.0 + gemv.min.0) + -2048, 2048)
   }
   let t20 = (gemv.extent.0 + 2047)/2048
-  let halide_upmem_run_result = halide_upmem_run(((void *))upmem[0], "_kernel_gemv_s0_i_block___bank_id_x", t20, 1, 1, 1, 0, (void *)make_struct((uint32)73728, (uint32)73728, (uint32)73728, (uint32)73728, (uint32)73728, (uint32)0), (void *)make_struct((void *)b0.buffer, (void *)b1.buffer, (void *)gemv.buffer, (void *)make_struct(gemv.extent.0), (void *)make_struct(gemv.min.0), reinterpret<(void *)>((uint64)0)), (void *)make_struct((uint8)1, (uint8)1, (uint8)1, (uint8)0, (uint8)0, (uint8)0))
+  let halide_upmem_run_result = halide_upmem_run(((void *))upmem[0], "_kernel_gemv_s0_i_block___bank_id_x", t20, 1, 1, 1, 0, (void *)make_struct((uint32)73728, (uint32)73728, (uint32)73728, (uint32)0), (void *)make_struct((void *)b0.buffer, (void *)b1.buffer, (void *)gemv.buffer, reinterpret<(void *)>((uint64)0)), (void *)make_struct((uint8)1, (uint8)1, (uint8)1, (uint8)0))
   assert(halide_upmem_run_result == 0, halide_upmem_run_result)
-  let halide_upmem_free_result = halide_upmem_free("kernel_0")
+  let t23 = gemv.extent.0/2048
+  for (gemv.s0.i.block.__bank_id_x, 0, t23) {
+   halide_upmem_dpu_copy_from(gemv.s0.i.block.__bank_id_x, (struct halide_buffer_t *)gemv.buffer, (gemv.s0.i.block.__bank_id_x*2048) + gemv.min.0, 2048)
+  }
+  if ((gemv.extent.0 % 2048) != 0) {
+   halide_upmem_dpu_copy_from(gemv.extent.0/2048, (struct halide_buffer_t *)gemv.buffer, (gemv.extent.0 + gemv.min.0) + -2048, 2048)
+  }
+  let halide_upmem_free_result = halide_upmem_free("kernel_1")
   assert(halide_upmem_free_result == 0, halide_upmem_free_result)
  }
 }
