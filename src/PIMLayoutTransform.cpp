@@ -12,6 +12,7 @@
 #include "InjectHostDevBufferCopies.h"
 #include "Simplify.h"
 #include "DeviceArgument.h"
+#include "Scope.h"
 
 #include <sstream>
 
@@ -25,70 +26,172 @@ using std::set;
 using std::string;
 using std::vector;
 using std::set;
+using std::pair;
+using std::reverse;
 
 // This is superset of ExtractBounds
 class ResourceAllocationBuilder : public IRVisitor {
 using IRVisitor::visit;
 public:
-    vector<Stmt> stmts;
-    set<Expr> shared_memory_buffers;
-    ResourceAllocationBuilder() {}
+    class ExtractContiguousVariable : public IRVisitor {
+    public:
+        vector<string> contiguous_variables;
+        vector<string> all_variables;
+        bool bypass = false;
 
-    void add_push_stmt(const string &name, const Expr &value) {
+        using IRVisitor::visit;
+
+        void visit(const Variable* op) override {
+            if (!bypass) {
+                contiguous_variables.push_back(op->name);
+            }
+            all_variables.push_back(op->name);
+        }
+
+        void visit(const Mul* op) override {
+            bypass = true;
+            IRVisitor::visit(op);
+            bypass = false;
+        }
+    };
+
+    class BaseContiguousVariable : public IRMutator {
+        public: 
+        string contiguous_variable;
+        bool bypass = false;
+
+        BaseContiguousVariable(string contiguous_variable) {
+            this->contiguous_variable = contiguous_variable;
+        }
+        using IRMutator::visit;
+
+        Expr visit(const Variable* op) override {
+            if (!bypass && op->name == contiguous_variable) {
+                return 0;
+            }
+            return IRMutator::visit(op);
+        }
+
+        Expr visit(const Mul* op) override {
+            bypass = true;
+            Expr ret = IRMutator::visit(op);
+            bypass = false;
+            return ret;
+        }
+    };
+
+    set<string> shared_memory_buffers;
+
+    Stmt optimized_loop;
+
+    vector<Stmt> stmt_stack;
+    vector<pair<Expr, Interval>> bound_stack;
+    ResourceAllocationBuilder() { }
+
+    Stmt get_push_stmt(const string &name, const Expr &value, const Expr& size) {
         Expr buffer = Variable::make(type_of<struct halide_buffer_t *>(), name + ".buffer");
-        Stmt push = Evaluate::make(Call::make(Int(32), "halide_upmem_dpu_copy_to", { Variable::make(UInt(32), "dpu_idx"), buffer, value }, Call::Extern));
-        stmts.push_back(push);
+        Stmt push_stmt = Evaluate::make(Call::make(Int(32), "halide_upmem_dpu_copy_to", { Variable::make(UInt(32), "dpu_idx"), buffer, value, size }, Call::Extern));
+        return push_stmt;
     }
 
     void visit(const ProducerConsumer* op) override {
         shared_memory_buffers.insert(op->name);
-        op->body.accept(this);
+        IRVisitor::visit(op);
+    }
+
+    void visit(const Allocate* op) override {
+        shared_memory_buffers.insert(op->name);
+        IRVisitor::visit(op);
+    }
+
+    void add_new_loop(string name, Expr index) {
+
+        ExtractContiguousVariable extractor;
+        index.accept(&extractor);
+        auto& candidates = extractor.contiguous_variables;
+        auto& all_variables = extractor.all_variables;
+
+        ostringstream o;
+        o << "add_new_loop: " << name << " ";
+        for (auto& c : candidates) {
+            o << c << " ";
+        }
+        debug(2) << o.str() << "\n";
+
+        const For* obsolete_block;
+        Expr obsolete_extent = 1;
+        for (const auto& block: candidates) {
+            for (const auto& stmt: stmt_stack) {
+                if (stmt.as<For>() && (stmt.as<For>())->name == block) {
+                    obsolete_block = stmt.as<For>();
+                    BaseContiguousVariable mutator(obsolete_block->name);
+                    index = simplify(Add::make(mutator.mutate(index), obsolete_block->min));
+                    obsolete_extent = obsolete_block->extent;
+                    break;
+                }
+            }
+            if (obsolete_block) break;
+        }
+
+        Stmt push_stmt = get_push_stmt(name, index, obsolete_extent);
+
+        for (vector<Stmt>::reverse_iterator it = stmt_stack.rbegin(); it != stmt_stack.rend(); ++it) {
+            if ((*it).as<For>()) {
+                const For* f = (*it).as<For>();
+                if (f == obsolete_block) continue;
+                if (std::find(all_variables.begin(), all_variables.end(), f->name) == all_variables.end()) continue;
+                push_stmt = For::make(f->name, f->min, f->extent, f->for_type, f->device_api, push_stmt);
+            } else if ((*it).as<IfThenElse>()) {
+                const IfThenElse* f = (*it).as<IfThenElse>();
+                push_stmt = IfThenElse::make(f->condition, push_stmt, f->else_case); // TODO ; else_case
+            } else if ((*it).as<LetStmt>()) {
+                const LetStmt* f = (*it).as<LetStmt>();
+                push_stmt = LetStmt::make(f->name, f->value, push_stmt);
+            } else {
+                break;
+            }
+        }
+
+        if (!optimized_loop.defined())
+            optimized_loop = push_stmt;
+        else
+            optimized_loop = Block::make({ optimized_loop, push_stmt});
     }
 
     void visit(const Load* op) override {
-        if (shared_memory_buffers.find(op->name) == shared_memory_buffers.end()) {
-            add_push_stmt(op->name, op->index);
-        }
+        if (shared_memory_buffers.find(op->name) == shared_memory_buffers.end())
+            add_new_loop(op->name, op->index);
     }
 
     void visit(const Store* op) override {
-        if (shared_memory_buffers.find(op->name) == shared_memory_buffers.end()) {
-            add_push_stmt(op->name, op->index);
-        }
-        op->value.accept(this);
-    }
-
-    void visit(const Let* op) override {
-        op->value.accept(this);
+        if (shared_memory_buffers.find(op->name) == shared_memory_buffers.end())
+            add_new_loop(op->name, op->index);
+        IRVisitor::visit(op);
     }
 
     void visit(const LetStmt* op) override {
-        ResourceAllocationBuilder builder;
-        op->body.accept(&builder);
-        stmts.push_back(LetStmt::make(op->name, op->value, builder.get_stmt()));
-        op->value.accept(this);
+        stmt_stack.push_back(op);
+        IRVisitor::visit(op);
+        // TODO: cond
+        stmt_stack.pop_back();
     }
 
     void visit(const For* op) override {
-        ResourceAllocationBuilder builder;
-        op->body.accept(&builder);
-        stmts.push_back(For::make(op->name, op->min, op->extent, op->for_type, op->device_api, builder.get_stmt()));
+        stmt_stack.push_back(op);
+        IRVisitor::visit(op);
+        stmt_stack.pop_back();
     }
 
     void visit(const IfThenElse* op) override {
-        ResourceAllocationBuilder builder;
-        op->then_case.accept(&builder);
-        Stmt then_case = builder.get_stmt();
-        builder.stmts.clear();
-        op->else_case.accept(&builder);
-        Stmt else_case = builder.get_stmt();
-        stmts.push_back(IfThenElse::make(op->condition, then_case, else_case));
+        stmt_stack.push_back(op);
+        // TODO: cond
+        IRVisitor::visit(op);
+        stmt_stack.pop_back();
     }
 
     Stmt get_stmt() {
-        return Block::make(stmts);
+        return this->optimized_loop;
     }
-
 };
 
 class PIMLayoutTransform : public IRMutator {
@@ -137,27 +240,23 @@ public:
         void visit(const For *op) override {
             if (ends_with(op->name, ".__thread_id_x")) {
                 num_threads[0] = op->extent;
-                thread_loop = op->body;
-
-                ResourceAllocationBuilder builder;
-                op->body.accept(&builder);
-                Stmt letStmt = LetStmt::make("bank", bank, builder.get_stmt());
-                // return For::make(op->name, op->min, op->extent, ForType::Serial, DeviceAPI::None, letStmt);
+                thread_loop = For::make(op->name, op->min, op->extent, ForType::Serial, DeviceAPI::None, op->body);
             } else if (ends_with(op->name, ".__bank_id_x")) {
                 num_banks[0] = op->extent;
                 name_banks[0] = op->name;
-                bank = op->name;
+                bank = Variable::make(UInt(32), op->name);
             } else if (ends_with(op->name, ".__bank_id_y")) {
                 num_banks[1] = op->extent;
                 name_banks[1] = op->name;
-                bank = Add::make(Mul::make(bank, Expr(op->extent)), op->name);
+                bank = Add::make(Mul::make(bank, Expr(op->extent)), Variable::make(UInt(32), op->name));
             } else if (ends_with(op->name, ".__bank_id_z")) {
                 num_banks[2] = op->extent;
                 name_banks[2] = op->name;
-                bank = Add::make(Mul::make(bank, Expr(op->extent)), op->name);
+                bank = Add::make(Mul::make(bank, Expr(op->extent)), Variable::make(UInt(32), op->name));
             } else if (ends_with(op->name, ".__bank_id_w")) {
                 num_banks[3] = op->extent;
                 name_banks[3] = op->name;
+                bank = Add::make(Mul::make(bank, Expr(op->extent)), Variable::make(UInt(32), op->name));
             }
             op->body.accept(this);
         }
@@ -189,12 +288,7 @@ private:
 
         ResourceAllocationBuilder builder;
         inspect.thread_loop.accept(&builder);
-        auto allocation_script = LetStmt::make("dpu_idx", inspect.bank, builder.get_stmt());
-
-        Stmt for_copy_allocation = For::make(loop->name, loop->min, loop->extent, loop->for_type, DeviceAPI::None, loop->body);
-        ThreadLoopMutator mutator(allocation_script);
-        Stmt stmt_copy_to = mutator.mutate(for_copy_allocation);
-
+        auto stmt_copy_to = For::make(loop->name+".__allocation", loop->min, loop->extent, ForType::Serial, DeviceAPI::None, LetStmt::make("dpu_idx", inspect.bank, builder.get_stmt()));
         // Stmt for_copy_reduction = For::make(loop->name + ".__reduction", Expr(loop->min), Expr(loop->extent), loop->for_type, DeviceAPI::None, for_copy_allocation);
 
         
