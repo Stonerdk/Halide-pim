@@ -136,7 +136,16 @@ class InjectGpuOffload : public IRMutator {
         user_assert(pim_codegen != nullptr)
             << "Loop is scheduled on device " << loop->device_api
             << " which does not appear in target " << target.to_string() << "\n";
-        pim_codegen->add_kernel(loop, kernel_name, closure_args);
+
+        Stmt body = loop->body;
+        while (body.as<For>()) {
+            const For* body_for = body.as<For>();
+            if (CodeGen_PIM_Dev::is_pim_var(body_for->name)) {
+                body = body_for->body;
+            }
+        }
+
+        pim_codegen->add_kernel(body, kernel_name, closure_args);
 
         bool runtime_run_takes_types = pim_codegen->kernel_run_takes_types();
         Type target_size_t_type = target.bits == 32 ? Int(32) : Int(64);
