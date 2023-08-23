@@ -132,6 +132,50 @@ private:
         return "kernel_" + std::to_string(kernel_idx);
     }
 
+    pair<Stmt, Stmt> optimize_copy(const For* loop, Expr bank) {
+        string kernel_name = get_kernel_name();
+        map<string, Box> bounds = bounds_scope.get(kernel_name);
+
+        vector<Stmt> stmts_copy_to, stmts_copy_from;
+
+        for (auto bound_it = bounds.begin(); bound_it != bounds.end(); bound_it++) {
+            if (shared_memory_buffer.find(bound_it->first) != shared_memory_buffer.end()) {
+                continue;
+            }
+            Box box = bound_it->second;
+            Expr stride = box[0].max - box[0].min + 1;
+            Expr offset = box[0].min;
+            for (size_t i = 1; i < box.size(); i++) {
+                offset = Variable::make(Int(32), "ii" + std::to_string(i)) * stride + offset;
+                stride *= (box[i].max - box[i].min + 1);
+            }
+            vector<Expr>args = { 
+                Variable::make(Int(32), "dpu_idx"), 
+                Variable::make(type_of<struct halide_buffer_t *>(), bound_it->first + ".buffer"),
+                offset,
+                box[0].max - box[0].min + 1,
+            };
+            Stmt stmt_copy_to = Evaluate::make(Call::make(Int(32), "halide_upmem_dpu_copy_to", args, Call::Extern));
+            for (size_t i = 1; i < box.size(); i++) {
+                stmt_copy_to = For::make("ii" + std::to_string(i), box[i].min, box[i].max + 1, ForType::Serial, DeviceAPI::None, stmt_copy_to);
+            }
+            stmts_copy_to.push_back(stmt_copy_to);
+
+            if (reduction_scope.contains(bound_it->first)) {
+                Stmt stmt_copy_from = Evaluate::make(Call::make(Int(32), "halide_upmem_dpu_copy_from", args, Call::Extern));
+                for (size_t i = 1; i < box.size(); i++) {
+                    stmt_copy_from = For::make("ii" + std::to_string(i), box[i].min, box[i].max + 1, ForType::Serial, DeviceAPI::None, stmt_copy_from);
+                }
+                stmts_copy_from.push_back(stmt_copy_from);
+            }
+
+        }
+        return {
+            ThreadLoopMutator(LetStmt::make("dpu_idx", bank, Block::make(stmts_copy_to))).mutate(loop),
+            ThreadLoopMutator(LetStmt::make("dpu_idx", bank, Block::make(stmts_copy_from))).mutate(loop)
+        };
+    }
+
     Stmt visit(const For* loop) override {
         if (ends_with(loop->name, ".__thread_id_x")) {
             stack<pair<string, Expr>> lets;
@@ -166,7 +210,6 @@ private:
 
         if (!ends_with(loop->name, ".__bank_id_x")) return IRMutator::visit(loop);
 
-        kernel_idx++;
         string kernel_name = get_kernel_name();
 
         InspectResourceAllocation inspect;
@@ -174,35 +217,17 @@ private:
         shared_memory_buffer = std::move(inspect.shared_memory_buffer);
 
         Stmt stmt_alloc_load = call_extern_and_assert("halide_upmem_alloc_load", { inspect.get_all_banks(), kernel_name });
-
-        vector<Stmt> stmt_copies;
-        vector<Stmt> stmt_reduction;
-        auto bounds = boxes_touched(inspect.thread_loop);
-        for (auto it = bounds.begin(); it != bounds.end(); it++) {
-            if (shared_memory_buffer.find(it->first) != shared_memory_buffer.end())
-                continue;
-            vector<Expr> offset, sizes;
-            for (Interval b: it->second.bounds) {
-                offset.push_back(b.min);
-                sizes.push_back(b.max - b.min + 1);
-            }
-            vector<Expr> args = { Variable::make(Int(32), "dpu_idx"), Variable::make(type_of<struct halide_buffer_t *>(), it->first + ".buffer") };
-            args.insert(args.end(), offset.begin(), offset.end());
-            args.insert(args.end(), sizes.begin(), sizes.end());
-            stmt_copies.push_back(Evaluate::make(Call::make(Int(32), "halide_upmem_dpu_copy_to", args, Call::Extern)));
-            if (reduction_scope.contains(it->first)) {
-                stmt_reduction.push_back(Evaluate::make(Call::make(Int(32), "halide_upmem_dpu_copy_from", args, Call::Extern)));
-            }
-        }
-        
-        Stmt stmt_copy_to = ThreadLoopMutator(LetStmt::make("dpu_idx", inspect.bank, Block::make(stmt_copies))).mutate(loop);
-        Stmt stmt_copy_from = ThreadLoopMutator(LetStmt::make("dpu_idx", inspect.bank, Block::make(stmt_reduction))).mutate(loop);
-
         Stmt stmt_free = call_extern_and_assert("halide_upmem_free", { kernel_name });
 
+        auto bounds = boxes_touched(inspect.thread_loop);
         bounds_scope.push(kernel_name, bounds);
+
+        auto [ stmt_copy_to, stmt_copy_from ] = optimize_copy(loop, inspect.get_bank());
+
         auto result = IRMutator::visit(loop);
         bounds_scope.pop(kernel_name);
+
+        kernel_idx++;
 
         return Block::make({ stmt_alloc_load, stmt_copy_to, result, stmt_copy_from, stmt_free });
     }

@@ -23,7 +23,9 @@ void CodeGen_UPMEM_DPU_Dev::add_kernel(Stmt stmt, const std::string &name, const
 }
 
 void CodeGen_UPMEM_DPU_Dev::init_module() {
-    // TODO : add some 'initial code' in kernel code
+    // wipe the internal kernel source
+    src_stream.str("");
+    src_stream.clear();
 }
 
 void CodeGen_UPMEM_DPU_Dev::compile_to_src() {
@@ -42,10 +44,13 @@ std::string CodeGen_UPMEM_DPU_Dev::api_unique_name() {
     return "upmem";
 }
 
+
 void CodeGen_UPMEM_DPU_C::add_kernel(Stmt stmt,
                 const std::string &name,
                 const std::vector<DeviceArgument> &args) {
-    stream << "GENERATED CODE\nGENERATED \n";
+    
+    print(stmt);
+
     return;
 }
 
