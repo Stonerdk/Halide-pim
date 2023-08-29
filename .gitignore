@@ -31,6 +31,14 @@
 ################################################################################
 ## Halide-specific build artifacts
 
+custom_test/gemv/*.txt
+custom_test/gemv/*.c
+custom_test/gemv/*.h
+custom_test/gemv/gemv
+custom_test/gemv/AOT_result/*
+
+
+
 # Apps
 apps/*/*.def
 apps/*/*.ptx

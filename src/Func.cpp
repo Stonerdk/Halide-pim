@@ -3440,6 +3440,13 @@ void Func::compile_to_assembly(const string &filename, const vector<Argument> &a
     pipeline().compile_to_assembly(filename, args, "", target);
 }
 
+void Func::compile_to_upmem_libraries(const std::string &filename, 
+                                const std::vector<Argument> &args, 
+                                const std::string &fn_name, 
+                                const Target &target) {
+    pipeline().compile_to_upmem_libraries(filename, args, fn_name, target);                          
+}
+
 // JIT-related code
 
 namespace {

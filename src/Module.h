@@ -28,6 +28,7 @@ enum class OutputFileType {
     bitcode,
     c_header,
     c_source,
+    c_upmem,
     compiler_log,
     cpp_stub,
     featurization,
@@ -177,6 +178,8 @@ public:
     /** Compile a halide Module to variety of outputs, depending on
      * the fields set in output_files. */
     void compile(const std::map<OutputFileType, std::string> &output_files) const;
+
+    void split_function();
 
     /** Compile a halide Module to in-memory object code. Currently
      * only supports LLVM based compilation, but should be extended to

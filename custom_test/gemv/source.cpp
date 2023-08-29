@@ -9,9 +9,9 @@ int main() {
 
     Var i("i"), j("j"), block("block"), inner_loop("inner_loop"), thread("thread");
 
-    Buffer<int> A(M, N);
-    Buffer<int> x(N);
-    Buffer<int> output(M);
+    Buffer<int> A(M, N, "weight");
+    Buffer<int> x(N, "vector");
+    Buffer<int> output(M, "output");
 
     for (int m = 0; m < M; m++) {
         for (int n = 0; n < N; n++) {
@@ -36,9 +36,9 @@ int main() {
     gemv.pim_thread(thread);
 
     Target target = get_host_target().with_feature(Target::UPMEM);
-    gemv.compile_jit(target);
+    gemv.compile_to_c("gemv.c", {A, x}, "gemv", target);
 
-    gemv.realize(output);
+    // gemv.realize(output);
 
     return 0;
 }
