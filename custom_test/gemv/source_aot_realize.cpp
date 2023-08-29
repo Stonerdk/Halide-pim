@@ -9,8 +9,8 @@ int main() {
     const int N = 4096;
 
     Buffer<int> A(M, N, "WEIGHT");
-    Buffer<int> x(N, "VECTOR");
-    Buffer<int> output(M, "OUTPUT");
+    Buffer<int> x(M, "VECTOR");
+    Buffer<int> output(N, "OUTPUT");
 
     Buffer<int> A_transformed = gemv_transform(A);
     Buffer<int> x_transformed = gemv_transform(x);
@@ -24,7 +24,12 @@ int main() {
         x(n) = rand() % 100;
     }
 
-    gemv(A, x, output);
+    gemv_init(A, x, output);
+    // or gemv_init(A, x, output);
+    gemv_transfer_weight(A);
+    gemv_transfer_vector(x);
+    gemv();
+    gemv_transfer_output(output);
 
     Buffer<int> output_transformed = gemv_transform(output);
     for (int i = 0; i < M; i++) {

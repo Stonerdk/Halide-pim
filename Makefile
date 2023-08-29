@@ -481,6 +481,7 @@ SOURCE_FILES = \
   CodeGen_Metal_Dev.cpp \
   CodeGen_OpenCL_Dev.cpp \
   CodeGen_UPMEM_DPU.cpp \
+  CodeGen_UPMEM_host.cpp \
   CodeGen_Vulkan_Dev.cpp \
   CodeGen_OpenGLCompute_Dev.cpp \
   CodeGen_Posix.cpp \
@@ -674,6 +675,7 @@ HEADER_FILES = \
   CodeGen_Metal_Dev.h \
   CodeGen_OpenCL_Dev.h \
   CodeGen_UPMEM_DPU.h \
+  CodeGen_UPMEM_host.h \
   CodeGen_Vulkan_Dev.h \
   CodeGen_OpenGLCompute_Dev.h \
   CodeGen_Posix.h \

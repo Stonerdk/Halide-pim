@@ -41,6 +41,7 @@ set(HEADER_FILES
     CodeGen_PyTorch.h
     CodeGen_Targets.h
     CodeGen_UPMEM_DPU.h
+    CodeGen_UPMEM_host.h
     CodeGen_Vulkan_Dev.h
     CodeGen_WebGPU_Dev.h
     CompilerLogger.h
@@ -213,6 +214,7 @@ set(SOURCE_FILES
     CodeGen_PyTorch.cpp
     CodeGen_RISCV.cpp
     CodeGen_UPMEM_DPU.cpp
+    CodeGen_UPMEM_host.cpp
     CodeGen_Vulkan_Dev.cpp
     CodeGen_WebAssembly.cpp
     CodeGen_WebGPU_Dev.cpp

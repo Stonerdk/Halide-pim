@@ -49,7 +49,7 @@ private:
             internal_assert(is_const_zero(op->min));
         }
 
-        if (ends_with(op->name, ".__tasklet_id_x")) {
+        if (ends_with(op->name, ".__thread_id_x")) {
             num_threads[0] = op->extent;
         } else if (ends_with(op->name, ".__bank_id_x")) {
             num_banks[0] = op->extent;

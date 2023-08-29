@@ -371,6 +371,15 @@ void Pipeline::compile_to_multitarget_object_files(const std::string &filename_p
     compile_multitarget(generate_function_name(), outputs, targets, suffixes, module_producer);
 }
 
+void Pipeline::compile_to_upmem_libraries(const std::string &filename_prefix,
+                                          const std::vector<Argument> &args,
+                                          const std::string &fn_name,
+                                          const Target &target) {
+    Module m = compile_to_module(args, fn_name, target);
+    m.split_function();
+    m.compile({{OutputFileType::c_upmem, filename_prefix}});
+}
+
 void Pipeline::compile_to_file(const string &filename_prefix,
                                const vector<Argument> &args,
                                const std::string &fn_name,

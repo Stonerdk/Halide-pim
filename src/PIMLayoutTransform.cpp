@@ -159,6 +159,7 @@ private:
             for (size_t i = 1; i < box.size(); i++) {
                 stmt_copy_to = For::make("ii" + std::to_string(i), box[i].min, box[i].max + 1, ForType::Serial, DeviceAPI::None, stmt_copy_to);
             }
+            stmt_copy_to = ThreadLoopMutator(LetStmt::make("dpu_idx", bank, stmt_copy_to)).mutate(loop);
             stmts_copy_to.push_back(stmt_copy_to);
 
             if (reduction_scope.contains(bound_it->first)) {
@@ -166,13 +167,14 @@ private:
                 for (size_t i = 1; i < box.size(); i++) {
                     stmt_copy_from = For::make("ii" + std::to_string(i), box[i].min, box[i].max + 1, ForType::Serial, DeviceAPI::None, stmt_copy_from);
                 }
+                stmt_copy_from = ThreadLoopMutator(LetStmt::make("dpu_idx", bank, stmt_copy_from)).mutate(loop);
                 stmts_copy_from.push_back(stmt_copy_from);
             }
 
         }
         return {
-            ThreadLoopMutator(LetStmt::make("dpu_idx", bank, Block::make(stmts_copy_to))).mutate(loop),
-            ThreadLoopMutator(LetStmt::make("dpu_idx", bank, Block::make(stmts_copy_from))).mutate(loop)
+            Block::make(stmts_copy_to),
+            Block::make(stmts_copy_from)
         };
     }
 
