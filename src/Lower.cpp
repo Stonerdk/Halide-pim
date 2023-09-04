@@ -285,7 +285,7 @@ void lower_impl(const vector<Function> &output_funcs,
     log("Lowering after adding atomic mutex allocation:", s);
 
     debug(1) << "Unpacking buffer arguments...\n";
-    s = unpack_buffers(s);
+    s = unpack_buffers(s, t);
     log("Lowering after unpacking buffer arguments:", s);
 
     if (any_memoized) {

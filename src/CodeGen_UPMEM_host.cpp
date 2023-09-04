@@ -334,6 +334,8 @@ CodeGen_UPMEM_C::~CodeGen_UPMEM_C() {
 
 void CodeGen_UPMEM_C::compile(const Module &input) {
     stream << "\n#include \"" << fname + "_host.h" << "\"\n";
+
+    Module new_module = split_module(input);
   
     add_platform_prologue();
     TypeInfoGatherer type_info;
@@ -379,6 +381,36 @@ void CodeGen_UPMEM_C::compile(const Module &input) {
     }
 
     emit_global_variables();
+}
+
+// Internal module transformer
+Module CodeGen_UPMEM_C::split_module(const Module& m) {
+    // this is initialize part
+    class SplitProducerConsumer : public IRMutator {
+    public:
+        using IRMutator::visit;
+        Stmt pc;
+        Stmt visit(const ProducerConsumer *op) override {
+            pc = op->body;
+            return Evaluate::make(0);
+        }
+    };
+
+    Module new_module { m.name(), m.target() };
+    for (const auto &f : m.functions()) {
+        SplitProducerConsumer spc;
+        auto init_statement = spc.mutate(f.body); // 그래 이거 안될듯
+
+        if (spc.pc.defined()) {
+            LoweredFunc init_f(f.name, f.args, init_statement, f.linkage);
+            LoweredFunc lowered_f(f.name + "_produce", std::vector<LoweredArgument>(), spc.pc, f.linkage);
+            new_module.append(init_f);
+            new_module.append(lowered_f);
+        } else {
+            new_module.append(f);
+        }
+    }
+    return new_module;
 }
 
 void CodeGen_UPMEM_C::compile(const LoweredFunc &f, const MetadataNameMap &metadata_name_map) {

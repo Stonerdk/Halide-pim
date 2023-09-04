@@ -67,7 +67,7 @@ public:
 
 }  // namespace
 
-Stmt unpack_buffers(Stmt s) {
+Stmt unpack_buffers(Stmt s, const Target& t) {
     FindBufferSymbols finder;
     s.accept(&finder);
 

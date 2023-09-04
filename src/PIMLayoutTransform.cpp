@@ -14,6 +14,7 @@
 #include "Bounds.h"
 #include "DeviceArgument.h"
 #include "Scope.h"
+#include "IREquality.h"
 
 #include <sstream>
 
@@ -30,6 +31,13 @@ using std::set;
 using std::pair;
 using std::stack;
 using std::reverse;
+
+Expr make_shape_var(string name, const string &field, size_t dim,
+                        const Buffer<> &buf, const Parameter &param) {
+    ReductionDomain rdom;
+    name = name + "." + field + "." + std::to_string(dim);
+    return Variable::make(Int(32), name, buf, param, rdom);
+}
 
 class PIMLayoutTransform : public IRMutator {
 public:
@@ -119,6 +127,7 @@ private:
     using IRMutator::visit;
     Scope<> reduction_scope;
     Scope<map<string, Box>> bounds_scope;
+    Scope<Expr> let_values;
     set<string> shared_memory_buffer;
 
     Stmt visit(const ProducerConsumer* op) override {
@@ -132,6 +141,13 @@ private:
         return "kernel_" + std::to_string(kernel_idx);
     }
 
+    Stmt visit(const LetStmt* op) override {
+        let_values.push(op->name, op->value);
+        Stmt stmt = IRMutator::visit(op);
+        let_values.pop(op->name);
+        return stmt;
+    }
+
     pair<Stmt, Stmt> optimize_copy(const For* loop, Expr bank) {
         string kernel_name = get_kernel_name();
         map<string, Box> bounds = bounds_scope.get(kernel_name);
@@ -142,36 +158,70 @@ private:
             if (shared_memory_buffer.find(bound_it->first) != shared_memory_buffer.end()) {
                 continue;
             }
+            vector<Expr> box_intervals;
+            
             Box box = bound_it->second;
-            Expr stride = box[0].max - box[0].min + 1;
+            for (size_t i = 0; i < box.size(); i++) {
+                box_intervals.push_back(simplify(box[i].max - box[i].min + 1));
+            }
             Expr offset = box[0].min;
+            Expr size = box_intervals[0];
+            
+            size_t merge_idx = 1;
             for (size_t i = 1; i < box.size(); i++) {
-                offset = Variable::make(Int(32), "ii" + std::to_string(i)) * stride + offset;
-                stride *= (box[i].max - box[i].min + 1);
+                string vname_extent = bound_it->first + ".extent." + std::to_string(i - 1) + ".proposed";
+                string vname_min = bound_it->first + ".min." + std::to_string(i - 1) + ".proposed";
+
+                Expr extent, _min, stride;
+                if (let_values.contains(vname_extent)) extent = let_values.get(vname_extent);
+                else extent = Variable::make(Int(32), vname_extent);
+                if (let_values.contains(vname_min)) _min = let_values.get(vname_min);
+                else _min = Variable::make(Int(32), vname_min);
+                stride = extent - _min; 
+                
+                debug(2) << stride << " VS " << size << "\n";
+                if (graph_equal(size, stride)) {
+                    size *= box_intervals[i];
+                    merge_idx++;
+                } else {
+                    break;
+                }
+            }
+            for (size_t i = 1; i < box.size(); i++) {
+                Expr stride = Variable::make(Int(32), bound_it->first + ".stride." + std::to_string(i) + ".proposed");
+                Expr _min = Variable::make(Int(32), bound_it->first + ".min." + std::to_string(i) + ".proposed");
+                if (i < merge_idx)
+                    offset += (box[i].min - _min) * stride;
+                else
+                    offset += (Variable::make(Int(32), "ii" + std::to_string(i)) + box[i].min - _min) * stride;
             }
             vector<Expr>args = { 
                 Variable::make(Int(32), "dpu_idx"), 
                 Variable::make(type_of<struct halide_buffer_t *>(), bound_it->first + ".buffer"),
                 offset,
-                box[0].max - box[0].min + 1,
+                size
             };
-            Stmt stmt_copy_to = Evaluate::make(Call::make(Int(32), "halide_upmem_dpu_copy_to", args, Call::Extern));
-            for (size_t i = 1; i < box.size(); i++) {
-                stmt_copy_to = For::make("ii" + std::to_string(i), box[i].min, box[i].max + 1, ForType::Serial, DeviceAPI::None, stmt_copy_to);
+            if (!reduction_scope.contains(bound_it->first)) {
+                Stmt stmt_copy_to = Evaluate::make(Call::make(Int(32), "halide_upmem_dpu_copy_to", args, Call::Extern));
+                stmt_copy_to = ThreadLoopMutator(LetStmt::make("dpu_idx", bank, stmt_copy_to)).mutate(loop);
+                for (size_t i = merge_idx; i < box.size(); i++) {
+                    stmt_copy_to = For::make("ii" + std::to_string(i), 0, box_intervals[i], ForType::Serial, DeviceAPI::None, stmt_copy_to);
+                }
+                stmt_copy_to = ProducerConsumer::make(bound_it->first + ".copy_to", true, stmt_copy_to);
+                stmts_copy_to.push_back(stmt_copy_to);
             }
-            stmt_copy_to = ThreadLoopMutator(LetStmt::make("dpu_idx", bank, stmt_copy_to)).mutate(loop);
-            stmts_copy_to.push_back(stmt_copy_to);
-
             if (reduction_scope.contains(bound_it->first)) {
                 Stmt stmt_copy_from = Evaluate::make(Call::make(Int(32), "halide_upmem_dpu_copy_from", args, Call::Extern));
-                for (size_t i = 1; i < box.size(); i++) {
-                    stmt_copy_from = For::make("ii" + std::to_string(i), box[i].min, box[i].max + 1, ForType::Serial, DeviceAPI::None, stmt_copy_from);
-                }
                 stmt_copy_from = ThreadLoopMutator(LetStmt::make("dpu_idx", bank, stmt_copy_from)).mutate(loop);
+                for (size_t i = merge_idx; i < box.size(); i++) {
+                    stmt_copy_from = For::make("ii" + std::to_string(i), 0, box_intervals[i], ForType::Serial, DeviceAPI::None, stmt_copy_from);
+                }
+                stmt_copy_from = ProducerConsumer::make(bound_it->first + ".copy_from", true, stmt_copy_from);
                 stmts_copy_from.push_back(stmt_copy_from);
             }
-
         }
+        if (stmts_copy_to.empty()) stmts_copy_to = { Evaluate::make(0) };
+        if (stmts_copy_from.empty()) stmts_copy_from = { Evaluate::make(0) };
         return {
             Block::make(stmts_copy_to),
             Block::make(stmts_copy_from)

@@ -14,7 +14,7 @@ namespace Internal {
  * (e.g. foo.extent.0) in any referenced concrete buffers or buffer
  * parameters. After this pass, the only undefined symbols should
  * scalar parameters and the buffers themselves (e.g. foo.buffer). */
-Stmt unpack_buffers(Stmt s);
+Stmt unpack_buffers(Stmt s, const Target& t);
 
 }  // namespace Internal
 }  // namespace Halide

@@ -51,6 +51,7 @@ enum class LinkageType {
     ExternalPlusMetadata,  ///< Visible externally. Argument metadata and an argv wrapper are also generated.
     ExternalPlusArgv,      ///< Visible externally. Argv wrapper is generated but *not* argument metadata.
     Internal,              ///< Not visible externally, similar to 'static' linkage in C.
+    UPMEM_lt_split
 };
 
 namespace Internal {
@@ -178,8 +179,6 @@ public:
     /** Compile a halide Module to variety of outputs, depending on
      * the fields set in output_files. */
     void compile(const std::map<OutputFileType, std::string> &output_files) const;
-
-    void split_function();
 
     /** Compile a halide Module to in-memory object code. Currently
      * only supports LLVM based compilation, but should be extended to

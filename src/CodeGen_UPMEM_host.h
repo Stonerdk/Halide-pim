@@ -32,6 +32,8 @@ protected:
 
     void compile(const LoweredFunc &f, const MetadataNameMap &metadata_name_map);
 
+    Module split_module(const Module &m);
+
     bool define_global = true;
     string intercepted_unique_name;
     vector<pair<string, string>> globals;
