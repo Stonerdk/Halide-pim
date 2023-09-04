@@ -168,6 +168,7 @@ struct Target {
         VulkanV13 = halide_target_feature_vulkan_version13,
         Semihosting = halide_target_feature_semihosting,
         UPMEM = halide_target_feature_upmem,
+        UPMEM_lt_split = halide_target_feature_upmem_lt_split,
         FeatureEnd = halide_target_feature_end
     };
     Target() = default;

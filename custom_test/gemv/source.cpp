@@ -9,13 +9,13 @@ int main() {
 
     Var i("i"), j("j"), block("block"), inner_loop("inner_loop"), thread("thread");
 
-    Buffer<int> A(M, N, "weight");
+    Buffer<int> A(N, M, "weight");
     Buffer<int> x(N, "vector");
-    Buffer<int> output(M, "output");
+    Buffer<int> output(2049, "output");
 
     for (int m = 0; m < M; m++) {
         for (int n = 0; n < N; n++) {
-            A(m, n) = rand() % 100;
+            A(n, m) = rand() % 100;
         }
     }
     for (int n = 0; n < N; n++) {
@@ -26,8 +26,8 @@ int main() {
     Func intermediate("intermediate");
 
     RDom r(0, N);
-    intermediate(i, j) = A(i, j) * x(j);
-    gemv(i) = sum(intermediate(i, r));
+    // intermediate(i, j) = A(i, j) * x(j);
+    gemv(i) = sum(A(r, i) * x(r));
 
     gemv.split(i, block, thread, 2048);
     gemv.split(thread, thread, inner_loop, 128);
@@ -38,7 +38,7 @@ int main() {
     Target target = get_host_target().with_feature(Target::UPMEM);
     gemv.compile_to_c("gemv.c", {A, x}, "gemv", target);
 
-    // gemv.realize(output);
+    //gemv.realize(output, target);
 
     return 0;
 }

@@ -164,6 +164,7 @@ Stmt add_image_checks_inner(Stmt s,
 
     bool no_asserts = t.has_feature(Target::NoAsserts);
     bool no_bounds_query = t.has_feature(Target::NoBoundsQuery);
+    bool lt_split = t.has_feature(Target::UPMEM_lt_split);
 
     // First hunt for all the referenced buffers
     FindBuffers finder;
@@ -709,7 +710,7 @@ Stmt add_image_checks_inner(Stmt s,
     }
 
     // Inject the code that returns early for inference mode.
-    if (!no_bounds_query) {
+    if (!no_bounds_query || lt_split) {
         s = IfThenElse::make(!maybe_return_condition, s);
         prepend_stmts(&buffer_rewrites);
     }

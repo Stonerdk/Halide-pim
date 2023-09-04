@@ -723,34 +723,6 @@ void Module::compile(const std::map<OutputFileType, std::string> &output_files) 
     }
 }
 
-class SplitProducerConsumer : public IRMutator {
-public:
-    using IRMutator::visit;
-    Stmt pc;
-    Stmt visit(const ProducerConsumer *op) override {
-        pc = op->body;
-        return Evaluate::make(0);
-    }
-};
-
-void Module::split_function() {
-    std::vector<LoweredFunc> newFunctions;
-    for (const auto &f : functions()) {
-        SplitProducerConsumer spc;
-        auto mutated_body = spc.mutate(f.body); // 그래 이거 안될듯
-
-        if (spc.pc.defined()) {
-            LoweredFunc main_f(f.name, f.args, mutated_body, f.linkage);
-            LoweredFunc lowered_f(f.name + "_produce", std::vector<LoweredArgument>(), spc.pc, f.linkage);
-            newFunctions.push_back(main_f);
-            newFunctions.push_back(lowered_f);
-        } else {
-            newFunctions.push_back(f);
-        }
-    }
-    contents->functions = newFunctions; // does it work?
-}
-
 std::map<OutputFileType, std::string> compile_standalone_runtime(const std::map<OutputFileType, std::string> &output_files, const Target &t) {
     validate_outputs(output_files);
 
