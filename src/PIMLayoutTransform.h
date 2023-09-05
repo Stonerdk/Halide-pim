@@ -23,7 +23,9 @@ class Function;
 /** Take a statement with multi-dimensional Realize, Provide, and Call
  * nodes, and turn it into a statement with single-dimensional
  * Allocate, Store, and Load nodes respectively. */
-Stmt pim_layout_transform(Stmt s);
+Stmt pim_layout_transform(Stmt s, const std::string& pipeline_name);
+
+Stmt pim_layout_transform_split(Stmt s, const std::string& pipeline_name, std::map<std::string, Stmt>& splitted_stmts) ;
 
 }  // namespace Internal
 }  // namespace Halide

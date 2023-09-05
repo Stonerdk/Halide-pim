@@ -116,6 +116,8 @@ void lower_impl(const vector<Function> &output_funcs,
 
     size_t initial_lowered_function_count = result_module.functions().size();
 
+    map<string, Stmt> splitted_stmts;
+
     // Create a deep-copy of the entire graph of Funcs.
     auto [outputs, env] = deep_copy(output_funcs, build_environment(output_funcs));
 
@@ -270,9 +272,15 @@ void lower_impl(const vector<Function> &output_funcs,
     log("Lowering after bounding small realizations:", s);
 
     if (t.has_feature(Target::UPMEM)) {
-        debug(1) << "Transforming data layout for UPMEM PIM...\n";
-        s = pim_layout_transform(s);
-        log("lowering after transforming layout:", s);
+        if (t.has_feature(Target::UPMEM_lt_split)) {
+            debug(1) << "Transforming data layout for UPMEM PIM...\n";
+            s = pim_layout_transform_split(s, pipeline_name, splitted_stmts);
+            log("lowering after transforming layout:", s);
+        } else {
+            debug(1) << "Transforming data layout for UPMEM PIM...\n";
+            s = pim_layout_transform(s, pipeline_name);
+            log("lowering after transforming layout:", s);
+        }
     }
 
 
@@ -285,7 +293,11 @@ void lower_impl(const vector<Function> &output_funcs,
     log("Lowering after adding atomic mutex allocation:", s);
 
     debug(1) << "Unpacking buffer arguments...\n";
-    s = unpack_buffers(s, t);
+    if (t.has_feature(Target::UPMEM_lt_split)) {
+        s = unpack_buffers_upmem_lt(s, pipeline_name, splitted_stmts);
+    } else {
+        s = unpack_buffers(s);
+    }
     log("Lowering after unpacking buffer arguments:", s);
 
     if (any_memoized) {
@@ -468,6 +480,26 @@ void lower_impl(const vector<Function> &output_funcs,
                  << s << "\n\n";
     } else {
         debug(1) << "Skipping PIM offload...\n";
+    }
+
+
+    for (auto &iter : splitted_stmts) {
+        auto _name = iter.first;
+        Stmt s = splitted_stmts[_name];
+        
+        s = simplify(s);
+        s = partition_loops(s);
+        s = simplify(s);
+        s = rebase_loops_to_zero(s);
+        s = remove_dead_allocations(s);
+        s = simplify(s);
+        s = hoist_loop_invariant_values(s);
+        s = hoist_loop_invariant_if_statements(s);
+
+        splitted_stmts[_name] = s;
+
+        debug(2) << "After split buffer " << _name << ":\n"
+                    << iter.second << "\n\n";
     }
 
     // TODO: This needs to happen before lowering parallel tasks, because global

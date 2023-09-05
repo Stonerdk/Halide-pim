@@ -1,4 +1,5 @@
 #include "Halide.h"
+#include <iostream>
 
 using namespace Halide;
 
@@ -11,7 +12,7 @@ int main() {
 
     Buffer<int> A(N, M, "weight");
     Buffer<int> x(N, "vector");
-    Buffer<int> output(2049, "output");
+    Buffer<int> output(M, "output");
 
     for (int m = 0; m < M; m++) {
         for (int n = 0; n < N; n++) {
@@ -35,10 +36,12 @@ int main() {
     gemv.pim_bank(block);
     gemv.pim_thread(thread);
 
-    Target target = get_host_target().with_feature(Target::UPMEM);
-    gemv.compile_to_c("gemv.c", {A, x}, "gemv", target);
+    // Target target = get_host_target().with_feature(Target::UPMEM);
+    // gemv.compile_to_c("gemv.c", {A, x}, "gemv", target);
 
-    //gemv.realize(output, target);
+    gemv.realize(output, get_host_target());
+
+    std::cout << output.dim(0).extent() << std::endl;
 
     return 0;
 }

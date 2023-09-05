@@ -14,6 +14,43 @@
 
 extern "C" {
 
+
+HALIDE_BUFFER_HELPER_ATTRS
+int _halide_buffer_info_get_dimensions(const halide_buffer_info_t *buf_info) {
+    return buf_info->dimensions;
+}
+
+HALIDE_BUFFER_HELPER_ATTRS
+int _halide_buffer_info_get_min(const halide_buffer_info_t *buf_info, int d) {
+    return buf_info->dim[d].min;
+}
+
+HALIDE_BUFFER_HELPER_ATTRS
+int _halide_buffer_info_get_max(const halide_buffer_info_t *buf_info, int d) {
+    return buf_info->dim[d].min + buf_info->dim[d].extent - 1;
+}
+
+HALIDE_BUFFER_HELPER_ATTRS
+int _halide_buffer_info_get_extent(const halide_buffer_info_t *buf_info, int d) {
+    return buf_info->dim[d].extent;
+}
+
+HALIDE_BUFFER_HELPER_ATTRS
+int _halide_buffer_info_get_stride(const halide_buffer_info_t *buf_info, int d) {
+    return buf_info->dim[d].stride;
+}
+
+HALIDE_BUFFER_HELPER_ATTRS
+halide_dimension_t *_halide_buffer_info_get_shape(halide_buffer_info_t *buf_info) {
+    return buf_info->dim;
+}
+
+HALIDE_BUFFER_HELPER_ATTRS
+uint32_t _halide_buffer_info_get_type(const halide_buffer_info_t *buf_info) {
+    return buf_info->type.as_u32();
+}
+
+
 HALIDE_BUFFER_HELPER_ATTRS
 int _halide_buffer_get_dimensions(const halide_buffer_t *buf) {
     return buf->dimensions;

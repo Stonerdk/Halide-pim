@@ -1176,6 +1176,13 @@ public:
     }
     // @}
 
+    /** Construct a pointer to the halide_buffer_info_t  
+    */
+   halide_buffer_info_t raw_buffer_info() {
+        return { buf.type, buf.dimensions, buf.dim };
+   }
+
+
     /** Provide a cast operator to halide_buffer_t *, so that
      * instances can be passed directly to Halide filters. */
     operator halide_buffer_t *() {
@@ -1972,6 +1979,21 @@ public:
         const halide_type_t dst_type = T_is_void ? src.type() : halide_type_of<typename std::remove_cv<not_void_T>::type>();
         return Buffer<>::make_with_shape_of_helper(dst_type, src.dimensions(), src.buf.dim,
                                                    allocate_fn, deallocate_fn);
+    }
+
+    template<typename T2>
+    static halide_buffer_info_t* halide_arg_infos(std::vector<Buffer<T>> bvector) {
+        size_t buffer_count = bvector.size();
+        halide_buffer_info_t* bufs = new halide_buffer_info_t[buffer_count + 1];
+        for (size_t i = 0; i < buffer_count; i++) {
+            bufs[i] = bvector[i].raw_buffer();
+        }
+        bufs[buffer_count] = nullptr;
+        return bufs;
+    }
+
+    static void haldie_arg_infos_free(halide_buffer_info_t* bufs) {
+        delete[] bufs;
     }
 
 private:

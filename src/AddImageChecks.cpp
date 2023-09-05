@@ -583,14 +583,15 @@ Stmt add_image_checks_inner(Stmt s,
 
             // In bounds inference mode, make sure the proposed
             // versions still satisfy the constraints.
-            Expr max_proposed = min_proposed + extent_proposed - 1;
-            Expr max_required = min_required + extent_required - 1;
-            Expr check = (min_proposed <= min_required) && (max_proposed >= max_required);
-            Expr error = Call::make(Int(32), "halide_error_constraints_make_required_region_smaller",
-                                    {error_name, i, min_proposed, max_proposed, min_required, max_required},
-                                    Call::Extern);
-            asserts_proposed.push_back(AssertStmt::make((!inference_mode) || check, error));
-
+            if (!lt_split) {
+                Expr max_proposed = min_proposed + extent_proposed - 1;
+                Expr max_required = min_required + extent_required - 1;
+                Expr check = (min_proposed <= min_required) && (max_proposed >= max_required);
+                Expr error = Call::make(Int(32), "halide_error_constraints_make_required_region_smaller",
+                                        {error_name, i, min_proposed, max_proposed, min_required, max_required},
+                                        Call::Extern);
+                asserts_proposed.push_back(AssertStmt::make((!inference_mode) || check, error));
+            }
             // stride_required is just a suggestion. It's ok if the
             // constraints shuffle them around in ways that make it
             // smaller.
@@ -710,7 +711,7 @@ Stmt add_image_checks_inner(Stmt s,
     }
 
     // Inject the code that returns early for inference mode.
-    if (!no_bounds_query || lt_split) {
+    if (!no_bounds_query && !lt_split) {
         s = IfThenElse::make(!maybe_return_condition, s);
         prepend_stmts(&buffer_rewrites);
     }

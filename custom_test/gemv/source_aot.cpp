@@ -22,8 +22,10 @@ int main() {
     gemv.pim_thread(thread);
 
 
-    Target target = get_host_target().with_feature(Target::UPMEM);
-    gemv.compile_to_upmem_libraries("AOT_result/gemv_generate", {A, x, output}, "gemv", target);
+    Target target = get_host_target().with_feature(Target::UPMEM).with_feature(Target::UPMEM_lt_split);
+    // gemv.compile_to_lowered_stmt("AOT_result/gemv_generate.html", {A, x}, HTML, target);
+    gemv.compile_to_upmem_libraries("AOT_result/gemv_generate", {A, x}, "gemv", target);
+
 
     return 0;
 }

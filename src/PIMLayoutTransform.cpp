@@ -41,8 +41,10 @@ Expr make_shape_var(string name, const string &field, size_t dim,
 
 class PIMLayoutTransform : public IRMutator {
 public:
-    PIMLayoutTransform() {}
-
+     PIMLayoutTransform(std::map<std::string, Stmt>* splitted_stmts, bool is_split, string pipeline_name = "")
+        : splitted_stmts(splitted_stmts), is_split(is_split), pipeline_name(pipeline_name) {}
+    map<string, Stmt>* splitted_stmts ;
+    bool is_split = false;
     class ThreadLoopMutator : public IRMutator {
         public:
         ThreadLoopMutator(Stmt stmt): stmt(stmt) {}
@@ -71,7 +73,7 @@ public:
 
         Expr bank = 0;
         Stmt thread_loop;
-
+        
         set<string> shared_memory_buffer;
 
         InspectResourceAllocation() {
@@ -125,20 +127,41 @@ public:
 private:
     size_t kernel_idx = 0;
     using IRMutator::visit;
-    Scope<> reduction_scope;
+    // Scope<> reduction_scope;
     Scope<map<string, Box>> bounds_scope;
     Scope<Expr> let_values;
     set<string> shared_memory_buffer;
+    string pipeline_name;
+
+    string output_buffer_name;
 
     Stmt visit(const ProducerConsumer* op) override {
-        reduction_scope.push(op->name);
+        // reduction_scope.push(op->name);
         Stmt stmt = IRMutator::visit(op);
-        reduction_scope.pop(op->name);
+        // reduction_scope.pop(op->name);
         return stmt;
     }
 
     string get_kernel_name() {
         return "kernel_" + std::to_string(kernel_idx);
+    }
+
+
+    void split_merge(string name, Stmt stmt, bool tail = true) {
+        if (!is_split) return;
+        internal_assert(splitted_stmts != nullptr);
+        map<string, Stmt>& ref = *splitted_stmts;
+
+        if (ref.find(name) != ref.end()) {
+            if (tail) {
+                ref[name] = Block::make(ref[name], stmt);
+            } else {
+                ref[name] = Block::make(stmt, ref[name]);
+            }
+        } else {
+            ref[name] = stmt;
+        }
+
     }
 
     Stmt visit(const LetStmt* op) override {
@@ -148,7 +171,7 @@ private:
         return stmt;
     }
 
-    pair<Stmt, Stmt> optimize_copy(const For* loop, Expr bank) {
+    pair<Stmt, Stmt> inject_copy(const For* loop, Expr bank, Stmt init_stmt) {
         string kernel_name = get_kernel_name();
         map<string, Box> bounds = bounds_scope.get(kernel_name);
 
@@ -197,27 +220,28 @@ private:
             }
             vector<Expr>args = { 
                 Variable::make(Int(32), "dpu_idx"), 
-                Variable::make(type_of<struct halide_buffer_t *>(), bound_it->first + ".buffer"),
+                Variable::make(type_of<void *>(), bound_it->first),
                 offset,
                 size
             };
-            if (!reduction_scope.contains(bound_it->first)) {
+            if (bound_it->first != pipeline_name) {
                 Stmt stmt_copy_to = Evaluate::make(Call::make(Int(32), "halide_upmem_dpu_copy_to", args, Call::Extern));
                 stmt_copy_to = ThreadLoopMutator(LetStmt::make("dpu_idx", bank, stmt_copy_to)).mutate(loop);
                 for (size_t i = merge_idx; i < box.size(); i++) {
                     stmt_copy_to = For::make("ii" + std::to_string(i), 0, box_intervals[i], ForType::Serial, DeviceAPI::None, stmt_copy_to);
                 }
-                stmt_copy_to = ProducerConsumer::make(bound_it->first + ".copy_to", true, stmt_copy_to);
+                stmt_copy_to = Block::make(init_stmt, stmt_copy_to);
+                split_merge(bound_it->first, stmt_copy_to, false);
                 stmts_copy_to.push_back(stmt_copy_to);
             }
-            if (reduction_scope.contains(bound_it->first)) {
+            else { // unique
                 Stmt stmt_copy_from = Evaluate::make(Call::make(Int(32), "halide_upmem_dpu_copy_from", args, Call::Extern));
                 stmt_copy_from = ThreadLoopMutator(LetStmt::make("dpu_idx", bank, stmt_copy_from)).mutate(loop);
                 for (size_t i = merge_idx; i < box.size(); i++) {
                     stmt_copy_from = For::make("ii" + std::to_string(i), 0, box_intervals[i], ForType::Serial, DeviceAPI::None, stmt_copy_from);
                 }
-                stmt_copy_from = ProducerConsumer::make(bound_it->first + ".copy_from", true, stmt_copy_from);
                 stmts_copy_from.push_back(stmt_copy_from);
+                output_buffer_name = bound_it->first;
             }
         }
         if (stmts_copy_to.empty()) stmts_copy_to = { Evaluate::make(0) };
@@ -274,19 +298,28 @@ private:
         auto bounds = boxes_touched(inspect.thread_loop);
         bounds_scope.push(kernel_name, bounds);
 
-        auto [ stmt_copy_to, stmt_copy_from ] = optimize_copy(loop, inspect.get_bank());
+        auto [ stmt_copy_to, stmt_copy_from ] = inject_copy(loop, inspect.get_bank(), stmt_alloc_load);
 
         auto result = IRMutator::visit(loop);
         bounds_scope.pop(kernel_name);
 
         kernel_idx++;
 
-        return Block::make({ stmt_alloc_load, stmt_copy_to, result, stmt_copy_from, stmt_free });
+        if (is_split) {
+            return Block::make({ result, stmt_copy_from, stmt_free });
+            // why not split "gemv" now? -> Inside PIM computation needs lowering pass
+        } else {
+            return Block::make({ stmt_alloc_load, stmt_copy_to, result, stmt_copy_from, stmt_free });
+        }
     }
 };
 
-Stmt pim_layout_transform(Stmt s) {
-    return PIMLayoutTransform().mutate(s);
+Stmt pim_layout_transform_split(Stmt s, const string& pipeline_name, map<string, Stmt>& splitted_stmts) {
+    return PIMLayoutTransform(&splitted_stmts, true, pipeline_name).mutate(s);
+}
+
+Stmt pim_layout_transform(Stmt s, const string& pipeline_name) {
+    return PIMLayoutTransform(nullptr, false).mutate(s);
 }
 
 }  // namespace Internal
