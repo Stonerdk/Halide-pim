@@ -274,11 +274,11 @@ void lower_impl(const vector<Function> &output_funcs,
     if (t.has_feature(Target::UPMEM)) {
         if (t.has_feature(Target::UPMEM_lt_split)) {
             debug(1) << "Transforming data layout for UPMEM PIM...\n";
-            s = pim_layout_transform_split(s, pipeline_name, splitted_stmts);
+            s = pim_layout_transform_split(s, args, outputs, splitted_stmts);
             log("lowering after transforming layout:", s);
         } else {
             debug(1) << "Transforming data layout for UPMEM PIM...\n";
-            s = pim_layout_transform(s, pipeline_name);
+            s = pim_layout_transform(s, args, outputs);
             log("lowering after transforming layout:", s);
         }
     }
@@ -294,7 +294,7 @@ void lower_impl(const vector<Function> &output_funcs,
 
     debug(1) << "Unpacking buffer arguments...\n";
     if (t.has_feature(Target::UPMEM_lt_split)) {
-        s = unpack_buffers_upmem_lt(s, pipeline_name, splitted_stmts);
+        s = unpack_buffers_upmem_lt(s, pipeline_name, splitted_stmts, args);
     } else {
         s = unpack_buffers(s);
     }
@@ -473,9 +473,10 @@ void lower_impl(const vector<Function> &output_funcs,
         debug(1) << "Skipping GPU offload...\n";
     }
 
+    Stmt execute_stmt;
     if (t.has_feature(Target::UPMEM)) {
         debug(1) << "Offloading PIM loops...\n";
-        s = inject_pim_offload(s, t);
+        s = inject_pim_offload(s, t, execute_stmt);
         debug(2) << "Lowering after splitting off PIM loops:\n"
                  << s << "\n\n";
     } else {
@@ -502,6 +503,47 @@ void lower_impl(const vector<Function> &output_funcs,
                     << iter.second << "\n\n";
     }
 
+    if (t.has_feature(Target::UPMEM_lt_split)) {
+        // NO parallel tasks - no clousre_implmentations
+        // NO dynamic infer arguments. arguments are fixed in AOT stage
+
+        // no multi-function pipeline
+        // single output, multi output is supportable next time
+
+        size_t arg_idx = 0;
+        map<string, vector<Argument>> args_map;
+
+        for (const auto& arg : args) {
+            result_module.append(LoweredFunc(
+                pipeline_name + "_copy_to_" + std::to_string(arg_idx++), 
+                { arg }, splitted_stmts[arg.name], LinkageType::Internal
+            ));
+        }
+        const auto& out = outputs[0];
+        vector<Argument> output_args;
+        for (const Parameter &buf : out.output_buffers()) {
+            output_args.emplace_back(buf.name(),
+                Argument::OutputBuffer,
+                buf.type(), buf.dimensions(), buf.get_argument_estimates());
+            result_module.append(LoweredFunc(
+                pipeline_name + "_copy_from", output_args, s, LinkageType::Internal
+            ));
+        }
+
+        result_module.append(LoweredFunc(pipeline_name + "_execute", 
+            vector<Argument>(), execute_stmt, LinkageType::Internal));
+        // split s from execution and copy from
+
+        auto *logger = get_compiler_logger();
+        if (logger) {
+            auto time_end = std::chrono::high_resolution_clock::now();
+            std::chrono::duration<double> diff = time_end - time_start;
+            logger->record_compilation_time(CompilerLogger::Phase::HalideLowering, diff.count());
+        }
+
+        return;
+
+    }
     // TODO: This needs to happen before lowering parallel tasks, because global
     // images used inside parallel loops are rewritten from loads from images to
     // loads from closure parameters. Closure parameters are missing the Buffer<>

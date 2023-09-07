@@ -334,12 +334,10 @@ CodeGen_UPMEM_C::~CodeGen_UPMEM_C() {
 
 void CodeGen_UPMEM_C::compile(const Module &input) {
     stream << "\n#include \"" << fname + "_host.h" << "\"\n";
-
-    Module new_module = split_module(input);
   
     add_platform_prologue();
     TypeInfoGatherer type_info;
-    for (const auto &f : new_module.functions()) {
+    for (const auto &f : input.functions()) {
         if (f.body.defined()) 
             f.body.accept(&type_info);
     }
@@ -348,7 +346,7 @@ void CodeGen_UPMEM_C::compile(const Module &input) {
                           type_info.for_types_used.count(ForType::GPULane));
     if (output_kind != CPlusPlusFunctionInfoHeader) {
         stream << "\n";
-        for (const auto &f : new_module.functions()) {
+        for (const auto &f : input.functions()) {
             for (const auto &arg : f.args) {
                 forward_declare_type_if_needed(arg.type);
             }
@@ -359,7 +357,7 @@ void CodeGen_UPMEM_C::compile(const Module &input) {
     if (!is_header_or_extern_decl()) {
         add_vector_typedefs(type_info.vector_types_used);
         ExternCallPrototypes e;
-        for (const auto &f : new_module.functions()) {
+        for (const auto &f : input.functions()) {
             f.body.accept(&e);
             if (f.linkage == LinkageType::Internal) {
                 e.set_internal_linkage(f.name);
@@ -371,46 +369,16 @@ void CodeGen_UPMEM_C::compile(const Module &input) {
         }
     }
 
-    for (const auto &b : new_module.buffers()) {
+    for (const auto &b : input.buffers()) {
         compile(b);
     }
     
-    const auto metadata_name_map = new_module.get_metadata_name_map();
-    for (const auto &f : new_module.functions()) {
+    const auto metadata_name_map = input.get_metadata_name_map();
+    for (const auto &f : input.functions()) {
         compile(f, metadata_name_map);
     }
 
     emit_global_variables();
-}
-
-// Internal module transformer
-Module CodeGen_UPMEM_C::split_module(const Module& m) {
-    // this is initialize part
-    class SplitProducerConsumer : public IRMutator {
-    public:
-        using IRMutator::visit;
-        Stmt pc;
-        Stmt visit(const ProducerConsumer *op) override {
-            pc = op->body;
-            return Evaluate::make(0);
-        }
-    };
-
-    Module new_module { m.name(), m.target() };
-    for (const auto &f : m.functions()) {
-        SplitProducerConsumer spc;
-        auto init_statement = spc.mutate(f.body); // 그래 이거 안될듯
-
-        if (spc.pc.defined()) {
-            LoweredFunc init_f(f.name, f.args, init_statement, f.linkage);
-            LoweredFunc lowered_f(f.name + "_produce", std::vector<LoweredArgument>(), spc.pc, f.linkage);
-            new_module.append(init_f);
-            new_module.append(lowered_f);
-        } else {
-            new_module.append(f);
-        }
-    }
-    return new_module;
 }
 
 void CodeGen_UPMEM_C::compile(const LoweredFunc &f, const MetadataNameMap &metadata_name_map) {
@@ -450,7 +418,7 @@ void CodeGen_UPMEM_C::compile(const LoweredFunc &f, const MetadataNameMap &metad
             for (const auto &arg : args) {
                 oss << comma;
                 if (arg.is_buffer()) {
-                    oss << "struct halide_buffer_t *_"
+                    oss << "struct halide_buffer_t *"
                            << print_name(arg.name)
                            << "_buffer";
                 } else {
@@ -494,17 +462,6 @@ void CodeGen_UPMEM_C::compile(const LoweredFunc &f, const MetadataNameMap &metad
                     << ";\n";
             stream << get_indent() << "halide_maybe_unused(_ucon);\n";
 
-            for (const auto &arg : args) {
-                string argName = print_name(arg.name);
-                if (arg.is_buffer()) {
-                    argName = print_name(arg.name) + "_buffer";
-                    globals.push_back({ "struct halide_buffer_t *", argName });
-                } else {
-                    globals.push_back({ print_type(arg.type), argName });
-                }
-                stream << get_indent() << argName << " = _" << argName << ";\n";
-            }
-
             Stmt body_to_print = preprocess_function_body(f.body);
             print(body_to_print);
 
@@ -516,6 +473,8 @@ void CodeGen_UPMEM_C::compile(const LoweredFunc &f, const MetadataNameMap &metad
         // Ensure we use open/close_scope, so that the cache doesn't try to linger
         // across function boundaries for internal closures.
         close_scope("");
+
+        stream << "\n\n";
 
 
 
@@ -553,28 +512,29 @@ void CodeGen_UPMEM_C::emit_global_variables() {
 }
 
 void CodeGen_UPMEM_C::visit(const LetStmt *op) {
-    if (define_global && op->value.as<Call>()) {
-        string temp_value = op->name;
-        replace(temp_value.begin(), temp_value.end(), '.', '_');
-        temp_value = "_" + temp_value;
-        intercept_unique_name(temp_value);
-        string id_value = print_expr(op->value);
-        release_unique_name();
+    // if (define_global && op->value.as<Call>()) {
+    //     string temp_value = op->name;
+    //     replace(temp_value.begin(), temp_value.end(), '.', '_');
+    //     temp_value = "_" + temp_value;
+    //     intercept_unique_name(temp_value);
+    //     string id_value = print_expr(op->value);
+    //     release_unique_name();
 
-        const Call* c = op->value.as<Call>();
-        globals.push_back({ print_type(c->type), temp_value });
-        auto new_var = Variable::make(c->type, temp_value);
-        Stmt body = substitute(op->name, new_var, op->body);
-        body.accept(this);
-    } else {
+    //     const Call* c = op->value.as<Call>();
+    //     globals.push_back({ print_type(c->type), temp_value });
+    //     auto new_var = Variable::make(c->type, temp_value);
+    //     Stmt body = substitute(op->name, new_var, op->body);
+    //     body.accept(this);
+    // } else {
         CodeGen_C::visit(op);
-    }
+    // }
 }
 
 void CodeGen_UPMEM_C::visit(const AssertStmt *op) {
     bool past_define_global = define_global;
     define_global = false;
-    CodeGen_C::visit(op);
+    // stream << "// bypass assertment;\n";
+    // CodeGen_C::visit(op);
     define_global = past_define_global;
 }
 
@@ -584,14 +544,15 @@ void CodeGen_UPMEM_C::visit(const IfThenElse *op) {
 }
 
 string CodeGen_UPMEM_C::print_assignment(Type t, const std::string &rhs) {
-    if (define_global) {
-        id = intercepted_unique_name.empty() ? unique_name('G') : intercepted_unique_name;
-        stream << id << " = " << rhs << ";\n";
-        cache[rhs] = id;
-        return id;
-    } else {
-        return CodeGen_C::print_assignment(t, rhs);
-    }
+    return CodeGen_C::print_assignment(t, rhs);
+    // if (define_global) {
+    //     id = intercepted_unique_name.empty() ? unique_name('G') : intercepted_unique_name;
+    //     stream << id << " = " << rhs << ";\n";
+    //     cache[rhs] = id;
+    //     return id;
+    // } else {
+    //     return CodeGen_C::print_assignment(t, rhs);
+    // }
 }
 
 }

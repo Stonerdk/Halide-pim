@@ -10,6 +10,9 @@
 #include <string>
 #include <vector>
 
+#include "Argument.h"
+#include "Function.h"
+
 #include "Expr.h"
 
 namespace Halide {
@@ -23,9 +26,14 @@ class Function;
 /** Take a statement with multi-dimensional Realize, Provide, and Call
  * nodes, and turn it into a statement with single-dimensional
  * Allocate, Store, and Load nodes respectively. */
-Stmt pim_layout_transform(Stmt s, const std::string& pipeline_name);
+Stmt pim_layout_transform(Stmt s, 
+    const std::vector<Argument> &args, 
+    const std::vector<Function> &outputs);
 
-Stmt pim_layout_transform_split(Stmt s, const std::string& pipeline_name, std::map<std::string, Stmt>& splitted_stmts) ;
+Stmt pim_layout_transform_split(Stmt s,
+    const std::vector<Argument> &args,
+    const std::vector<Function> &outputs,
+    std::map<std::string, Stmt>& splitted_stmts);
 
 }  // namespace Internal
 }  // namespace Halide

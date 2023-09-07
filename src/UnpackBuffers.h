@@ -6,6 +6,7 @@
  */
 
 #include "Expr.h"
+#include "Argument.h"
 #include <map>
 #include <string>
 
@@ -19,7 +20,7 @@ namespace Internal {
  * scalar parameters and the buffers themselves (e.g. foo.buffer). */
 Stmt unpack_buffers(Stmt s);
 
-Stmt unpack_buffers_upmem_lt(Stmt s, const string& pipeline_name, map<string, Stmt>& let_stmts);
+Stmt unpack_buffers_upmem_lt(Stmt s, const string& pipeline_name, map<string, Stmt>& let_stmts, const vector<Argument>& args);
 
 }  // namespace Internal
 }  // namespace Halide

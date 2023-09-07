@@ -93,6 +93,10 @@ WEAK int halide_upmem_dpu_copy_from(void *user_context,
     return halide_error_code_unimplemented;
 }
 
+WEAK halide_buffer_info_t * halide_upmem_info_args(int64_t i, halide_buffer_info_t** args) {
+    return args[i];
+}
+
 WEAK int halide_upmem_dpu_xfer_to(void *user_context, 
     size_t dpu_idx, struct halide_buffer_t *buf, 
     uint64_t host_offset[], uint64_t dpu_offset, uint64_t size, void *args[]) {
