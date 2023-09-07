@@ -73,6 +73,8 @@ class InjectGpuOffload : public IRMutator {
 
     const Target &target;
 
+    Stmt& execute_stmt;
+
     size_t loop_idx = 0;
     Expr get_state_var(const string &name) {
         // Expr v = Variable::make(type_of<void *>(), name);
@@ -160,20 +162,19 @@ class InjectGpuOffload : public IRMutator {
         string api_unique_name = pim_codegen->api_unique_name();
         vector<Expr> run_args = {
             kernel_name,
-            Expr(bounds.num_banks[0]),
-            Expr(bounds.num_banks[1]),
-            Expr(bounds.num_banks[2]),
             Expr(bounds.num_threads[0]),
             Expr(0),
         };
         loop_idx ++;
-        return call_extern_and_assert("halide_" + api_unique_name + "_run", run_args);
+        execute_stmt = call_extern_and_assert("halide_" + api_unique_name + "_run", run_args);
+
+        return Evaluate::make(0);
     }
 
 
 public:
-    InjectGpuOffload(const Target &target)
-        : target(target) {
+    InjectGpuOffload(const Target &target, Stmt& execute_stmt)
+        : target(target), execute_stmt(execute_stmt) {
         if (target.has_feature(Target::UPMEM)) {
              cgdev[DeviceAPI::UPMEM] = std::make_unique<CodeGen_UPMEM_DPU_Dev>(target);
         }
@@ -198,8 +199,8 @@ public:
 
 }  // namespace
 
-Stmt inject_pim_offload(const Stmt &s, const Target &host_target) {
-    return InjectGpuOffload(host_target).inject(s);
+Stmt inject_pim_offload(const Stmt &s, const Target &host_target, Stmt& execute_stmt) {
+    return InjectGpuOffload(host_target, execute_stmt).inject(s);
 }
 
 }  // namespace Internal

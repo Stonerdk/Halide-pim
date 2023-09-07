@@ -156,20 +156,28 @@ public:
     }
 };
 
-Stmt unpack_buffers_upmem_lt(Stmt s, const string& pipeline_name, map<string, Stmt> &local_let_stmts) {
+Stmt unpack_buffers_upmem_lt(Stmt s, const string& pipeline_name, map<string, Stmt> &local_let_stmts, const vector<Argument>& args) {
+    // Inverted Index of Args
+    map<string, Expr> args_inverted_map;
+    for (uint64_t i = 0; i < args.size(); i++) {
+        args_inverted_map[args[i].name] = Expr(i + 1);
+    }
+    args_inverted_map[pipeline_name] = 0;
+    
     FindBufferSymbols finder;
     s.accept(&finder);
 
     vector<pair<string, Expr>> lets;
+    vector<pair<string, Expr>> info_lets;
     map<string, vector<pair<string, Expr>>> local_lets_map;
+
+    Expr info_args = Variable::make(type_of <void*>(), "info_args");
 
     for (auto &p : finder.buffers) {
         const string &name = p.first;
         const BufferInfo &info = p.second;
 
-        auto vname = info.handle.as<Variable>()->name;
-        Expr handle = Variable::make(type_of<halide_buffer_info_t *>(), vname + ".buffer.info");
-        vector<Expr> args = { handle};
+        vector<Expr> args = { info.handle };
 
         string host_var = name;
         Expr host_val = Call::make(type_of<void *>(), Call::buffer_get_host, args, Call::Extern);
@@ -192,6 +200,14 @@ Stmt unpack_buffers_upmem_lt(Stmt s, const string& pipeline_name, map<string, St
         Expr dev_dirty_val = Call::make(Bool(), Call::buffer_get_device_dirty, args, Call::Extern);
         local_lets_map[name].emplace_back(dev_dirty_var, dev_dirty_val);
 
+        string info_name = name + ".info";
+        Expr get_info_args = Call::make(type_of<halide_buffer_info_t *>(), "halide_upmem_info_args", { info_args, args_inverted_map[name] }, Call::Extern);
+        // make it intrinsic
+        info_lets.emplace_back(info_name, get_info_args);
+
+        Expr handle = Variable::make(type_of<halide_buffer_info_t *>(), info_name);
+        args = { handle };
+
         string type_code_var = name + ".type";
         Expr type_code_val = Call::make(UInt(32), Call::buffer_get_type, args, Call::Extern);
         lets.emplace_back(type_code_var, type_code_val);
@@ -201,7 +217,7 @@ Stmt unpack_buffers_upmem_lt(Stmt s, const string& pipeline_name, map<string, St
         lets.emplace_back(dimensions_var, dimensions_val);
 
         for (int i = 0; i < info.dimensions; i++) {
-            vector<Expr> args = {info.handle, i};
+            vector<Expr> args = {handle, i};
 
             string min_var = name + ".min." + std::to_string(i);
             Expr min_val = Call::make(Int(32), Call::buffer_get_min, args, Call::Extern);
@@ -217,13 +233,6 @@ Stmt unpack_buffers_upmem_lt(Stmt s, const string& pipeline_name, map<string, St
         }
     }
 
-    while (!lets.empty()) {
-        pair<string, Expr> l = lets.back();
-        lets.pop_back();
-        if (finder.symbols.count(l.first)) {
-            s = LetStmt::make(l.first, l.second, s);
-        }
-    }
 
     for (auto iter = lets.rbegin(); iter != lets.rend(); ++iter) {
         pair<string, Expr> l = *iter;
@@ -231,6 +240,27 @@ Stmt unpack_buffers_upmem_lt(Stmt s, const string& pipeline_name, map<string, St
             s = LetStmt::make(l.first, l.second, s);
         }
     }
+    for (auto iter = info_lets.rbegin(); iter != info_lets.rend(); ++iter) {
+        pair<string, Expr> l = *iter;
+        s = LetStmt::make(l.first, l.second, s);
+    }
+
+    for (auto &p : local_lets_map) {
+        string name = p.first;
+        if (name == pipeline_name) continue;
+        vector<pair<string, Expr>> local_lets = p.second;
+        internal_assert(local_let_stmts.count(name) != 0);
+        Stmt let_stmt = LTInjector(local_let_stmts[name]).mutate(s);
+        for (auto iter = local_lets.rbegin(); iter != local_lets.rend(); ++iter) {
+            pair<string, Expr> l = *iter;
+            if (finder.symbols.count(l.first)) {
+                let_stmt = LetStmt::make(l.first, l.second, let_stmt);
+            }
+        }
+        local_let_stmts[name] = let_stmt;
+    }
+
+
     for (auto iter = local_lets_map[pipeline_name].rbegin(); 
             iter != local_lets_map[pipeline_name].rend(); ++iter) {
         pair<string, Expr> l = *iter;
@@ -239,28 +269,7 @@ Stmt unpack_buffers_upmem_lt(Stmt s, const string& pipeline_name, map<string, St
         }
     }
 
-    for (auto &p : local_lets_map) {
-        string name = p.first;
-        if (name == pipeline_name) continue;
-        vector<pair<string, Expr>> local_lets = p.second;
-        internal_assert(local_let_stmts.count(name) != 0);
-        Stmt let_stmt = local_let_stmts[name]; // LT currently
-        let_stmt = LTInjector(let_stmt).mutate(s);
-        for (auto iter = local_lets.rbegin(); iter != local_lets.rend(); ++iter) {
-            pair<string, Expr> l = *iter;
-            if (finder.symbols.count(l.first)) {
-                let_stmt = LetStmt::make(l.first, l.second, let_stmt);
-            }
-        }
-
-        for (auto iter = lets.rbegin(); iter != lets.rend(); ++iter) {
-            pair<string, Expr> l = *iter;
-            if (finder.symbols.count(l.first)) {
-                let_stmt = LetStmt::make(l.first, l.second, let_stmt);
-            }
-        }
-        local_let_stmts[name] = let_stmt;
-    }
+    
 
     return s;
 }

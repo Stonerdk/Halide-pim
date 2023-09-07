@@ -41,10 +41,16 @@ Expr make_shape_var(string name, const string &field, size_t dim,
 
 class PIMLayoutTransform : public IRMutator {
 public:
-     PIMLayoutTransform(std::map<std::string, Stmt>* splitted_stmts, bool is_split, string pipeline_name = "")
-        : splitted_stmts(splitted_stmts), is_split(is_split), pipeline_name(pipeline_name) {}
+
+    PIMLayoutTransform(
+        std::map<std::string, Stmt>* splitted_stmts, 
+        const std::vector<Argument> &args,
+        const std::vector<Function> &outputs):
+        splitted_stmts(splitted_stmts), args(args), outputs(outputs) {}
+    
     map<string, Stmt>* splitted_stmts ;
-    bool is_split = false;
+    const std::vector<Argument> &args;
+    const std::vector<Function> &outputs;
     class ThreadLoopMutator : public IRMutator {
         public:
         ThreadLoopMutator(Stmt stmt): stmt(stmt) {}
@@ -131,9 +137,6 @@ private:
     Scope<map<string, Box>> bounds_scope;
     Scope<Expr> let_values;
     set<string> shared_memory_buffer;
-    string pipeline_name;
-
-    string output_buffer_name;
 
     Stmt visit(const ProducerConsumer* op) override {
         // reduction_scope.push(op->name);
@@ -148,7 +151,7 @@ private:
 
 
     void split_merge(string name, Stmt stmt, bool tail = true) {
-        if (!is_split) return;
+        if (splitted_stmts == nullptr) return;
         internal_assert(splitted_stmts != nullptr);
         map<string, Stmt>& ref = *splitted_stmts;
 
@@ -176,6 +179,19 @@ private:
         map<string, Box> bounds = bounds_scope.get(kernel_name);
 
         vector<Stmt> stmts_copy_to, stmts_copy_from;
+        map<string, bool> bounds_in;
+
+        for (const auto& arg: args) {
+            if (arg.is_buffer() && bounds.find(arg.name) != bounds.end()) {
+                bounds_in[arg.name] = true;
+            }
+        }
+
+        for (const auto& output: outputs) {
+            if (bounds.find(output.name()) != bounds.end()) {
+                bounds_in[output.name()] = false;
+            }
+        }
 
         for (auto bound_it = bounds.begin(); bound_it != bounds.end(); bound_it++) {
             if (shared_memory_buffer.find(bound_it->first) != shared_memory_buffer.end()) {
@@ -224,7 +240,9 @@ private:
                 offset,
                 size
             };
-            if (bound_it->first != pipeline_name) {
+
+            internal_assert(bounds_in.find(bound_it->first) != bounds_in.end()) << "For now, input/output buffer for PIM should be specified either in args or outputs.\n";
+            if (bounds_in[bound_it->first]) {
                 Stmt stmt_copy_to = Evaluate::make(Call::make(Int(32), "halide_upmem_dpu_copy_to", args, Call::Extern));
                 stmt_copy_to = ThreadLoopMutator(LetStmt::make("dpu_idx", bank, stmt_copy_to)).mutate(loop);
                 for (size_t i = merge_idx; i < box.size(); i++) {
@@ -234,14 +252,13 @@ private:
                 split_merge(bound_it->first, stmt_copy_to, false);
                 stmts_copy_to.push_back(stmt_copy_to);
             }
-            else { // unique
+            else { // bounds_in[bound_it->first] = false;
                 Stmt stmt_copy_from = Evaluate::make(Call::make(Int(32), "halide_upmem_dpu_copy_from", args, Call::Extern));
                 stmt_copy_from = ThreadLoopMutator(LetStmt::make("dpu_idx", bank, stmt_copy_from)).mutate(loop);
                 for (size_t i = merge_idx; i < box.size(); i++) {
                     stmt_copy_from = For::make("ii" + std::to_string(i), 0, box_intervals[i], ForType::Serial, DeviceAPI::None, stmt_copy_from);
                 }
                 stmts_copy_from.push_back(stmt_copy_from);
-                output_buffer_name = bound_it->first;
             }
         }
         if (stmts_copy_to.empty()) stmts_copy_to = { Evaluate::make(0) };
@@ -305,7 +322,7 @@ private:
 
         kernel_idx++;
 
-        if (is_split) {
+        if (splitted_stmts) {
             return Block::make({ result, stmt_copy_from, stmt_free });
             // why not split "gemv" now? -> Inside PIM computation needs lowering pass
         } else {
@@ -314,12 +331,15 @@ private:
     }
 };
 
-Stmt pim_layout_transform_split(Stmt s, const string& pipeline_name, map<string, Stmt>& splitted_stmts) {
-    return PIMLayoutTransform(&splitted_stmts, true, pipeline_name).mutate(s);
+Stmt pim_layout_transform_split(Stmt s,
+    const std::vector<Argument> &args,
+    const std::vector<Function> &outputs,
+    std::map<std::string, Stmt>& splitted_stmts) {
+    return PIMLayoutTransform(&splitted_stmts, args, outputs).mutate(s);
 }
 
-Stmt pim_layout_transform(Stmt s, const string& pipeline_name) {
-    return PIMLayoutTransform(nullptr, false).mutate(s);
+Stmt pim_layout_transform(Stmt s, const std::vector<Argument> &args, const std::vector<Function> &outputs) {
+    return PIMLayoutTransform(nullptr, args, outputs ).mutate(s);
 }
 
 }  // namespace Internal
