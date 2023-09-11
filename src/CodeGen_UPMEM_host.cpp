@@ -30,14 +30,6 @@ public:
 */
 extern "C" unsigned char halide_internal_initmod_inlined_c[];
 extern "C" unsigned char halide_internal_runtime_header_HalideRuntime_h[];
-extern "C" unsigned char halide_internal_runtime_header_HalideRuntimeCuda_h[];
-extern "C" unsigned char halide_internal_runtime_header_HalideRuntimeHexagonHost_h[];
-extern "C" unsigned char halide_internal_runtime_header_HalideRuntimeMetal_h[];
-extern "C" unsigned char halide_internal_runtime_header_HalideRuntimeOpenCL_h[];
-extern "C" unsigned char halide_internal_runtime_header_HalideRuntimeOpenGLCompute_h[];
-extern "C" unsigned char halide_internal_runtime_header_HalideRuntimeQurt_h[];
-extern "C" unsigned char halide_internal_runtime_header_HalideRuntimeD3D12Compute_h[];
-extern "C" unsigned char halide_internal_runtime_header_HalideRuntimeWebGPU_h[];
 extern "C" unsigned char halide_c_template_CodeGen_C_prologue[];
 extern "C" unsigned char halide_c_template_CodeGen_C_vectors[];
 
@@ -151,151 +143,6 @@ public:
     std::set<Type> vector_types_used;
 };
 
-class ExternCallPrototypes : public IRGraphVisitor {
-    struct NamespaceOrCall {
-        const Call *call;  // nullptr if this is a subnamespace
-        std::map<string, NamespaceOrCall> names;
-        NamespaceOrCall(const Call *call = nullptr)
-            : call(call) {
-        }
-    };
-    std::map<string, NamespaceOrCall> c_plus_plus_externs;
-    std::map<string, const Call *> c_externs;
-    std::set<std::string> processed;
-    std::set<std::string> internal_linkage;
-    std::set<std::string> destructors;
-
-    using IRGraphVisitor::visit;
-
-    void visit(const Call *op) override {
-        IRGraphVisitor::visit(op);
-
-        if (!processed.count(op->name)) {
-            if (op->call_type == Call::Extern || op->call_type == Call::PureExtern) {
-                c_externs.insert({op->name, op});
-            } else if (op->call_type == Call::ExternCPlusPlus) {
-                std::vector<std::string> namespaces;
-                std::string name = extract_namespaces(op->name, namespaces);
-                std::map<string, NamespaceOrCall> *namespace_map = &c_plus_plus_externs;
-                for (const auto &ns : namespaces) {
-                    auto insertion = namespace_map->insert({ns, NamespaceOrCall()});
-                    namespace_map = &insertion.first->second.names;
-                }
-                namespace_map->insert({name, NamespaceOrCall(op)});
-            }
-            processed.insert(op->name);
-        }
-
-        if (op->is_intrinsic(Call::register_destructor)) {
-            internal_assert(op->args.size() == 2);
-            const StringImm *fn = op->args[0].as<StringImm>();
-            internal_assert(fn);
-            destructors.insert(fn->value);
-        }
-    }
-
-    void visit(const Allocate *op) override {
-        IRGraphVisitor::visit(op);
-        if (!op->free_function.empty()) {
-            destructors.insert(op->free_function);
-        }
-    }
-
-    void emit_function_decl(std::ostream &stream, const Call *op, const std::string &name) const {
-        // op->name (rather than the name arg) since we need the fully-qualified C++ name
-        if (internal_linkage.count(op->name)) {
-            stream << "static ";
-        }
-        stream << type_to_c_type(op->type, /* append_space */ true) << name << "(";
-        if (function_takes_user_context(name)) {
-            stream << "void *";
-            if (!op->args.empty()) {
-                stream << ", ";
-            }
-        }
-        for (size_t i = 0; i < op->args.size(); i++) {
-            if (i > 0) {
-                stream << ", ";
-            }
-            if (op->args[i].as<StringImm>()) {
-                stream << "const char *";
-            } else {
-                stream << type_to_c_type(op->args[i].type(), true);
-            }
-        }
-        stream << ");\n";
-    }
-
-    void emit_namespace_or_call(std::ostream &stream, const NamespaceOrCall &ns_or_call, const std::string &name) const {
-        if (ns_or_call.call == nullptr) {
-            stream << "namespace " << name << " {\n";
-            for (const auto &ns_or_call_inner : ns_or_call.names) {
-                emit_namespace_or_call(stream, ns_or_call_inner.second, ns_or_call_inner.first);
-            }
-            stream << "} // namespace " << name << "\n";
-        } else {
-            emit_function_decl(stream, ns_or_call.call, name);
-        }
-    }
-
-public:
-    ExternCallPrototypes() {
-        // Make sure we don't catch calls that are already in the global declarations
-        const char *strs[] = {(const char *)halide_c_template_CodeGen_C_prologue,
-                              (const char *)halide_internal_runtime_header_HalideRuntime_h,
-                              (const char *)halide_internal_initmod_inlined_c};
-        for (const char *str : strs) {
-            size_t j = 0;
-            for (size_t i = 0; str[i]; i++) {
-                char c = str[i];
-                if (c == '(' && i > j + 1) {
-                    // Could be the end of a function_name.
-                    string name(str + j + 1, i - j - 1);
-                    processed.insert(name);
-                }
-
-                if (('A' <= c && c <= 'Z') ||
-                    ('a' <= c && c <= 'z') ||
-                    c == '_' ||
-                    ('0' <= c && c <= '9')) {
-                    // Could be part of a function name.
-                } else {
-                    j = i;
-                }
-            }
-        }
-    }
-
-    void set_internal_linkage(const std::string &name) {
-        internal_linkage.insert(name);
-    }
-
-    bool has_c_declarations() const {
-        return !c_externs.empty() || !destructors.empty();
-    }
-
-    bool has_c_plus_plus_declarations() const {
-        return !c_plus_plus_externs.empty();
-    }
-
-    void emit_c_declarations(std::ostream &stream) const {
-        for (const auto &call : c_externs) {
-            emit_function_decl(stream, call.second, call.first);
-        }
-        for (const auto &d : destructors) {
-            stream << "void " << d << "(void *, void *);\n";
-        }
-        stream << "\n";
-    }
-
-    void emit_c_plus_plus_declarations(std::ostream &stream) const {
-        for (const auto &ns_or_call : c_plus_plus_externs) {
-            emit_namespace_or_call(stream, ns_or_call.second, ns_or_call.first);
-        }
-        stream << "\n";
-    }
-};
-
 CodeGen_UPMEM_C::CodeGen_UPMEM_C(std::string fname,
                     std::ostream &s_host_c,
                     std::ostream &s_host_h,
@@ -303,28 +150,55 @@ CodeGen_UPMEM_C::CodeGen_UPMEM_C(std::string fname,
                     Target t): 
                 CodeGen_C(s_host_c, t, OutputKind::CImplementation), stream_host_h(s_host_h), stream_kernel(s_kernel) {
 
-    size_t found_slash = fname.find_last_of("/\\");
-    this->fname = found_slash != string::npos ? fname.substr(found_slash + 1) : fname;
+    const char * upmem_runtime = R"(
+#include <iostream>
 
-    stream_host_h << "#ifndef HALIDE_" << c_print_name(this->fname) << "\n"
-            << "#define HALIDE_" << c_print_name(this->fname) << "\n"
-            << "#include <stdint.h>\n\n"
-            << "struct halide_buffer_t;\n"
-            << "struct halide_filter_metadata_t;\n"
-            << "\n";
-    forward_declared.insert(type_of<halide_buffer_t *>().handle_type);
-    forward_declared.insert(type_of<halide_filter_metadata_t *>().handle_type);
+halide_buffer_info_t * halide_upmem_info_args(void* args, uint8_t i) {
+    return ((halide_buffer_info_t**)args)[i];
+}
 
-    stream
-        << halide_c_template_CodeGen_C_prologue << "\n"
-        << halide_internal_runtime_header_HalideRuntime_h << "\n"
-        << halide_internal_initmod_inlined_c << "\n";
-    stream << "\n";
+int halide_upmem_dpu_copy_to(void *user_context,
+    int32_t dpu_idx, struct halide_buffer_t *buf, 
+    uint64_t offset, uint64_t size) {
+    std::cout << "halide_upmem_dpu_copy_to " << dpu_idx << " " << buf << " " << offset << " " << size << "\n";
+    return 0;
+}
 
-    stream << kDefineMustUseResult << "\n";
-    stream << "#ifndef HALIDE_FUNCTION_ATTRS\n";
-    stream << "#define HALIDE_FUNCTION_ATTRS\n";
-    stream << "#endif\n";
+int halide_upmem_run(void *user_context, const char* kernel_name, uint32_t nr_tasklets) {
+    std::cout << "halide_upmem_run " << kernel_name << "\n";
+    return 0;
+}
+
+int halide_upmem_dpu_copy_from(void *user_context,
+    int32_t dpu_idx, struct halide_buffer_t *buf, 
+    uint64_t offset, uint64_t size) {
+    std::cout << "halide_upmem_dpu_copy_from " << dpu_idx << " " << buf << " " << offset << " " << size << "\n";
+    return 0;
+}
+
+int halide_upmem_dpu_xfer_to(void *user_context,
+    int32_t dpu_idx, struct halide_buffer_t *buf, 
+    uint64_t host_offset[], uint64_t dpu_offset, uint64_t size) {
+    return halide_error_code_unimplemented;
+}
+
+int halide_upmem_dpu_xfer_from(void *user_context,
+    int32_t dpu_idx, struct halide_buffer_t *buf, 
+    uint64_t host_offset[], uint64_t dpu_offset, uint64_t size) {
+    return halide_error_code_unimplemented;
+}
+
+int halide_upmem_alloc_load(void *user_context, int32_t nr_dpus, const char* kernel_name) {
+    std::cout << "halide_upmem_alloc_load " << nr_dpus << " " << kernel_name << "\n";
+    return 0;
+}
+
+int halide_upmem_free(void *user_context, const char* kernel_name) {
+    std::cout << "halide_upmem_free " << kernel_name << "\n";
+    return 0;
+}
+    )";
+    stream << upmem_runtime;
 }
 
 CodeGen_UPMEM_C::~CodeGen_UPMEM_C() {
@@ -333,7 +207,7 @@ CodeGen_UPMEM_C::~CodeGen_UPMEM_C() {
 
 
 void CodeGen_UPMEM_C::compile(const Module &input) {
-    stream << "\n#include \"" << fname + "_host.h" << "\"\n";
+    // stream << "\n#include \"" << fname + "_host.h" << "\"\n";
   
     add_platform_prologue();
     TypeInfoGatherer type_info;
@@ -354,20 +228,6 @@ void CodeGen_UPMEM_C::compile(const Module &input) {
         stream << "\n";
     }
     
-    if (!is_header_or_extern_decl()) {
-        add_vector_typedefs(type_info.vector_types_used);
-        ExternCallPrototypes e;
-        for (const auto &f : input.functions()) {
-            f.body.accept(&e);
-            if (f.linkage == LinkageType::Internal) {
-                e.set_internal_linkage(f.name);
-            }
-        }
-        if (e.has_c_declarations()) {
-            set_name_mangling_mode(NameMangling::C);
-            e.emit_c_declarations(stream);
-        }
-    }
 
     for (const auto &b : input.buffers()) {
         compile(b);

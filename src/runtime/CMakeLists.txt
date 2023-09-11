@@ -78,6 +78,7 @@ set(RUNTIME_CPP
     to_string
     trace_helper
     tracing
+    upmem
     vulkan
     wasm_cpu_features
     # TODO(https://github.com/halide/Halide/issues/7248)

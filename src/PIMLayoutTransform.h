@@ -26,14 +26,12 @@ class Function;
 /** Take a statement with multi-dimensional Realize, Provide, and Call
  * nodes, and turn it into a statement with single-dimensional
  * Allocate, Store, and Load nodes respectively. */
-Stmt pim_layout_transform(Stmt s, 
-    const std::vector<Argument> &args, 
-    const std::vector<Function> &outputs);
+Stmt pim_layout_transform(Stmt s);
 
 Stmt pim_layout_transform_split(Stmt s,
-    const std::vector<Argument> &args,
-    const std::vector<Function> &outputs,
-    std::map<std::string, Stmt>& splitted_stmts);
+    std::map<std::string, Stmt>& splitted_stmts,
+    const std::map<std::string, bool>& bounds_in
+    );
 
 }  // namespace Internal
 }  // namespace Halide

@@ -15,8 +15,8 @@ int main() {
     RDom r(0, A.dim(0).extent());
     gemv(i) = sum(A(r, i) * x(r));
 
-    gemv.split(i, block, thread, 2048);
-    gemv.split(thread, thread, inner_loop, 128);
+    gemv.split(i, block, thread, 128);
+    gemv.split(thread, thread, inner_loop, 32);
 
     gemv.pim_bank(block);
     gemv.pim_thread(thread);
