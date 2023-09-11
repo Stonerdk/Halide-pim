@@ -43,14 +43,12 @@ class PIMLayoutTransform : public IRMutator {
 public:
 
     PIMLayoutTransform(
-        std::map<std::string, Stmt>* splitted_stmts, 
-        const std::vector<Argument> &args,
-        const std::vector<Function> &outputs):
-        splitted_stmts(splitted_stmts), args(args), outputs(outputs) {}
+        std::map<std::string, Stmt>& splitted_stmts, 
+        const std::map<std::string, bool>& bounds_in):
+        splitted_stmts(splitted_stmts), bounds_in(bounds_in) {}
     
-    map<string, Stmt>* splitted_stmts ;
-    const std::vector<Argument> &args;
-    const std::vector<Function> &outputs;
+    std::map<string, Stmt>& splitted_stmts;
+    const std::map<string, bool>& bounds_in;
     class ThreadLoopMutator : public IRMutator {
         public:
         ThreadLoopMutator(Stmt stmt): stmt(stmt) {}
@@ -149,20 +147,21 @@ private:
         return "kernel_" + std::to_string(kernel_idx);
     }
 
+    bool is_split() {
+        return bounds_in.size() > 0;
+        // bounds_in only initialized when target has upmem_lt_split feature.
+    }
 
     void split_merge(string name, Stmt stmt, bool tail = true) {
-        if (splitted_stmts == nullptr) return;
-        internal_assert(splitted_stmts != nullptr);
-        map<string, Stmt>& ref = *splitted_stmts;
-
-        if (ref.find(name) != ref.end()) {
+        if (!is_split()) return;
+        if (splitted_stmts.find(name) != splitted_stmts.end()) {
             if (tail) {
-                ref[name] = Block::make(ref[name], stmt);
+                splitted_stmts[name] = Block::make(splitted_stmts[name], stmt);
             } else {
-                ref[name] = Block::make(stmt, ref[name]);
+                splitted_stmts[name] = Block::make(stmt, splitted_stmts[name]);
             }
         } else {
-            ref[name] = stmt;
+            splitted_stmts[name] = stmt;
         }
 
     }
@@ -179,19 +178,6 @@ private:
         map<string, Box> bounds = bounds_scope.get(kernel_name);
 
         vector<Stmt> stmts_copy_to, stmts_copy_from;
-        map<string, bool> bounds_in;
-
-        for (const auto& arg: args) {
-            if (arg.is_buffer() && bounds.find(arg.name) != bounds.end()) {
-                bounds_in[arg.name] = true;
-            }
-        }
-
-        for (const auto& output: outputs) {
-            if (bounds.find(output.name()) != bounds.end()) {
-                bounds_in[output.name()] = false;
-            }
-        }
 
         for (auto bound_it = bounds.begin(); bound_it != bounds.end(); bound_it++) {
             if (shared_memory_buffer.find(bound_it->first) != shared_memory_buffer.end()) {
@@ -236,13 +222,13 @@ private:
             }
             vector<Expr>args = { 
                 Variable::make(Int(32), "dpu_idx"), 
-                Variable::make(type_of<void *>(), bound_it->first),
+                Variable::make(type_of<struct halide_buffer_t*>(), bound_it->first + ".buffer"),
                 offset,
                 size
             };
 
             internal_assert(bounds_in.find(bound_it->first) != bounds_in.end()) << "For now, input/output buffer for PIM should be specified either in args or outputs.\n";
-            if (bounds_in[bound_it->first]) {
+            if (bounds_in.at(bound_it->first)) {
                 Stmt stmt_copy_to = Evaluate::make(Call::make(Int(32), "halide_upmem_dpu_copy_to", args, Call::Extern));
                 stmt_copy_to = ThreadLoopMutator(LetStmt::make("dpu_idx", bank, stmt_copy_to)).mutate(loop);
                 for (size_t i = merge_idx; i < box.size(); i++) {
@@ -322,7 +308,7 @@ private:
 
         kernel_idx++;
 
-        if (splitted_stmts) {
+        if (is_split()) {
             return Block::make({ result, stmt_copy_from, stmt_free });
             // why not split "gemv" now? -> Inside PIM computation needs lowering pass
         } else {
@@ -331,16 +317,16 @@ private:
     }
 };
 
+
+Stmt pim_layout_transform(Stmt s) {
+    map<string, Stmt> null_;
+    return PIMLayoutTransform(null_, {}).mutate(s);
+}
+
 Stmt pim_layout_transform_split(Stmt s,
-    const std::vector<Argument> &args,
-    const std::vector<Function> &outputs,
-    std::map<std::string, Stmt>& splitted_stmts) {
-    return PIMLayoutTransform(&splitted_stmts, args, outputs).mutate(s);
+    std::map<std::string, Stmt>& splitted_stmts,
+    const std::map<std::string, bool>& bounds_in) {
+    return PIMLayoutTransform(splitted_stmts, bounds_in).mutate(s);
 }
-
-Stmt pim_layout_transform(Stmt s, const std::vector<Argument> &args, const std::vector<Function> &outputs) {
-    return PIMLayoutTransform(nullptr, args, outputs ).mutate(s);
-}
-
 }  // namespace Internal
 }  // namespace Halide

@@ -1,16 +1,15 @@
+#include "AOT_result/gemv_generate_host.c"
 #include "HalideBuffer.h"
 
-using namespace Halide;
+using namespace Halide::Runtime;
 
 int main() {
-    const int M = 8192;
-    const int N = 4096;
+    const int M = 128;
+    const int N = 512;
 
-    Halide::Runtime::Buffer<int> A(M, N);
-    Halide::Runtime::Buffer<int> x(M);
-    Halide::Runtime::Buffer<int> output(N);
-
-    const halide_dimension_t *dims[] = { A.raw_buffer()->dim, x.raw_buffer()->dim, output.raw_buffer()->dim };
+    Buffer<int> A(M, N);
+    Buffer<int> x(M);
+    Buffer<int> output(N);
 
     for (int m = 0; m < M; m++) {
         for (int n = 0; n < N; n++) {
@@ -21,16 +20,23 @@ int main() {
         x(n) = rand() % 100;
     }
 
-    // gemv_init(A, x, output);
-    // gemv_init(output);
+    auto infos = halide_arg_infos({ output, A, x });
 
-    halide_buffer_info_t * infos = halide_buffer_get_info({ A, x, output });
+    gemv_copy_to_0(A, infos);
+    gemv_copy_to_1(x, infos);
 
+    gemv_execute();
+    gemv_copy_from(output, infos);
 
-    gemv(A, x, output);
+    haldie_arg_infos_free(infos);
 
     // Buffer<int> output_transformed = gemv_transform(output);
     for (int i = 0; i < M; i++) {
         printf("%d, ", output(i));
     }
 }
+
+/*
+g++ source_aot_realize.cpp AOT_result/gemv_generate_host.c -g -std=c++17 -I $HALIDE_DIR/include -ljpeg -lpthread -lcurses -ldl -lrt -lz -lm -o AOT_result/gemv_generate_run
+./AOT_result/gemv_generate_run
+*/

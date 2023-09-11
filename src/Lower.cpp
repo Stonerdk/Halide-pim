@@ -121,6 +121,24 @@ void lower_impl(const vector<Function> &output_funcs,
     // Create a deep-copy of the entire graph of Funcs.
     auto [outputs, env] = deep_copy(output_funcs, build_environment(output_funcs));
 
+    map<string, bool> bounds_in;
+    if (t.has_feature(Target::UPMEM_lt_split)) {
+        internal_assert(args.size() < 256);
+        internal_assert(outputs.size() == 1);
+
+        for (const auto& arg: args) {
+            if (arg.is_buffer()) {
+                bounds_in[arg.name] = true;
+            }
+        }
+
+        for (const auto& param: outputs[0].output_buffers()) {
+            internal_assert(bounds_in.find(param.name()) == bounds_in.end()) <<
+                "duplicated buffer name between input and output.";
+            bounds_in[param.name()] = false;
+        }
+    }
+
     bool any_strict_float = strictify_float(env, t);
     result_module.set_any_strict_float(any_strict_float);
 
@@ -271,17 +289,15 @@ void lower_impl(const vector<Function> &output_funcs,
     s = bound_small_allocations(s);
     log("Lowering after bounding small realizations:", s);
 
+    debug(1) << "Transforming data layout for UPMEM PIM...\n";
     if (t.has_feature(Target::UPMEM)) {
         if (t.has_feature(Target::UPMEM_lt_split)) {
-            debug(1) << "Transforming data layout for UPMEM PIM...\n";
-            s = pim_layout_transform_split(s, args, outputs, splitted_stmts);
-            log("lowering after transforming layout:", s);
+            s = pim_layout_transform_split(s, splitted_stmts, bounds_in);
         } else {
-            debug(1) << "Transforming data layout for UPMEM PIM...\n";
-            s = pim_layout_transform(s, args, outputs);
-            log("lowering after transforming layout:", s);
+            s = pim_layout_transform(s);
         }
     }
+    log("lowering after transforming layout:", s);
 
 
     debug(1) << "Performing storage flattening...\n";
@@ -294,7 +310,7 @@ void lower_impl(const vector<Function> &output_funcs,
 
     debug(1) << "Unpacking buffer arguments...\n";
     if (t.has_feature(Target::UPMEM_lt_split)) {
-        s = unpack_buffers_upmem_lt(s, pipeline_name, splitted_stmts, args);
+        s = unpack_buffers_upmem_lt(s, splitted_stmts, args, outputs[0]);
     } else {
         s = unpack_buffers(s);
     }
@@ -484,54 +500,46 @@ void lower_impl(const vector<Function> &output_funcs,
     }
 
 
-    for (auto &iter : splitted_stmts) {
-        auto _name = iter.first;
-        Stmt s = splitted_stmts[_name];
-        
-        s = simplify(s);
-        s = partition_loops(s);
-        s = simplify(s);
-        s = rebase_loops_to_zero(s);
-        s = remove_dead_allocations(s);
-        s = simplify(s);
-        s = hoist_loop_invariant_values(s);
-        s = hoist_loop_invariant_if_statements(s);
-
-        splitted_stmts[_name] = s;
-
-        debug(2) << "After split buffer " << _name << ":\n"
-                    << iter.second << "\n\n";
-    }
-
     if (t.has_feature(Target::UPMEM_lt_split)) {
         // NO parallel tasks - no clousre_implmentations
         // NO dynamic infer arguments. arguments are fixed in AOT stage
-
+ 
         // no multi-function pipeline
         // single output, multi output is supportable next time
 
+        for (auto &iter : splitted_stmts) {
+            auto _name = iter.first;
+            Stmt s = splitted_stmts[_name];
+            s = simplify(s);
+            s = partition_loops(s);
+            s = simplify(s);
+            s = rebase_loops_to_zero(s);
+            s = remove_dead_allocations(s);
+            s = simplify(s);
+            s = hoist_loop_invariant_values(s);
+            s = hoist_loop_invariant_if_statements(s);
+            splitted_stmts[_name] = s;
+
+            debug(2) << "After split buffer " << _name << ":\n"
+                        << iter.second << "\n\n";
+        }
+
         size_t arg_idx = 0;
         map<string, vector<Argument>> args_map;
+        Argument info_args { "info_args", Argument::Kind::InputScalar, type_of<halide_buffer_info_t **>(), 0, {} };
 
         for (const auto& arg : args) {
-            result_module.append(LoweredFunc(
-                pipeline_name + "_copy_to_" + std::to_string(arg_idx++), 
-                { arg }, splitted_stmts[arg.name], LinkageType::Internal
-            ));
+            result_module.append(LoweredFunc(pipeline_name + "_copy_to_" + std::to_string(arg_idx++), 
+                { arg, info_args }, splitted_stmts[arg.name], LinkageType::Internal));
         }
         const auto& out = outputs[0];
         vector<Argument> output_args;
         for (const Parameter &buf : out.output_buffers()) {
-            output_args.emplace_back(buf.name(),
-                Argument::OutputBuffer,
-                buf.type(), buf.dimensions(), buf.get_argument_estimates());
-            result_module.append(LoweredFunc(
-                pipeline_name + "_copy_from", output_args, s, LinkageType::Internal
-            ));
+            output_args.emplace_back(buf.name(), Argument::OutputBuffer, buf.type(), buf.dimensions(), buf.get_argument_estimates());
         }
-
-        result_module.append(LoweredFunc(pipeline_name + "_execute", 
-            vector<Argument>(), execute_stmt, LinkageType::Internal));
+        output_args.emplace_back(info_args); // TODO: remove
+        result_module.append(LoweredFunc(pipeline_name + "_copy_from", output_args, s, LinkageType::Internal));
+        result_module.append(LoweredFunc(pipeline_name + "_execute", vector<Argument>(), execute_stmt, LinkageType::Internal));
         // split s from execution and copy from
 
         auto *logger = get_compiler_logger();

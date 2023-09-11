@@ -356,21 +356,6 @@ public:
                                               const std::string &name = "") {
         return Buffer<T, Dims>(Runtime::Buffer<T, Dims>::make_with_shape_of(src, allocate_fn, deallocate_fn), name);
     }
-
-    template<typename T2>
-    static halide_buffer_info_t* halide_arg_infos(std::vector<Buffer<T>> bvector) {
-        size_t buffer_count = bvector.size();
-        halide_buffer_info_t* bufs = new halide_buffer_info_t[buffer_count + 1];
-        for (size_t i = 0; i < buffer_count; i++) {
-            bufs[i] = bvector[i].raw_buffer();
-        }
-        bufs[buffer_count] = nullptr;
-        return bufs;
-    }
-
-    static void haldie_arg_infos_free(halide_buffer_info_t* bufs) {
-        delete[] bufs;
-    }
     // @}
 
     /** Buffers are optionally named. */

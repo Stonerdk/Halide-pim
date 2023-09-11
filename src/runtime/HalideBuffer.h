@@ -1981,21 +1981,6 @@ public:
                                                    allocate_fn, deallocate_fn);
     }
 
-    template<typename T2>
-    static halide_buffer_info_t* halide_arg_infos(std::vector<Buffer<T>> bvector) {
-        size_t buffer_count = bvector.size();
-        halide_buffer_info_t* bufs = new halide_buffer_info_t[buffer_count + 1];
-        for (size_t i = 0; i < buffer_count; i++) {
-            bufs[i] = bvector[i].raw_buffer();
-        }
-        bufs[buffer_count] = nullptr;
-        return bufs;
-    }
-
-    static void haldie_arg_infos_free(halide_buffer_info_t* bufs) {
-        delete[] bufs;
-    }
-
 private:
     static Buffer<> make_with_shape_of_helper(halide_type_t dst_type,
                                               int dimensions,
@@ -2605,6 +2590,35 @@ public:
 #endif
     }
 };
+
+static halide_buffer_info_t** halide_arg_infos(std::vector<halide_buffer_t*> bvector) {
+    size_t buffer_count = bvector.size();
+    halide_buffer_info_t** bufs = new halide_buffer_info_t*[buffer_count + 1];
+    for (size_t i = 0; i < buffer_count; i++) {
+        bufs[i] = (halide_buffer_info_t*)malloc(sizeof(halide_buffer_info_t));
+        bufs[i]->dimensions = bvector[i]->dimensions;
+        bufs[i]->dim = new halide_dimension_t[bvector[i]->dimensions];
+        bufs[i]->type = bvector[i]->type;
+        for (int j = 0; j < bvector[i]->dimensions; j++) {
+            bufs[i]->dim[j].min = bvector[i]->dim[j].min;
+            bufs[i]->dim[j].extent = bvector[i]->dim[j].extent;
+            bufs[i]->dim[j].stride = bvector[i]->dim[j].stride;
+        }
+    }
+    bufs[buffer_count] = nullptr;
+    return bufs;
+}
+
+static void haldie_arg_infos_free(halide_buffer_info_t** bufs) {
+    if (bufs == nullptr) {
+        return;
+    }
+    for (size_t i = 0; bufs[i] != nullptr; i++) {
+        delete[] bufs[i]->dim;
+        delete bufs[i];
+    }
+    delete[] bufs;
+}
 
 }  // namespace Runtime
 }  // namespace Halide

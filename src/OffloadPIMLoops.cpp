@@ -163,7 +163,6 @@ class InjectGpuOffload : public IRMutator {
         vector<Expr> run_args = {
             kernel_name,
             Expr(bounds.num_threads[0]),
-            Expr(0),
         };
         loop_idx ++;
         execute_stmt = call_extern_and_assert("halide_" + api_unique_name + "_run", run_args);
