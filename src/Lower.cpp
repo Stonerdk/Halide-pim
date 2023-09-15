@@ -121,24 +121,6 @@ void lower_impl(const vector<Function> &output_funcs,
     // Create a deep-copy of the entire graph of Funcs.
     auto [outputs, env] = deep_copy(output_funcs, build_environment(output_funcs));
 
-    map<string, bool> bounds_in;
-    if (t.has_feature(Target::UPMEM_lt_split)) {
-        internal_assert(args.size() < 256);
-        internal_assert(outputs.size() == 1);
-
-        for (const auto& arg: args) {
-            if (arg.is_buffer()) {
-                bounds_in[arg.name] = true;
-            }
-        }
-
-        for (const auto& param: outputs[0].output_buffers()) {
-            internal_assert(bounds_in.find(param.name()) == bounds_in.end()) <<
-                "duplicated buffer name between input and output.";
-            bounds_in[param.name()] = false;
-        }
-    }
-
     bool any_strict_float = strictify_float(env, t);
     result_module.set_any_strict_float(any_strict_float);
 
@@ -292,12 +274,17 @@ void lower_impl(const vector<Function> &output_funcs,
     debug(1) << "Transforming data layout for UPMEM PIM...\n";
     if (t.has_feature(Target::UPMEM)) {
         if (t.has_feature(Target::UPMEM_lt_split)) {
-            s = pim_layout_transform_split(s, splitted_stmts, bounds_in);
+            s = pim_layout_transform_split(s, splitted_stmts);
         } else {
             s = pim_layout_transform(s);
         }
     }
     log("lowering after transforming layout:", s);
+
+    for (auto &iter : splitted_stmts) {
+        auto _name = iter.first;
+        debug(2) << "After split buffer " << _name << ":\n" << iter.second << "\n\n";
+    }
 
 
     debug(1) << "Performing storage flattening...\n";
@@ -315,6 +302,12 @@ void lower_impl(const vector<Function> &output_funcs,
         s = unpack_buffers(s);
     }
     log("Lowering after unpacking buffer arguments:", s);
+
+    for (auto &iter : splitted_stmts) {
+        auto _name = iter.first;
+        debug(2) << "After split buffer " << _name << ":\n" << iter.second << "\n\n";
+    }
+
 
     if (any_memoized) {
         debug(1) << "Rewriting memoized allocations...\n";
@@ -492,7 +485,11 @@ void lower_impl(const vector<Function> &output_funcs,
     Stmt execute_stmt;
     if (t.has_feature(Target::UPMEM)) {
         debug(1) << "Offloading PIM loops...\n";
-        s = inject_pim_offload(s, t, execute_stmt);
+        if (t.has_feature(Target::UPMEM_lt_split)) {
+            s = inject_pim_offload_split(s, t, execute_stmt);
+        } else {
+            s = inject_pim_offload(s, t);
+        }
         debug(2) << "Lowering after splitting off PIM loops:\n"
                  << s << "\n\n";
     } else {
@@ -539,7 +536,7 @@ void lower_impl(const vector<Function> &output_funcs,
         }
         output_args.emplace_back(info_args); // TODO: remove
         result_module.append(LoweredFunc(pipeline_name + "_copy_from", output_args, s, LinkageType::Internal));
-        result_module.append(LoweredFunc(pipeline_name + "_execute", vector<Argument>(), execute_stmt, LinkageType::Internal));
+        result_module.append(LoweredFunc(pipeline_name + "_execute", { info_args }, execute_stmt, LinkageType::Internal));
         // split s from execution and copy from
 
         auto *logger = get_compiler_logger();

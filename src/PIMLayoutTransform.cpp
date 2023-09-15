@@ -21,34 +21,23 @@
 namespace Halide {
 namespace Internal {
 
-using std::map;
-using std::ostringstream;
-using std::pair;
-using std::set;
-using std::string;
-using std::vector;
-using std::set;
-using std::pair;
-using std::stack;
-using std::reverse;
+using namespace std; 
 
 Expr make_shape_var(string name, const string &field, size_t dim,
                         const Buffer<> &buf, const Parameter &param) {
     ReductionDomain rdom;
-    name = name + "." + field + "." + std::to_string(dim);
+    name = name + "." + field + "." + to_string(dim);
     return Variable::make(Int(32), name, buf, param, rdom);
 }
 
 class PIMLayoutTransform : public IRMutator {
 public:
 
-    PIMLayoutTransform(
-        std::map<std::string, Stmt>& splitted_stmts, 
-        const std::map<std::string, bool>& bounds_in):
-        splitted_stmts(splitted_stmts), bounds_in(bounds_in) {}
+    PIMLayoutTransform(map<string, Stmt>& splitted_stmts): splitted_stmts(splitted_stmts) {}
+
+    PIMLayoutTransform() {}
     
-    std::map<string, Stmt>& splitted_stmts;
-    const std::map<string, bool>& bounds_in;
+    optional<reference_wrapper<map<string, Stmt>>> splitted_stmts;
     class ThreadLoopMutator : public IRMutator {
         public:
         ThreadLoopMutator(Stmt stmt): stmt(stmt) {}
@@ -131,37 +120,39 @@ public:
 private:
     size_t kernel_idx = 0;
     using IRMutator::visit;
-    // Scope<> reduction_scope;
+    Scope<> realize_scope;
     Scope<map<string, Box>> bounds_scope;
     Scope<Expr> let_values;
+    Scope<string> zero_realize;
     set<string> shared_memory_buffer;
+    bool inside_pim_loop;
 
     Stmt visit(const ProducerConsumer* op) override {
-        // reduction_scope.push(op->name);
+        realize_scope.push(op->name);
         Stmt stmt = IRMutator::visit(op);
-        // reduction_scope.pop(op->name);
+        realize_scope.pop(op->name);
         return stmt;
     }
 
     string get_kernel_name() {
-        return "kernel_" + std::to_string(kernel_idx);
+        return "kernel_" + to_string(kernel_idx);
     }
 
     bool is_split() {
-        return bounds_in.size() > 0;
-        // bounds_in only initialized when target has upmem_lt_split feature.
+        return splitted_stmts.has_value();
     }
 
     void split_merge(string name, Stmt stmt, bool tail = true) {
         if (!is_split()) return;
-        if (splitted_stmts.find(name) != splitted_stmts.end()) {
+        auto& ref = splitted_stmts.value().get();
+        if (ref.find(name) != ref.end()) {
             if (tail) {
-                splitted_stmts[name] = Block::make(splitted_stmts[name], stmt);
+                ref[name] = Block::make(ref[name], stmt);
             } else {
-                splitted_stmts[name] = Block::make(stmt, splitted_stmts[name]);
+                ref[name] = Block::make(stmt, ref[name]);
             }
         } else {
-            splitted_stmts[name] = stmt;
+            ref[name] = stmt;
         }
 
     }
@@ -173,11 +164,40 @@ private:
         return stmt;
     }
 
+    Stmt visit(const Realize *op) override {
+        zero_realize.push(op->name, op->name);
+        Stmt stmt = IRMutator::visit(op);
+        zero_realize.pop(op->name);
+        return stmt;
+    }
+
+    Stmt visit(const Provide *op) override {
+        if (!inside_pim_loop && zero_realize.contains(op->name)) {
+            for (const auto& value: op->values) {
+                if (!is_const_zero(value)) {
+                    if (zero_realize.contains(op->name))
+                        zero_realize.pop(op->name);
+                    break;
+                }
+            }
+        }
+        return IRMutator::visit(op);
+    }
+
+    Expr visit(const Load *op) override {
+        if (inside_pim_loop && zero_realize.contains(op->name)) {
+            if (zero_realize.contains(op->name))
+                zero_realize.pop(op->name);
+        }
+        return IRMutator::visit(op);
+    }
+
     pair<Stmt, Stmt> inject_copy(const For* loop, Expr bank, Stmt init_stmt) {
         string kernel_name = get_kernel_name();
         map<string, Box> bounds = bounds_scope.get(kernel_name);
 
         vector<Stmt> stmts_copy_to, stmts_copy_from;
+        set<string> copy_to_names;
 
         for (auto bound_it = bounds.begin(); bound_it != bounds.end(); bound_it++) {
             if (shared_memory_buffer.find(bound_it->first) != shared_memory_buffer.end()) {
@@ -194,8 +214,8 @@ private:
             
             size_t merge_idx = 1;
             for (size_t i = 1; i < box.size(); i++) {
-                string vname_extent = bound_it->first + ".extent." + std::to_string(i - 1) + ".proposed";
-                string vname_min = bound_it->first + ".min." + std::to_string(i - 1) + ".proposed";
+                string vname_extent = bound_it->first + ".extent." + to_string(i - 1) + ".proposed";
+                string vname_min = bound_it->first + ".min." + to_string(i - 1) + ".proposed";
 
                 Expr extent, _min, stride;
                 if (let_values.contains(vname_extent)) extent = let_values.get(vname_extent);
@@ -213,12 +233,12 @@ private:
                 }
             }
             for (size_t i = 1; i < box.size(); i++) {
-                Expr stride = Variable::make(Int(32), bound_it->first + ".stride." + std::to_string(i) + ".proposed");
-                Expr _min = Variable::make(Int(32), bound_it->first + ".min." + std::to_string(i) + ".proposed");
+                Expr stride = Variable::make(Int(32), bound_it->first + ".stride." + to_string(i) + ".proposed");
+                Expr _min = Variable::make(Int(32), bound_it->first + ".min." + to_string(i) + ".proposed");
                 if (i < merge_idx)
                     offset += (box[i].min - _min) * stride;
                 else
-                    offset += (Variable::make(Int(32), "ii" + std::to_string(i)) + box[i].min - _min) * stride;
+                    offset += (Variable::make(Int(32), "ii" + to_string(i)) + box[i].min - _min) * stride;
             }
             vector<Expr>args = { 
                 Variable::make(Int(32), "dpu_idx"), 
@@ -226,26 +246,39 @@ private:
                 offset,
                 size
             };
-
-            internal_assert(bounds_in.find(bound_it->first) != bounds_in.end()) << "For now, input/output buffer for PIM should be specified either in args or outputs.\n";
-            if (bounds_in.at(bound_it->first)) {
-                Stmt stmt_copy_to = Evaluate::make(Call::make(Int(32), "halide_upmem_dpu_copy_to", args, Call::Extern));
-                stmt_copy_to = ThreadLoopMutator(LetStmt::make("dpu_idx", bank, stmt_copy_to)).mutate(loop);
-                for (size_t i = merge_idx; i < box.size(); i++) {
-                    stmt_copy_to = For::make("ii" + std::to_string(i), 0, box_intervals[i], ForType::Serial, DeviceAPI::None, stmt_copy_to);
-                }
-                stmt_copy_to = Block::make(init_stmt, stmt_copy_to);
-                split_merge(bound_it->first, stmt_copy_to, false);
-                stmts_copy_to.push_back(stmt_copy_to);
-            }
-            else { // bounds_in[bound_it->first] = false;
+ 
+            if (realize_scope.contains(bound_it->first)) { 
                 Stmt stmt_copy_from = Evaluate::make(Call::make(Int(32), "halide_upmem_dpu_copy_from", args, Call::Extern));
                 stmt_copy_from = ThreadLoopMutator(LetStmt::make("dpu_idx", bank, stmt_copy_from)).mutate(loop);
                 for (size_t i = merge_idx; i < box.size(); i++) {
-                    stmt_copy_from = For::make("ii" + std::to_string(i), 0, box_intervals[i], ForType::Serial, DeviceAPI::None, stmt_copy_from);
+                    stmt_copy_from = For::make("ii" + to_string(i), 0, box_intervals[i], ForType::Serial, DeviceAPI::None, stmt_copy_from);
                 }
                 stmts_copy_from.push_back(stmt_copy_from);
+            } // realize: copy_from is invoked after loop
+
+            if (zero_realize.contains(bound_it->first)) {
+                // Expr new_size = size;
+                // for (size_t i = merge_idx; i < box.size(); i++) {
+                //     new_size *= box_intervals[i];
+                // }
+                // stmts_copy_to.push_back(Evaluate::make(Call::make(Int(32), "halide_upmem_dpu_copy_zero", { new_size }, Call::Extern)));
+            } else {
+                Stmt stmt_copy_to = Evaluate::make(Call::make(Int(32), "halide_upmem_dpu_copy_to", args, Call::Extern));
+                stmt_copy_to = ThreadLoopMutator(LetStmt::make("dpu_idx", bank, stmt_copy_to)).mutate(loop);
+                for (size_t i = merge_idx; i < box.size(); i++) {
+                    stmt_copy_to = For::make("ii" + to_string(i), 0, box_intervals[i], ForType::Serial, DeviceAPI::None, stmt_copy_to);
+                }
+                if (!is_split() || realize_scope.contains(bound_it->first)) {
+                    stmts_copy_to.push_back(stmt_copy_to);
+                } else {
+                    split_merge(bound_it->first, stmt_copy_to, false);
+                    copy_to_names.emplace(bound_it->first);
+                }
             }
+        }
+
+        for (string name: copy_to_names) {
+            split_merge(name, init_stmt, false);
         }
         if (stmts_copy_to.empty()) stmts_copy_to = { Evaluate::make(0) };
         if (stmts_copy_from.empty()) stmts_copy_from = { Evaluate::make(0) };
@@ -263,17 +296,17 @@ private:
                 Expr stride = 1;
                 for (size_t i = 0; i < it->second.size(); i++) {
                     if (shared_memory_buffer.find(it->first) != shared_memory_buffer.end()) {
-                        lets.push({ it->first + ".min.pim." + std::to_string(i), 
-                            Variable::make(Int(32), it->first + ".min." + std::to_string(i)) });
-                        lets.push({ it->first + ".extent.pim." + std::to_string(i), 
-                            Variable::make(Int(32), it->first + ".extent." + std::to_string(i)) });
-                        lets.push({ it->first + ".stride.pim." + std::to_string(i), 
-                            Variable::make(Int(32), it->first + ".stride." + std::to_string(i)) });
+                        lets.push({ it->first + ".min.pim." + to_string(i), 
+                            Variable::make(Int(32), it->first + ".min." + to_string(i)) });
+                        lets.push({ it->first + ".extent.pim." + to_string(i), 
+                            Variable::make(Int(32), it->first + ".extent." + to_string(i)) });
+                        lets.push({ it->first + ".stride.pim." + to_string(i), 
+                            Variable::make(Int(32), it->first + ".stride." + to_string(i)) });
                     } else {
-                        lets.push({it->first + ".min.pim." + std::to_string(i), it->second[i].min});
+                        lets.push({it->first + ".min.pim." + to_string(i), it->second[i].min});
                         Expr extent = it->second[i].max - it->second[i].min + 1;
-                        lets.push({ it->first + ".extent.pim." + std::to_string(i), extent });
-                        lets.push({ it->first + ".stride.pim." + std::to_string(i), stride });
+                        lets.push({ it->first + ".extent.pim." + to_string(i), extent });
+                        lets.push({ it->first + ".stride.pim." + to_string(i), stride });
                         stride *= extent;
                     }
                 }
@@ -293,7 +326,7 @@ private:
 
         InspectResourceAllocation inspect;
         loop->accept(&inspect);
-        shared_memory_buffer = std::move(inspect.shared_memory_buffer);
+        shared_memory_buffer = move(inspect.shared_memory_buffer);
 
         Stmt stmt_alloc_load = call_extern_and_assert("halide_upmem_alloc_load", { inspect.get_all_banks(), kernel_name });
         Stmt stmt_free = call_extern_and_assert("halide_upmem_free", { kernel_name });
@@ -303,13 +336,15 @@ private:
 
         auto [ stmt_copy_to, stmt_copy_from ] = inject_copy(loop, inspect.get_bank(), stmt_alloc_load);
 
+        inside_pim_loop = true;
         auto result = IRMutator::visit(loop);
+        inside_pim_loop = false;
         bounds_scope.pop(kernel_name);
 
         kernel_idx++;
 
         if (is_split()) {
-            return Block::make({ result, stmt_copy_from, stmt_free });
+            return Block::make({ stmt_copy_to, result, stmt_copy_from, stmt_free });
             // why not split "gemv" now? -> Inside PIM computation needs lowering pass
         } else {
             return Block::make({ stmt_alloc_load, stmt_copy_to, result, stmt_copy_from, stmt_free });
@@ -319,14 +354,11 @@ private:
 
 
 Stmt pim_layout_transform(Stmt s) {
-    map<string, Stmt> null_;
-    return PIMLayoutTransform(null_, {}).mutate(s);
+    return PIMLayoutTransform().mutate(s);
 }
 
-Stmt pim_layout_transform_split(Stmt s,
-    std::map<std::string, Stmt>& splitted_stmts,
-    const std::map<std::string, bool>& bounds_in) {
-    return PIMLayoutTransform(splitted_stmts, bounds_in).mutate(s);
+Stmt pim_layout_transform_split(Stmt s, map<string, Stmt>& splitted_stmts) {
+    return PIMLayoutTransform(splitted_stmts).mutate(s);
 }
 }  // namespace Internal
 }  // namespace Halide

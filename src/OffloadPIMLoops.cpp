@@ -40,8 +40,6 @@ public:
     }
 
 private:
-    bool found_shared = false;
-
     using IRVisitor::visit;
 
     void visit(const For *op) override {
@@ -72,8 +70,6 @@ class InjectGpuOffload : public IRMutator {
     map<string, bool> state_needed;
 
     const Target &target;
-
-    Stmt& execute_stmt;
 
     size_t loop_idx = 0;
     Expr get_state_var(const string &name) {
@@ -149,7 +145,7 @@ class InjectGpuOffload : public IRMutator {
             }
         }
 
-        pim_codegen->add_kernel(body, kernel_name, closure_args);
+        // pim_codegen->add_kernel(body, kernel_name, closure_args);
 
         // TODO: only three dimensions can be passed to
         // cuLaunchKernel. How should we handle blkid[3]?
@@ -165,15 +161,13 @@ class InjectGpuOffload : public IRMutator {
             Expr(bounds.num_threads[0]),
         };
         loop_idx ++;
-        execute_stmt = call_extern_and_assert("halide_" + api_unique_name + "_run", run_args);
-
-        return Evaluate::make(0);
+        return call_extern_and_assert("halide_" + api_unique_name + "_run", run_args);
     }
 
 
 public:
-    InjectGpuOffload(const Target &target, Stmt& execute_stmt)
-        : target(target), execute_stmt(execute_stmt) {
+    InjectGpuOffload(const Target &target)
+        : target(target) {
         if (target.has_feature(Target::UPMEM)) {
              cgdev[DeviceAPI::UPMEM] = std::make_unique<CodeGen_UPMEM_DPU_Dev>(target);
         }
@@ -188,7 +182,8 @@ public:
         Stmt result = mutate(s);
 
         if (target.has_feature(Target::UPMEM)) {
-            cgdev[DeviceAPI::UPMEM].get()->compile_to_src();
+            debug(2) << "Mocking compiliation...\n";
+            // cgdev[DeviceAPI::UPMEM].get()->compile_to_src();
             // no need initialize_kernel & destructor. do this behavior right before/after loops
         }
 
@@ -198,8 +193,62 @@ public:
 
 }  // namespace
 
-Stmt inject_pim_offload(const Stmt &s, const Target &host_target, Stmt& execute_stmt) {
-    return InjectGpuOffload(host_target, execute_stmt).inject(s);
+Stmt inject_pim_offload(const Stmt &s, const Target &host_target) {
+    return InjectGpuOffload(host_target).inject(s);
+}
+
+namespace {
+class ExecuteSplitter: public IRMutator {
+public:
+    ExecuteSplitter(bool after): after(after) {}
+    using IRMutator::visit;
+    using IRMutator::mutate;
+
+    bool found = false;
+    bool started = false;
+    bool after = false;
+
+    Stmt mutate(const Stmt &stmt) override {
+        if (!started) return IRMutator::mutate(stmt);
+        if (found) return after ? stmt : Evaluate::make(0);
+        Stmt res = IRMutator::mutate(stmt);
+        if (!found) return after ? Evaluate::make(0) : stmt;
+        return res;
+    }
+
+private:
+    Stmt visit(const ProducerConsumer* op) override {
+        started = true;
+        return IRMutator::visit(op);
+    }
+
+    Stmt visit(const For* op) override {
+        auto res = IRMutator::visit(op);
+        if (!CodeGen_PIM_Dev::is_pim_var(op->name) || (op->device_api != DeviceAPI::UPMEM && op->device_api != DeviceAPI::Default_PIM)) {
+            return res;
+        }
+        found = true;
+        if (after) return Evaluate::make(0);
+        return op;
+    }
+
+    Stmt visit(const LetStmt* op) override {
+        const Call* c = op->value.as<Call>();
+        if (!after && c && starts_with(c->name, "_halide_buffer_get_")) {
+            return mutate(op->body);
+        }
+        return IRMutator::visit(op);
+    }
+};
+
+}
+
+Stmt inject_pim_offload_split(const Stmt &s, const Target &host_target, Stmt& exec_stmt) {
+    exec_stmt = ExecuteSplitter(false).mutate(s);
+    exec_stmt = InjectGpuOffload(host_target).inject(exec_stmt);
+    debug(2) << "\nexec_stmt:\n" << exec_stmt << "\n";
+
+    return ExecuteSplitter(true).mutate(s);
 }
 
 }  // namespace Internal

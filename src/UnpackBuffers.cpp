@@ -149,10 +149,35 @@ Stmt unpack_buffers(Stmt s) {
 class LTInjector : public IRMutator {
 public:
     Stmt stmt;
-    LTInjector(Stmt stmt): stmt(stmt) { } 
+    string name;
+    bool found = false;
+    LTInjector(Stmt stmt, string name): stmt(stmt), name(name) { } 
     using IRMutator::visit;
-    Stmt visit(const ProducerConsumer *op) override {
-        return stmt;
+    using IRMutator::mutate;
+
+    Stmt mutate(const Stmt& s) override {
+        if (found) return Evaluate::make(0);
+        Stmt res = IRMutator::mutate(s);
+        if (!found) return s;
+        return res;
+    }
+
+    Stmt visit(const Store *op) override {
+        return Evaluate::make(0);
+    }
+
+    Stmt visit(const Allocate *op) override {
+        return mutate(op->body);
+    }
+
+    Stmt visit(const For *op) override {
+        if (ends_with(op->name, "__bank_id_x") && op->device_api == DeviceAPI::Default_PIM) {
+            found = true;
+            return stmt;
+            // assume 1 pim loop in entire statement
+        } else {
+            return IRMutator::visit(op);
+        }
     }
 };
 
@@ -273,7 +298,7 @@ Stmt unpack_buffers_upmem_lt(Stmt s, map<string, Stmt> &splitted_stmts, const ve
                 s = LetStmt::make(iter->first, iter->second, s);
         } else {
             if (splitted_stmts.count(name) == 0) continue;
-            Stmt let_stmt = LTInjector(splitted_stmts[name]).mutate(old_s);
+            Stmt let_stmt = LTInjector(splitted_stmts[name], name).mutate(old_s);
             for (auto iter = info_lets.rbegin(); iter != info_lets.rend(); ++iter)
                 let_stmt = LetStmt::make(iter->first, iter->second, let_stmt);
             for (auto iter = local_lets.rbegin(); iter != local_lets.rend(); ++iter)

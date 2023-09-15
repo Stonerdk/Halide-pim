@@ -17,7 +17,9 @@ namespace Internal {
 
 /** Pull loops marked with GPU device APIs to a separate
  * module, and call them through the appropriate host runtime module. */
-Stmt inject_pim_offload(const Stmt &s, const Target &host_target, Stmt& execute_stmt);
+Stmt inject_pim_offload(const Stmt &s, const Target &host_target);
+
+Stmt inject_pim_offload_split(const Stmt &s, const Target &host_target, Stmt& exec_stmt);
 
 }  // namespace Internal
 }  // namespace Halide
