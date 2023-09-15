@@ -1,11 +1,11 @@
-#include "AOT_result/gemv_generate_host.c"
+#include "AOT_result/gemv_generate_hard_host.c"
 #include "HalideBuffer.h"
 
 using namespace Halide::Runtime;
 
 int main() {
-    const int M = 128;
-    const int N = 512;
+    const int M = 1024;
+    const int N = 2048;
 
     Buffer<int> A(M, N);
     Buffer<int> x(M);
@@ -25,7 +25,7 @@ int main() {
     gemv_copy_to_0(A, infos);
     gemv_copy_to_1(x, infos);
 
-    gemv_execute();
+    gemv_execute(infos);
     gemv_copy_from(output, infos);
 
     haldie_arg_infos_free(infos);

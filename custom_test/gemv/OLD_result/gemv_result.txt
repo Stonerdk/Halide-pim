@@ -1701,9 +1701,6 @@ if (!((((uint1)0 || (uint1)_halide_buffer_is_bounds_query((struct halide_buffer_
  }
 }
 
-Transforming data layout for UPMEM PIM...
-lowering after transforming layout: (unchanged)
-
 Performing storage flattening...
  load call to sum 0
  load call to weight 0

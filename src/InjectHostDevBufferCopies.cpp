@@ -111,12 +111,12 @@ class FindBufferUsage : public IRVisitor {
     }
 
     void visit(const For *op) override {
-        internal_assert(op->device_api != DeviceAPI::Default_GPU)
+        internal_assert(op->device_api != DeviceAPI::Default_GPU && op->device_api != DeviceAPI::Default_PIM)
             << "A GPU API should have been selected by this stage in lowering\n";
-        DeviceAPI old = current_device_api;
-        if (op->device_api == DeviceAPI::UPMEM || op->device_api == DeviceAPI::Default_PIM) {
+        if (op->device_api == DeviceAPI::UPMEM) {
             return;
-        }
+        } // bypass UPMEM
+        DeviceAPI old = current_device_api;
         if (op->device_api != DeviceAPI::None) {
             current_device_api = op->device_api;
         }
@@ -238,6 +238,10 @@ class InjectBufferCopiesForSingleBuffer : public IRMutator {
             if (d == DeviceAPI::Host) {
                 continue;
             }
+            if (d == DeviceAPI::UPMEM || d == DeviceAPI::Default_PIM) {
+                continue;
+            }
+
             internal_assert(touching_device == DeviceAPI::None)
                 << "Buffer " << buffer << " was touched on multiple devices within a single leaf Stmt!\n";
             touching_device = d;
@@ -824,6 +828,10 @@ Stmt inject_host_dev_buffer_copies(Stmt s, const Target &t) {
     if (t.arch == Target::Hexagon) {
         return s;
     }
+
+    if (t.has_feature(Target::UPMEM)) {
+        return s;
+    } // TODO: more flexible way
 
     // Handle internal allocations
     s = InjectBufferCopies().mutate(s);

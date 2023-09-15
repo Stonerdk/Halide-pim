@@ -28,10 +28,7 @@ class Function;
  * Allocate, Store, and Load nodes respectively. */
 Stmt pim_layout_transform(Stmt s);
 
-Stmt pim_layout_transform_split(Stmt s,
-    std::map<std::string, Stmt>& splitted_stmts,
-    const std::map<std::string, bool>& bounds_in
-    );
+Stmt pim_layout_transform_split(Stmt s, std::map<std::string, Stmt>& splitted_stmts);
 
 }  // namespace Internal
 }  // namespace Halide
