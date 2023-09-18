@@ -38,8 +38,6 @@ custom_test/gemv/gemv
 custom_test/gemv/AOT_result/*
 custom_test/gemv/legacy/*
 
-
-
 # Apps
 apps/*/*.def
 apps/*/*.ptx
