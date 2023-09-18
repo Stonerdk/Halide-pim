@@ -225,6 +225,7 @@ extern "C" __attribute__((used)) void *halide_runtime_api_functions[] = {
     (void *)&halide_webgpu_finalize_kernels,
     (void *)&halide_webgpu_run,
     (void *)&halide_upmem_device_interface,
+    (void *)&halide_upmem_info_args,
     (void *)&halide_upmem_dpu_copy_to,
     (void *)&halide_upmem_dpu_copy_from,
     (void *)&halide_upmem_dpu_xfer_to,

@@ -527,7 +527,7 @@ void lower_impl(const vector<Function> &output_funcs,
 
         for (const auto& arg : args) {
             result_module.append(LoweredFunc(pipeline_name + "_copy_to_" + std::to_string(arg_idx++), 
-                { arg, info_args }, splitted_stmts[arg.name], LinkageType::Internal));
+                { arg, info_args }, splitted_stmts[arg.name], LinkageType::External));
         }
         const auto& out = outputs[0];
         vector<Argument> output_args;
@@ -535,8 +535,8 @@ void lower_impl(const vector<Function> &output_funcs,
             output_args.emplace_back(buf.name(), Argument::OutputBuffer, buf.type(), buf.dimensions(), buf.get_argument_estimates());
         }
         output_args.emplace_back(info_args); // TODO: remove
-        result_module.append(LoweredFunc(pipeline_name + "_copy_from", output_args, s, LinkageType::Internal));
-        result_module.append(LoweredFunc(pipeline_name + "_execute", { info_args }, execute_stmt, LinkageType::Internal));
+        result_module.append(LoweredFunc(pipeline_name + "_copy_from", output_args, s, LinkageType::External));
+        result_module.append(LoweredFunc(pipeline_name + "_execute", { info_args }, execute_stmt, LinkageType::External));
         // split s from execution and copy from
 
         auto *logger = get_compiler_logger();

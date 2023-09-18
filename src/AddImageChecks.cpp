@@ -703,9 +703,10 @@ Stmt add_image_checks_inner(Stmt s,
     // Inject the code that checks the constraints are correct. We
     // need these regardless of how NoAsserts is set, because they are
     // what gets Halide to actually exploit the constraint.
-    prepend_stmts(&asserts_constrained);
+    
 
     if (!no_asserts) {
+        prepend_stmts(&asserts_constrained);
         prepend_stmts(&asserts_required);
         prepend_stmts(&asserts_type_checks);
     }

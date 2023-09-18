@@ -376,8 +376,10 @@ void Pipeline::compile_to_upmem_libraries(const std::string &filename_prefix,
                                           const std::string &fn_name,
                                           const Target &target) {
     auto new_t = target.with_feature(Target::UPMEM_lt_split);
-    Module m = compile_to_module(args, fn_name, new_t);
+    Module m = compile_to_module(args, fn_name, new_t).resolve_submodules();
     m.compile({{OutputFileType::c_upmem, filename_prefix}});
+
+    // m.compile(static_library_outputs(filename_prefix, target));
 }
 
 void Pipeline::compile_to_file(const string &filename_prefix,

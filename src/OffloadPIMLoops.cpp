@@ -11,7 +11,7 @@
 #include "InjectHostDevBufferCopies.h"
 #include "OffloadPIMLoops.h"
 #include "Util.h"
-
+#include "Simplify.h"
 namespace Halide {
 namespace Internal {
 
@@ -20,6 +20,7 @@ using std::string;
 using std::unique_ptr;
 using std::vector;
 using std::pair;
+using std::set;
 using std::ostringstream;
 
 namespace {
@@ -241,14 +242,49 @@ private:
     }
 };
 
+class RemoveUnusedAllocate: public IRMutator {
+public:
+    class UnusedVars: public IRVisitor {
+    public:
+        using IRVisitor::visit;
+        set<string> loaded_vars;
+        void visit(const Load* op) override {
+            loaded_vars.insert(op->name);
+        }
+    };
+    UnusedVars uv;
+
+    using IRMutator::visit;
+    Stmt visit(const Allocate* op) override {
+        if (uv.loaded_vars.count(op->name)) {
+            return IRMutator::visit(op);
+        } return mutate(op->body);
+    }
+
+    Stmt visit(const ProducerConsumer* op) override {
+        if (uv.loaded_vars.count(op->name)) {
+            return ProducerConsumer::make(op->name, op->is_producer, Block::make(mutate(op->body), Free::make(op->name)));
+        }  return IRMutator::visit(op);
+    }
+
+    Stmt inject(Stmt s) {
+        s.accept(&uv);
+        return mutate(s);
+    }
+};
+
 }
 
 Stmt inject_pim_offload_split(const Stmt &s, const Target &host_target, Stmt& exec_stmt) {
     exec_stmt = ExecuteSplitter(false).mutate(s);
     exec_stmt = InjectGpuOffload(host_target).inject(exec_stmt);
+    exec_stmt = RemoveUnusedAllocate().mutate(exec_stmt);
+    exec_stmt = simplify(exec_stmt);
     debug(2) << "\nexec_stmt:\n" << exec_stmt << "\n";
 
-    return ExecuteSplitter(true).mutate(s);
+    Stmt new_s = ExecuteSplitter(true).mutate(s);
+    new_s = simplify(new_s);
+    return new_s;
 }
 
 }  // namespace Internal

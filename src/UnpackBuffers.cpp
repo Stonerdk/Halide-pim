@@ -158,7 +158,7 @@ public:
     Stmt mutate(const Stmt& s) override {
         if (found) return Evaluate::make(0);
         Stmt res = IRMutator::mutate(s);
-        if (!found) return s;
+        if (!found) Evaluate::make(0);
         return res;
     }
 
@@ -183,15 +183,16 @@ public:
 
 Stmt unpack_buffers_upmem_lt(Stmt s, map<string, Stmt> &splitted_stmts, const vector<Argument> &args, const Function& output) {
     // Inverted Index of Args
-    map<string, int8_t> args_inverted_map;
+    map<string, uint32_t> args_inverted_map;
     vector<pair<string, Expr>> info_lets;
     map<string, vector<pair<string, Expr>>> local_lets_map;
     int output_size = output.output_buffers().size();
 
-    for (uint8_t i = 0; i < output_size; i++) {
-        args_inverted_map[output.output_buffers()[i].name()] = i;
+    for (uint32_t i = 0; i < output_size; i++) {
+        auto key = output.output_buffers()[i].name();
+        args_inverted_map[key] = i;
     }
-    for (uint8_t i = 0; i < args.size(); i++) {
+    for (uint32_t i = 0; i < args.size(); i++) {
         args_inverted_map[args[i].name] = i + output_size;
     }
 
@@ -256,7 +257,7 @@ Stmt unpack_buffers_upmem_lt(Stmt s, map<string, Stmt> &splitted_stmts, const ve
 
         // info_lets: only for copy_to
         string info_name = name + ".info";
-        Expr get_info_args = Call::make(type_of<halide_buffer_info_t *>(), "halide_upmem_info_args", { info_args, args_inverted_map[name] }, Call::Extern);
+        Expr get_info_args = Call::make(type_of<halide_buffer_info_t *>(), "halide_upmem_info_args", { info_args, Expr(args_inverted_map[name]) }, Call::Extern);
         info_lets.emplace_back(info_name, get_info_args); // make it intrinsic
 
         Expr handle = Variable::make(type_of<halide_buffer_info_t *>(), info_name);

@@ -38,6 +38,9 @@ public:
     PIMLayoutTransform() {}
     
     optional<reference_wrapper<map<string, Stmt>>> splitted_stmts;
+
+    set<string> zero_realized;
+
     class ThreadLoopMutator : public IRMutator {
         public:
         ThreadLoopMutator(Stmt stmt): stmt(stmt) {}
@@ -90,15 +93,15 @@ public:
             } else if (ends_with(op->name, ".__bank_id_y")) {
                 num_banks[1] = op->extent;
                 name_banks[1] = op->name;
-                bank = Add::make(Mul::make(bank, Expr(op->extent)), Variable::make(Int(32), op->name));
+                bank = bank * op->extent + Variable::make(Int(32), op->name);
             } else if (ends_with(op->name, ".__bank_id_z")) {
                 num_banks[2] = op->extent;
                 name_banks[2] = op->name;
-                bank = Add::make(Mul::make(bank, Expr(op->extent)), Variable::make(Int(32), op->name));
+                bank = bank * op->extent + Variable::make(Int(32), op->name);
             } else if (ends_with(op->name, ".__bank_id_w")) {
                 num_banks[3] = op->extent;
                 name_banks[3] = op->name;
-                bank = Add::make(Mul::make(bank, Expr(op->extent)), Variable::make(Int(32), op->name));
+                bank = bank * op->extent + Variable::make(Int(32), op->name);
             }
             op->body.accept(this);
         }
@@ -118,19 +121,23 @@ public:
     };
 
 private:
-    size_t kernel_idx = 0;
     using IRMutator::visit;
-    Scope<> realize_scope;
+    size_t kernel_idx = 0;
+    Scope<> result_scope;
+    Scope<Halide::Region> intm_scope; // intm_scope ⊂ result_scope
+    Scope<string> zero_realize; // intm which is defined as zer
+
     Scope<map<string, Box>> bounds_scope;
     Scope<Expr> let_values;
-    Scope<string> zero_realize;
+    
+
     set<string> shared_memory_buffer;
     bool inside_pim_loop;
 
     Stmt visit(const ProducerConsumer* op) override {
-        realize_scope.push(op->name);
+        result_scope.push(op->name);
         Stmt stmt = IRMutator::visit(op);
-        realize_scope.pop(op->name);
+        result_scope.pop(op->name);
         return stmt;
     }
 
@@ -166,7 +173,10 @@ private:
 
     Stmt visit(const Realize *op) override {
         zero_realize.push(op->name, op->name);
+        intm_scope.push(op->name, op->bounds);
+        zero_realized.insert(op->name);
         Stmt stmt = IRMutator::visit(op);
+        intm_scope.pop(op->name);
         zero_realize.pop(op->name);
         return stmt;
     }
@@ -192,6 +202,10 @@ private:
         return IRMutator::visit(op);
     }
 
+    Expr var_get_extent(string vname, size_t dim) {
+        return Variable::make(Int(32), vname + ".extent." + to_string(dim) + ".proposed");
+    }
+
     pair<Stmt, Stmt> inject_copy(const For* loop, Expr bank, Stmt init_stmt) {
         string kernel_name = get_kernel_name();
         map<string, Box> bounds = bounds_scope.get(kernel_name);
@@ -203,29 +217,47 @@ private:
             if (shared_memory_buffer.find(bound_it->first) != shared_memory_buffer.end()) {
                 continue;
             }
-            vector<Expr> box_intervals;
-            
+            vector<Expr> box_intervals;      
             Box box = bound_it->second;
             for (size_t i = 0; i < box.size(); i++) {
                 box_intervals.push_back(simplify(box[i].max - box[i].min + 1));
             }
             Expr offset = box[0].min;
             Expr size = box_intervals[0];
+
+            vector<Expr> vec_min, vec_extent, vec_stride;
+
+            for (size_t i = 0; i < box.size(); i++) {
+                Expr extent, stride, _min;
+                if (intm_scope.contains(bound_it->first)) {
+                    auto region = intm_scope.get(bound_it->first);
+                    extent = region[i].extent;
+                    _min = region[i].min;
+                    if (i == 0) stride = 1;
+                    else stride = region[i - 1].extent - region[i - 1].min;
+                } else {
+                    string vname_extent, vname_min, vname_stride;
+                    vname_extent = bound_it->first + ".extent." + to_string(i) + ".proposed";
+                    vname_stride = bound_it->first + ".stride." + to_string(i) + ".proposed";
+                    vname_min = bound_it->first + ".min." + to_string(i) + ".proposed";
+                    if (let_values.contains(vname_extent)) 
+                        extent = let_values.get(vname_extent);
+                    else extent = Variable::make(Int(32), vname_extent);
+                    if (let_values.contains(vname_stride))
+                        stride = let_values.get(vname_stride);
+                    else stride = Variable::make(Int(32), vname_stride);
+                    if (let_values.contains(vname_min)) 
+                        _min = let_values.get(vname_min);
+                    else _min = Variable::make(Int(32), vname_min);
+                }
+                vec_min.push_back(_min);
+                vec_extent.push_back (extent);
+                vec_stride.push_back(stride);
+            }
             
             size_t merge_idx = 1;
             for (size_t i = 1; i < box.size(); i++) {
-                string vname_extent = bound_it->first + ".extent." + to_string(i - 1) + ".proposed";
-                string vname_min = bound_it->first + ".min." + to_string(i - 1) + ".proposed";
-
-                Expr extent, _min, stride;
-                if (let_values.contains(vname_extent)) extent = let_values.get(vname_extent);
-                else extent = Variable::make(Int(32), vname_extent);
-                if (let_values.contains(vname_min)) _min = let_values.get(vname_min);
-                else _min = Variable::make(Int(32), vname_min);
-                stride = extent - _min; 
-                
-                debug(2) << stride << " VS " << size << "\n";
-                if (graph_equal(size, stride)) {
+                if (graph_equal(size, vec_stride[i])) {
                     size *= box_intervals[i];
                     merge_idx++;
                 } else {
@@ -233,21 +265,14 @@ private:
                 }
             }
             for (size_t i = 1; i < box.size(); i++) {
-                Expr stride = Variable::make(Int(32), bound_it->first + ".stride." + to_string(i) + ".proposed");
-                Expr _min = Variable::make(Int(32), bound_it->first + ".min." + to_string(i) + ".proposed");
                 if (i < merge_idx)
-                    offset += (box[i].min - _min) * stride;
+                    offset += (box[i].min - vec_min[i]) * vec_stride[i];
                 else
-                    offset += (Variable::make(Int(32), "ii" + to_string(i)) + box[i].min - _min) * stride;
+                    offset += (Variable::make(Int(32), "ii" + to_string(i)) + box[i].min - vec_min[i]) * vec_stride[i];
             }
-            vector<Expr>args = { 
-                Variable::make(Int(32), "dpu_idx"), 
-                Variable::make(type_of<struct halide_buffer_t*>(), bound_it->first + ".buffer"),
-                offset,
-                size
-            };
+            vector<Expr>args = { Variable::make(Int(32), "dpu_idx"), Variable::make(type_of<struct halide_buffer_t*>(), bound_it->first + ".buffer"), offset, size };
  
-            if (realize_scope.contains(bound_it->first)) { 
+            if (result_scope.contains(bound_it->first)) { 
                 Stmt stmt_copy_from = Evaluate::make(Call::make(Int(32), "halide_upmem_dpu_copy_from", args, Call::Extern));
                 stmt_copy_from = ThreadLoopMutator(LetStmt::make("dpu_idx", bank, stmt_copy_from)).mutate(loop);
                 for (size_t i = merge_idx; i < box.size(); i++) {
@@ -256,19 +281,13 @@ private:
                 stmts_copy_from.push_back(stmt_copy_from);
             } // realize: copy_from is invoked after loop
 
-            if (zero_realize.contains(bound_it->first)) {
-                // Expr new_size = size;
-                // for (size_t i = merge_idx; i < box.size(); i++) {
-                //     new_size *= box_intervals[i];
-                // }
-                // stmts_copy_to.push_back(Evaluate::make(Call::make(Int(32), "halide_upmem_dpu_copy_zero", { new_size }, Call::Extern)));
-            } else {
+            if (!zero_realize.contains(bound_it->first)) {
                 Stmt stmt_copy_to = Evaluate::make(Call::make(Int(32), "halide_upmem_dpu_copy_to", args, Call::Extern));
                 stmt_copy_to = ThreadLoopMutator(LetStmt::make("dpu_idx", bank, stmt_copy_to)).mutate(loop);
                 for (size_t i = merge_idx; i < box.size(); i++) {
                     stmt_copy_to = For::make("ii" + to_string(i), 0, box_intervals[i], ForType::Serial, DeviceAPI::None, stmt_copy_to);
                 }
-                if (!is_split() || realize_scope.contains(bound_it->first)) {
+                if (!is_split() || result_scope.contains(bound_it->first)) {
                     stmts_copy_to.push_back(stmt_copy_to);
                 } else {
                     split_merge(bound_it->first, stmt_copy_to, false);
@@ -296,12 +315,9 @@ private:
                 Expr stride = 1;
                 for (size_t i = 0; i < it->second.size(); i++) {
                     if (shared_memory_buffer.find(it->first) != shared_memory_buffer.end()) {
-                        lets.push({ it->first + ".min.pim." + to_string(i), 
-                            Variable::make(Int(32), it->first + ".min." + to_string(i)) });
-                        lets.push({ it->first + ".extent.pim." + to_string(i), 
-                            Variable::make(Int(32), it->first + ".extent." + to_string(i)) });
-                        lets.push({ it->first + ".stride.pim." + to_string(i), 
-                            Variable::make(Int(32), it->first + ".stride." + to_string(i)) });
+                        lets.push({ it->first + ".min.pim." + to_string(i), Variable::make(Int(32), it->first + ".min." + to_string(i)) });
+                        lets.push({ it->first + ".extent.pim." + to_string(i), Variable::make(Int(32), it->first + ".extent." + to_string(i)) });
+                        lets.push({ it->first + ".stride.pim." + to_string(i), Variable::make(Int(32), it->first + ".stride." + to_string(i)) });
                     } else {
                         lets.push({it->first + ".min.pim." + to_string(i), it->second[i].min});
                         Expr extent = it->second[i].max - it->second[i].min + 1;
@@ -352,13 +368,39 @@ private:
     }
 };
 
+class ZeroRealizeMover: public IRMutator {
+public:
+    using IRMutator::visit;
+
+    set<string>& zero_realized;
+    bool after_pim_loop = false;
+
+    ZeroRealizeMover(set<string>& zero_realized): zero_realized(zero_realized) {}
+
+    Stmt visit(const For* op) override {
+        if (ends_with(op->name, ".__bank_id_x")) {
+            after_pim_loop = true;
+        } 
+        return IRMutator::visit(op);
+    }
+
+    Stmt visit(const Provide* op) override {
+        if (zero_realized.count(op->name) > 0 && !after_pim_loop) {
+            return Evaluate::make(0);
+        }
+        return IRMutator::visit(op);
+    }
+};
+
 
 Stmt pim_layout_transform(Stmt s) {
     return PIMLayoutTransform().mutate(s);
 }
 
 Stmt pim_layout_transform_split(Stmt s, map<string, Stmt>& splitted_stmts) {
-    return PIMLayoutTransform(splitted_stmts).mutate(s);
+    PIMLayoutTransform lt(splitted_stmts);
+    Stmt new_s = lt.mutate(s);
+    return ZeroRealizeMover(lt.zero_realized).mutate(new_s);
 }
 }  // namespace Internal
 }  // namespace Halide
