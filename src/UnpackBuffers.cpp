@@ -186,7 +186,7 @@ Stmt unpack_buffers_upmem_lt(Stmt s, map<string, Stmt> &splitted_stmts, const ve
     map<string, uint32_t> args_inverted_map;
     vector<pair<string, Expr>> info_lets;
     map<string, vector<pair<string, Expr>>> local_lets_map;
-    int output_size = output.output_buffers().size();
+    uint32_t output_size = output.output_buffers().size();
 
     for (uint32_t i = 0; i < output_size; i++) {
         auto key = output.output_buffers()[i].name();

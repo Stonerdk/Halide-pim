@@ -93,7 +93,7 @@ const halide_device_interface_t *get_device_interface_for_device_api(DeviceAPI d
                 user_error
                     << "get_device_interface_for_device_api called from "
                     << error_site
-                    << " requested a default GPU but no GPU feature is specified in target ("
+                    << " requested a default GPU but no PIM feature is specified in target ("
                     << t.to_string()
                     << ").\n";
             }

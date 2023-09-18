@@ -36,6 +36,7 @@ custom_test/gemv/*.c
 custom_test/gemv/*.h
 custom_test/gemv/gemv
 custom_test/gemv/AOT_result/*
+custom_test/gemv/legacy/*
 
 
 

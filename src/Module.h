@@ -28,7 +28,6 @@ enum class OutputFileType {
     bitcode,
     c_header,
     c_source,
-    c_upmem,
     compiler_log,
     cpp_stub,
     featurization,
