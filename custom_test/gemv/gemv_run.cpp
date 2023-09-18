@@ -1,5 +1,7 @@
-#include "AOT_result/gemv_generate_hard_host.c"
+#include "AOT_result/gemv.h"
 #include "HalideBuffer.h"
+
+// g++ lesson_10*run.cpp lesson_10_halide.a -std=c++17 -I <path/to/Halide.h> -lpthread -ldl -o lesson_10_run
 
 using namespace Halide::Runtime;
 
@@ -30,7 +32,7 @@ int main() {
 
     haldie_arg_infos_free(infos);
 
-    // Buffer<int> output_transformed = gemv_transform(output);
+
     for (int i = 0; i < M; i++) {
         printf("%d, ", output(i));
     }

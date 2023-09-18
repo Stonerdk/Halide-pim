@@ -37,13 +37,13 @@ WEAK int halide_upmem_compute_capability(void *user_context, int *major, int *mi
 
 
 
-halide_buffer_info_t * halide_upmem_info_args(void* args, uint8_t i) {
+WEAK halide_buffer_info_t * halide_upmem_info_args(void* args, uint32_t i) {
     return ((halide_buffer_info_t**)args)[i];
 }
 
 WEAK int halide_upmem_dpu_copy_to(void *user_context,
     int32_t dpu_idx, struct halide_buffer_t *buf, 
-    uint64_t offset, uint64_t size) {
+    uint32_t offset, uint32_t size) {
     debug(user_context) << "halide_upmem_dpu_copy_to " << dpu_idx << " " << buf << " " << offset << " " << size << "\n";
     return 0;
 }
@@ -55,20 +55,20 @@ WEAK int halide_upmem_run(void *user_context, const char* kernel_name, uint32_t 
 
 WEAK int halide_upmem_dpu_copy_from(void *user_context,
     int32_t dpu_idx, struct halide_buffer_t *buf, 
-    uint64_t offset, uint64_t size) {
+    uint32_t offset, uint32_t size) {
     debug(user_context) << "halide_upmem_dpu_copy_from " << dpu_idx << " " << buf << " " << offset << " " << size << "\n";
     return 0;
 }
 
 WEAK int halide_upmem_dpu_xfer_to(void *user_context,
     int32_t dpu_idx, struct halide_buffer_t *buf, 
-    uint64_t host_offset[], uint64_t dpu_offset, uint64_t size) {
+    uint32_t host_offset[], uint32_t dpu_offset, uint32_t size) {
     return halide_error_code_unimplemented;
 }
 
 WEAK int halide_upmem_dpu_xfer_from(void *user_context,
     int32_t dpu_idx, struct halide_buffer_t *buf, 
-    uint64_t host_offset[], uint64_t dpu_offset, uint64_t size) {
+    uint32_t host_offset[], uint32_t dpu_offset, uint32_t size) {
     return halide_error_code_unimplemented;
 }
 

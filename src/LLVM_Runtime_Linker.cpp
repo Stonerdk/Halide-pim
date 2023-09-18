@@ -144,6 +144,7 @@ DECLARE_CPP_INITMOD(timer_profiler)
 DECLARE_CPP_INITMOD(to_string)
 DECLARE_CPP_INITMOD(trace_helper)
 DECLARE_CPP_INITMOD(tracing)
+DECLARE_CPP_INITMOD(upmem)
 // TODO(https://github.com/halide/Halide/issues/7248)
 // DECLARE_CPP_INITMOD(webgpu)
 DECLARE_CPP_INITMOD(webgpu_dawn)
@@ -1171,6 +1172,9 @@ std::unique_ptr<llvm::Module> get_initial_module_for_target(Target t, llvm::LLVM
             } else {
                 modules.push_back(get_initmod_opencl(c, bits_64, debug));
             }
+        }
+        if (t.has_feature(Target::UPMEM)) {
+            modules.push_back(get_initmod_upmem(c, bits_64, debug));
         }
         if (t.has_feature(Target::OpenGLCompute)) {
             modules.push_back(get_initmod_openglcompute(c, bits_64, debug));
