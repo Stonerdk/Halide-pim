@@ -997,11 +997,6 @@ public:
                                              const std::vector<Target> &targets,
                                              const std::vector<std::string> &suffixes);
 
-    void compile_to_upmem_libraries(const std::string &filename_prefix, 
-                                    const std::vector<Argument> &args, 
-                                    const std::string &fn_name = "", 
-                                    const Target &target = get_target_from_environment());
-
     /** Store an internal representation of lowered code as a self
      * contained Module suitable for further compilation. */
     Module compile_to_module(const std::vector<Argument> &args, const std::string &fn_name = "",

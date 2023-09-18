@@ -1812,42 +1812,6 @@ Stage &Stage::pim_bank(const VarOrRVar &dpu_x, const VarOrRVar &dpu_y, const Var
     return *this;
 }
 
-// Stage &Stage::pim_thread(const Expr &tasklet_size, DeviceAPI device_api) {
-//     vector<Dim> &dims = definition.schedule().dims();
-//     bool found = false;
-//     size_t innermost_dpu = 0;
-//     for (size_t i = 0; i < dims.size(); i++) {
-//         if (dims[i].for_type == ForType::PIMBank) {
-//             found = true;
-//             innermost_dpu = i;
-//         } 
-//     }
-//     if (!found) {
-//         user_error 
-//             << "In schedule for " << name()
-//             << ", couldn't find inner PIMBank loop."
-//             << "\n"
-//             << dump_argument_list();
-//     }
-
-//     else if (innermost_dpu == dims.size() - 1) {
-//         user_error 
-//             << "In schedule for " << name()
-//             << ", PIMBank loop is the innermost loop."
-//             << " Please split into 2 or more loops to"
-//             << " ensure the outermost loop under PIMBank loop to be tasklet loop."
-//             << "\n"
-//             << dump_argument_list();
-//     }
-
-//     else {
-//         // PIM_TODD: not like this. we need to split it
-//         dims[innermost_dpu + 1].device_api = device_api;
-//         dims[innermost_dpu + 1].for_type = ForType::PIMThread;
-//     }
-//     return *this;
-// }
-
 Stage &Stage::pim_thread(const VarOrRVar &tasklet_x, DeviceAPI device_api) {
     set_dim_device_api(tasklet_x, device_api);
     set_dim_type(tasklet_x, ForType::PIMThread);
@@ -3439,13 +3403,6 @@ void Func::compile_to_assembly(const string &filename, const vector<Argument> &a
 
 void Func::compile_to_assembly(const string &filename, const vector<Argument> &args, const Target &target) {
     pipeline().compile_to_assembly(filename, args, "", target);
-}
-
-void Func::compile_to_upmem_libraries(const std::string &filename, 
-                                const std::vector<Argument> &args, 
-                                const std::string &fn_name, 
-                                const Target &target) {
-    pipeline().compile_to_upmem_libraries(filename, args, fn_name, target);                          
 }
 
 // JIT-related code

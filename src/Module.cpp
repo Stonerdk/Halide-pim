@@ -9,12 +9,10 @@
 #include "CodeGen_C.h"
 #include "CodeGen_Internal.h"
 #include "CodeGen_PyTorch.h"
-#include "CodeGen_UPMEM_host.h"
 #include "CompilerLogger.h"
 #include "Debug.h"
 #include "HexagonOffload.h"
 #include "IROperator.h"
-#include "IRMutator.h"
 #include "LLVM_Headers.h"
 #include "LLVM_Output.h"
 #include "LLVM_Runtime_Linker.h"
@@ -707,15 +705,6 @@ void Module::compile(const std::map<OutputFileType, std::string> &output_files) 
         get_compiler_logger()->emit_to_stream(file);
         file.close();
         internal_assert(!file.fail());
-    }
-    if (contains(output_files, OutputFileType::c_upmem)) {
-        debug(1) << "Module.compile(): c_upmem " << output_files.at(OutputFileType::c_upmem) << "\n";
-        const std::string prefix = output_files.at(OutputFileType::c_upmem);
-        std::ofstream file_kernel(prefix + "_kernel.c");
-        std::ofstream file_host(prefix + "_host.c");
-        std::ofstream file_host_h(prefix + "_host.h");
-        Internal::CodeGen_UPMEM_C cg(prefix, file_host, file_host_h, file_kernel, target());
-        cg.compile(*this);
     }
     // If HL_DEBUG_COMPILER_LOGGER is set, dump the log (if any) to stderr now, whether or it is required
     if (get_env_variable("HL_DEBUG_COMPILER_LOGGER") == "1" && get_compiler_logger() != nullptr) {
