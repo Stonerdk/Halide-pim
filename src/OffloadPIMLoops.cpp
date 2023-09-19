@@ -73,6 +73,7 @@ class InjectGpuOffload : public IRMutator {
 
     const Target &target;
 
+    size_t loop_idx = 0;
     Expr get_state_var(const string &name) {
         // Expr v = Variable::make(type_of<void *>(), name);
         state_needed[name] = true;
@@ -130,7 +131,8 @@ class InjectGpuOffload : public IRMutator {
              });
 
         // compile the kernel
-        string kernel_name = c_print_name(unique_name("kernel_" + loop->name));
+        string kernel_name = "kernel_" + std::to_string(loop_idx);
+        internal_assert(loop_idx == 0);
 
         CodeGen_PIM_Dev *pim_codegen = cgdev[loop->device_api].get();
         user_assert(pim_codegen != nullptr)
@@ -147,39 +149,6 @@ class InjectGpuOffload : public IRMutator {
 
         pim_codegen->add_kernel(body, kernel_name, closure_args);
 
-        bool runtime_run_takes_types = pim_codegen->kernel_run_takes_types();
-        Type target_size_t_type = target.bits == 32 ? Int(32) : Int(64);
-
-        vector<Expr> args, arg_types_or_sizes, arg_is_buffer;
-        for (const DeviceArgument &i : closure_args) {
-            Expr val;
-            if (i.is_buffer) {
-                val = Variable::make(Handle(), i.name + ".buffer");
-            } else {
-                val = Variable::make(i.type, i.name);
-                val = Call::make(type_of<void *>(), Call::make_struct, {val}, Call::Intrinsic);
-            }
-            args.emplace_back(val);
-
-            if (runtime_run_takes_types) {
-                arg_types_or_sizes.emplace_back(((halide_type_t)i.type).as_u32());
-            } else {
-                arg_types_or_sizes.emplace_back(cast(target_size_t_type, i.is_buffer ? 8 : i.type.bytes()));
-            }
-
-            arg_is_buffer.emplace_back(cast<uint8_t>(i.is_buffer));
-        }
-
-        // nullptr-terminate the lists
-        args.emplace_back(reinterpret(Handle(), cast<uint64_t>(0)));
-        if (runtime_run_takes_types) {
-            internal_assert(sizeof(halide_type_t) == sizeof(uint32_t));
-            arg_types_or_sizes.emplace_back(cast<uint32_t>(0));
-        } else {
-            arg_types_or_sizes.emplace_back(cast(target_size_t_type, 0));
-        }
-        arg_is_buffer.emplace_back(cast<uint8_t>(0));
-
         // TODO: only three dimensions can be passed to
         // cuLaunchKernel. How should we handle blkid[3]?
         internal_assert(is_const_one(bounds.num_banks[3])) << bounds.num_banks[3] << "\n";
@@ -190,19 +159,17 @@ class InjectGpuOffload : public IRMutator {
 
         string api_unique_name = pim_codegen->api_unique_name();
         vector<Expr> run_args = {
-            get_state_var(api_unique_name),
             kernel_name,
             Expr(bounds.num_banks[0]),
             Expr(bounds.num_banks[1]),
             Expr(bounds.num_banks[2]),
             Expr(bounds.num_threads[0]),
             Expr(0),
-            Call::make(Handle(), Call::make_struct, arg_types_or_sizes, Call::Intrinsic),
-            Call::make(Handle(), Call::make_struct, args, Call::Intrinsic),
-            Call::make(Handle(), Call::make_struct, arg_is_buffer, Call::Intrinsic),
         };
+        loop_idx ++;
         return call_extern_and_assert("halide_" + api_unique_name + "_run", run_args);
     }
+
 
 public:
     InjectGpuOffload(const Target &target)

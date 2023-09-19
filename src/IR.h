@@ -608,6 +608,8 @@ struct Call : public ExprNode<Call> {
         widening_shift_right,
         widening_sub,
 
+        upmem_lt_marker,
+
         IntrinsicOpCount  // Sentinel: keep last.
     };
 

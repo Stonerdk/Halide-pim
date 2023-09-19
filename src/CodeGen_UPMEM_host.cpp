@@ -339,7 +339,7 @@ void CodeGen_UPMEM_C::compile(const Module &input) {
   
     add_platform_prologue();
     TypeInfoGatherer type_info;
-    for (const auto &f : input.functions()) {
+    for (const auto &f : new_module.functions()) {
         if (f.body.defined()) 
             f.body.accept(&type_info);
     }
@@ -348,7 +348,7 @@ void CodeGen_UPMEM_C::compile(const Module &input) {
                           type_info.for_types_used.count(ForType::GPULane));
     if (output_kind != CPlusPlusFunctionInfoHeader) {
         stream << "\n";
-        for (const auto &f : input.functions()) {
+        for (const auto &f : new_module.functions()) {
             for (const auto &arg : f.args) {
                 forward_declare_type_if_needed(arg.type);
             }
@@ -359,7 +359,7 @@ void CodeGen_UPMEM_C::compile(const Module &input) {
     if (!is_header_or_extern_decl()) {
         add_vector_typedefs(type_info.vector_types_used);
         ExternCallPrototypes e;
-        for (const auto &f : input.functions()) {
+        for (const auto &f : new_module.functions()) {
             f.body.accept(&e);
             if (f.linkage == LinkageType::Internal) {
                 e.set_internal_linkage(f.name);
@@ -371,12 +371,12 @@ void CodeGen_UPMEM_C::compile(const Module &input) {
         }
     }
 
-    for (const auto &b : input.buffers()) {
+    for (const auto &b : new_module.buffers()) {
         compile(b);
     }
     
-    const auto metadata_name_map = input.get_metadata_name_map();
-    for (const auto &f : input.functions()) {
+    const auto metadata_name_map = new_module.get_metadata_name_map();
+    for (const auto &f : new_module.functions()) {
         compile(f, metadata_name_map);
     }
 

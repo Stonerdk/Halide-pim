@@ -6,7 +6,10 @@
  */
 
 #include "Expr.h"
+#include <map>
+#include <string>
 
+using namespace std;
 namespace Halide {
 namespace Internal {
 
@@ -14,7 +17,9 @@ namespace Internal {
  * (e.g. foo.extent.0) in any referenced concrete buffers or buffer
  * parameters. After this pass, the only undefined symbols should
  * scalar parameters and the buffers themselves (e.g. foo.buffer). */
-Stmt unpack_buffers(Stmt s, const Target& t);
+Stmt unpack_buffers(Stmt s);
+
+Stmt unpack_buffers_upmem_lt(Stmt s, const string& pipeline_name, map<string, Stmt>& let_stmts);
 
 }  // namespace Internal
 }  // namespace Halide

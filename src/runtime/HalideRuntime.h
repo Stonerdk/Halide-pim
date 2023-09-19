@@ -132,6 +132,7 @@ extern "C" {
 
 // Forward-declare to suppress warnings if compiling as C.
 struct halide_buffer_t;
+struct halide_buffer_info_t;
 
 /** Print a message to stderr. Main use is to support tracing
  * functionality, print, and print_when calls. Also called by the default
@@ -1483,6 +1484,40 @@ typedef struct halide_dimension_t {
 
 typedef enum { halide_buffer_flag_host_dirty = 1,
                halide_buffer_flag_device_dirty = 2 } halide_buffer_flags;
+
+/**
+ * Halide Buffer Information
+*/
+
+typedef struct halide_buffer_info_t {
+    /** The type of each buffer element. */
+    struct halide_type_t type;
+
+    /** The dimensionality of the buffer. */
+    int32_t dimensions;
+
+    /** The shape of the buffer. Halide does not own this array - you
+     * must manage the memory for it yourself. */
+    halide_dimension_t *dim;
+
+    /** A device-handle for e.g. GPU memory used to back this buffer. */
+    // uint64_t device;
+
+    /** The interface used to interpret the above handle. */
+    // const struct halide_device_interface_t *device_interface;
+
+    /** A pointer to the start of the data in main memory. In terms of
+     * the Halide coordinate system, this is the address of the min
+     * coordinates (defined below). */
+    // uint8_t *host;
+
+    /** flags with various meanings. */
+    // uint64_t flags;
+
+    /** Pads the buffer up to a multiple of 8 bytes */
+    // void *padding;
+} halide_buffer_info_t;
+
 
 /**
  * The raw representation of an image passed around by generated
